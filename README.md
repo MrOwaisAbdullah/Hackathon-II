@@ -1,6 +1,30 @@
-# TeamFlow Console App - Phase 1
+# TeamFlow Console App
+
+[![PyPI](https://img.shields.io/pypi/v/teamflow-console)](https://pypi.org/project/teamflow-console/)
+[![Python](https://img.shields.io/pypi/pyversions/teamflow-console)](https://pypi.org/project/teamflow-console/)
+[![License](https://img.shields.io/pypi/l/teamflow-console)](https://github.com/MrOwaisAbdullah/Teamflow/blob/main/LICENSE)
 
 Interactive menu-driven console application for task distribution in small agencies.
+
+## Installation
+
+```bash
+# Install from PyPI
+pip install teamflow-console
+
+# Or install with pipx (recommended for isolated environments)
+pipx install teamflow-console
+```
+
+## Quick Start
+
+```bash
+# Run the application
+teamflow
+
+# Or if using Python module directly
+python -m src.main
+```
 
 ## Features
 
@@ -10,19 +34,6 @@ Interactive menu-driven console application for task distribution in small agenc
 - **Task Assignment**: Assign tasks to team members with workload warnings
 - **Task Filtering**: Filter by status, priority, and assignee
 - **Keyboard Shortcuts**: Quick actions for power users (c=create, l=list, q=quit)
-
-## Quick Start
-
-```bash
-# Install dependencies (requires Python 3.13+)
-pip install typer rich pydantic
-
-# Run the application
-python -m src.main
-
-# Run tests
-pytest --cov=src --cov-report=term-missing
-```
 
 ## First Run
 
