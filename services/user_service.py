@@ -5,8 +5,8 @@ This module contains the business logic for user operations.
 
 from typing import Protocol
 
-from src.models.task import Status
-from src.models.user import Role, User
+from models.task import Status
+from models.user import Role, User
 
 
 class UserStoreProtocol(Protocol):

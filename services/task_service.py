@@ -7,7 +7,7 @@ business logic from CLI interface and storage.
 
 from typing import Protocol
 
-from src.models.task import Priority, Status, Task
+from models.task import Priority, Status, Task
 
 # Sentinel value to detect when assignee_id parameter was not provided
 _UNSET = object()

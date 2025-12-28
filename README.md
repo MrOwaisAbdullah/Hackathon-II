@@ -21,9 +21,6 @@ pipx install teamflow-console
 ```bash
 # Run the application
 teamflow
-
-# Or if using Python module directly
-python -m src.main
 ```
 
 ## Features
