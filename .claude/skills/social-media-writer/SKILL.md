@@ -28,12 +28,14 @@ Here is my latest profile URL: [Owais Abdullah Profile](https://owaisabdullah.de
 **Identity:** I am a hands-on builder, not a content-first creator. My work starts with building, breaking, fixing, and shipping. I come from a practical, execution-driven background.
 
 **Current Focus:** Agentic AI
+
 - Building real agents with OpenAI Agents SDK
 - Wiring tools and APIs
 - Handling limits, failures, and deployment
 - Learning by doing, not theorizing
 
 **Work Experience:**
+
 - **Lionup Digital** — Senior Developer (Web & AI) | 2025–Present
   - Building modern web solutions and integrating AI tools/automation workflows
 - **Burraq Digits** — Web Developer & AI Specialist | 2025
@@ -45,12 +47,14 @@ Here is my latest profile URL: [Owais Abdullah Profile](https://owaisabdullah.de
 - **Freelance** — Graphic Designer (Fiverr) | 2018–2020
 
 **Education:**
+
 - **Panaversity | GIAIC** — Cloud Native Applied Agentic AI | 2024–Present
   - 100 percentile in Q3
   - Values: correctness, fundamentals, discipline
 - **Virtual University of Pakistan** — BS Computer Science (Enrolled) | 2025–Present
 
 **Core Skills:**
+
 - **Frontend:** HTML, CSS, JavaScript, TypeScript, React.js, Next.js, Tailwind CSS
 - **Backend:** Node.js, Python, SQLite, PostgreSQL
 - **AI/LLM:** OpenAI Agents SDK, AI Integrations, Chatbots, Chainlit, Streamlit
@@ -58,6 +62,7 @@ Here is my latest profile URL: [Owais Abdullah Profile](https://owaisabdullah.de
 - **Automation:** Automation Scripts, REST APIs
 
 **Key Highlights:**
+
 - 💼 3+ years in tech industry
 - 🚀 40+ projects delivered
 - 🛠️ React, Next.js, TypeScript, Python, WordPress, OpenAI Agents SDK
@@ -66,6 +71,7 @@ Here is my latest profile URL: [Owais Abdullah Profile](https://owaisabdullah.de
 - 🗣️ English (Professional), Urdu (Native)
 
 **Notable Projects:**
+
 - AI Social Post Agent — Generates LinkedIn posts, tweets, carousels from transcripts
 - SEO Blog Agent — Researches, writes, publishes SEO blogs to websites
 - YT-to-Social Post Converter — Shorts → ready-to-publish content
@@ -74,6 +80,7 @@ Here is my latest profile URL: [Owais Abdullah Profile](https://owaisabdullah.de
 - Plus 35+ more tools and websites
 
 **What I Care About:**
+
 - Small codebases
 - Clear architecture
 - Fewer moving parts
@@ -81,17 +88,20 @@ Here is my latest profile URL: [Owais Abdullah Profile](https://owaisabdullah.de
 - Real constraints (hackathons, limits, deadlines)
 
 **Personal Traits That Shape Writing:**
+
 - Introverted - I do not naturally seek attention
 - I share after doing the work, not before
 - Avoids hype, exaggeration, "guru" tone
 - More comfortable explaining how something worked than selling an idea
 
 **Why I Write Publicly:**
+
 - Share what I've learned the hard way
 - Reduce friction for others building similar things
 - Document decisions, not just outcomes
 
 **Why I Do NOT Write:**
+
 - Chase engagement
 - Sound impressive
 - Pretend certainty where it doesn't exist
@@ -102,6 +112,7 @@ Every post should come from this angle:
 > "I'm a builder sharing a real moment, decision, or lesson from active work — not teaching from a pedestal."
 
 If a post does not feel like it could be said honestly to:
+
 - A fellow student
 - A teammate
 - A respected mentor
@@ -116,6 +127,7 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 ## Core Writing Principles
 
 ### 1. Clarity Over Cleverness
+
 - Say exactly what you mean
 - One idea per sentence
 - Short words, short sentences
@@ -123,6 +135,7 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 - Use simple English that even non-natives understand
 
 ### 2. Human-First Tone
+
 - Write like you talk to a colleague over coffee
 - Casual but professional
 - No "synergy," "leverage," "game-changing"
@@ -130,6 +143,7 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 - Share struggles, not just wins
 
 ### 3. Earned Confidence
+
 - State facts, don't hype
 - Let results speak
 - "This worked for me" not "This will change your life"
@@ -137,24 +151,25 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 
 ## Tone Rules
 
-| Rule | Example |
-|------|---------|
-| Be calm, not excited | "Here's what worked" not "This is INSANE!" |
-| Be direct, not dramatic | "I learned X" not "My life was forever changed" |
-| Be grounded, not inspirational | "Try this approach" not "Follow your dreams" |
-| Be specific, not vague | "Reduced latency by 40%" not "Massive improvements" |
-| Be honest, not performative | "I struggled with this" not "Crushing it!" |
-| Be simple, not complex | "Use this tool" not "Leverage this synergy" |
+| Rule                           | Example                                             |
+| ------------------------------ | --------------------------------------------------- |
+| Be calm, not excited           | "Here's what worked" not "This is INSANE!"          |
+| Be direct, not dramatic        | "I learned X" not "My life was forever changed"     |
+| Be grounded, not inspirational | "Try this approach" not "Follow your dreams"        |
+| Be specific, not vague         | "Reduced latency by 40%" not "Massive improvements" |
+| Be honest, not performative    | "I struggled with this" not "Crushing it!"          |
+| Be simple, not complex         | "Use this tool" not "Leverage this synergy"         |
 
 ## Optimal Post Length (Based on Top Creator Research)
 
-| Platform | Optimal Range | Max Limit | "See More" Cutoff |
-|----------|---------------|-----------|-------------------|
-| **LinkedIn** | 700-1000 chars | 3000 chars | ~140 chars |
-| **Twitter/X** | 200-270 chars | 280 chars | N/A |
-| **WhatsApp** | 50-150 chars | None | N/A |
+| Platform      | Optimal Range  | Max Limit  | "See More" Cutoff |
+| ------------- | -------------- | ---------- | ----------------- |
+| **LinkedIn**  | 700-1000 chars | 3000 chars | ~140 chars        |
+| **Twitter/X** | 200-270 chars  | 280 chars  | N/A               |
+| **WhatsApp**  | 50-150 chars   | None       | N/A               |
 
 **Research Findings:**
+
 - Posts with 900-1200 characters get optimal reach (LinkedIn)
 - Short sentences under 12 words perform 20% better
 - Long conversational posts (2500+ chars) can perform 2x better, but 700-1000 is sweet spot
@@ -172,6 +187,7 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 ## Scannability Rules (Critical for Mobile Readers)
 
 ### Formatting Requirements
+
 - **One-liner hook**: First line must grab attention
 - **Max 3 lines per paragraph**: Keep paragraphs short
 - **White space after each line**: Makes it scannable
@@ -182,6 +198,7 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 ### Good vs Bad Formatting
 
 **Good (Scannable):**
+
 ```
 I just shipped my first CLI app.
 
@@ -196,6 +213,7 @@ Took 2 weeks to build.
 ```
 
 **Bad (Wall of Text):**
+
 ```
 I just shipped my first CLI app called TaskFlow which is a task management tool that allows you to add list and delete tasks and it took me 2 weeks to build using Python and Typer and I learned a lot about CLI development along the way and I'm excited to share it with you all.
 ```
@@ -269,6 +287,7 @@ REFLECTION: What you'd tell others
 ## Post Templates
 
 ### Achievement Post
+
 ```
 [One-liner hook - outcome]
 
@@ -284,6 +303,7 @@ REFLECTION: What you'd tell others
 ```
 
 ### Technical Deep-Dive
+
 ```
 [Problem statement - hook]
 
@@ -301,6 +321,7 @@ REFLECTION: What you'd tell others
 ```
 
 ### Hackathon Recap
+
 ```
 [What we built - hook]
 
@@ -318,6 +339,7 @@ REFLECTION: What you'd tell others
 ```
 
 ### Advice Post
+
 ```
 [Hook - observation or tip]
 
@@ -335,6 +357,7 @@ REFLECTION: What you'd tell others
 ```
 
 ### Announcement
+
 ```
 [Hook - big moment]
 
@@ -354,30 +377,36 @@ REFLECTION: What you'd tell others
 The skill automatically rejects content containing:
 
 ### Marketing Hype (Never Use)
+
 - "Game-changing" / "Revolutionary" / "Groundbreaking"
 - "Cutting-edge" / "State-of-the-art" / "Next-gen"
 - "Paradigm shift" / "Quantum leap" / "Synergy"
 - "Disruptive" / "Innovative" / "Transformative"
+- "pivot"
 
 ### Empty Filler Phrases
+
 - "At the end of the day"
 - "It is important to note"
 - "Needless to say"
 - "The fact of the matter is"
 
 ### Performatively Humble Brags
+
 - "I don't mean to brag, but..."
 - "Humbled to announce..."
 - "Blessed to be part of..."
 - "Just a guy who..."
 
 ### Cliché Tech Bro Phrases
+
 - "Crushing it" / "Killing it" / "Smashed it"
 - "Grind never stops" / "Hustle hard"
 - "Thought leader" / "Visionary" / "Ninja"
 - "Rockstar developer" / "Code warrior"
 
 ### Engagement Bait
+
 - "You won't believe this..."
 - "This will blow your mind..."
 - "Stop scrolling!"
@@ -403,6 +432,7 @@ Every generated post must pass:
 ## Platform Adjustments
 
 ### LinkedIn (700-1000 chars optimal)
+
 - Professional but conversational
 - One-liner hook first
 - Max 3 lines per paragraph
@@ -411,12 +441,14 @@ Every generated post must pass:
 - End with question to encourage discussion
 
 ### Twitter/X (200-270 chars optimal)
+
 - One key insight per tweet
 - Thread format for longer content
 - 2-3 relevant hashtags
 - @ mentions if referring to others
 
 ### WhatsApp Status (50-150 chars)
+
 - Personal, casual
 - 1-2 sentences
 - No hashtags
@@ -425,24 +457,127 @@ Every generated post must pass:
 ## Usage
 
 Invoke the skill and describe:
+
 1. **What** you want to share (achievement, learning, announcement)
 2. **Context** (technical details, metrics, backstory)
 3. **Platform** (LinkedIn, Twitter/X, WhatsApp)
 
 Example prompts:
+
 - "Write a LinkedIn post about launching my first open source project"
 - "Write a Twitter thread about a bug I solved today"
 - "Write a WhatsApp status about completing a hackathon"
 
 The skill will:
+
 1. Generate content using appropriate template
 2. Check for banned words (auto-reject and regenerate)
 3. Validate against writing checklist
-4. Return platform-formatted output
+4. Create directory `social-media-posts/` if it doesn't exist
+5. Save post as plain text file (`.txt`) ready for copy-paste
+6. Display file location and preview in terminal
+
+---
+
+## Post Output & Storage
+
+### Directory Structure
+
+All generated posts are saved to:
+
+```
+social-media-posts/
+├── linkedin/
+├── twitter/
+└── whatsapp/
+```
+
+### File Naming Convention
+
+```
+social-media-posts/{platform}/{YYYY-MM-DD}-{type}-{slug}.txt
+```
+
+**Examples:**
+
+- `social-media-posts/linkedin/2025-01-28-achievement-shipped-cli.txt`
+- `social-media-posts/twitter/2025-01-28-advice-api-keys.txt`
+- `social-media-posts/whatsapp/2025-01-28-hackathon-done.txt`
+
+**Naming parts:**
+
+- `{platform}` = `linkedin` | `twitter` | `whatsapp`
+- `{YYYY-MM-DD}` = Today's date
+- `{type}` = `achievement` | `technical` | `hackathon` | `advice` | `announcement`
+- `{slug}` = Short kebab-case summary of the post topic
+
+### File Format
+
+- **Extension:** `.txt` (plain text, not `.md`)
+- **Encoding:** UTF-8
+- **Content:** Pure post content, ready to copy-paste directly to platform
+- **No markdown formatting** in the file (hashtags are plain `#tag` not code blocks)
+
+### Why Plain Text (.txt)?
+
+1. **No formatting issues** when pasting to LinkedIn/Twitter/WhatsApp
+2. **No accidental markdown** rendering in editors
+3. **Direct copy-paste** workflow
+4. **Universal compatibility** across all platforms
+
+### Example File Content
+
+**File:** `social-media-posts/linkedin/2025-01-28-achievement-shipped-cli.txt`
+
+```
+I just shipped my first CLI app.
+
+It's called TaskFlow.
+
+Here's what it does:
+ • Add tasks
+ • List tasks
+ • Delete tasks
+
+Built with Python and Typer.
+Took 2 weeks of evenings.
+
+Main takeaway:
+Just build something.
+The learning happens in the trenches.
+
+What's your first project?
+👇
+
+#python #cli #webdev
+```
+
+### Terminal Output Example
+
+When a post is generated:
+
+```
+✅ Post generated and saved!
+
+📁 Location: social-media-posts/linkedin/2025-01-28-achievement-shipped-cli.txt
+📊 Stats: 750 chars | 5 hashtags | LinkedIn
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+I just shipped my first CLI app.
+
+It's called TaskFlow.
+[... rest of post ...]
+
+👇 What's your first project?
+#python #cli #webdev
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ready to copy-paste to LinkedIn!
+```
 
 ## Examples
 
 ### Achievement Post (LinkedIn) - 750 chars
+
 ```
 I just shipped my first CLI app.
 
@@ -470,6 +605,7 @@ What's your first project?
 ```
 
 ### Technical Post (LinkedIn) - 820 chars
+
 ```
 Spent 4 hours debugging a race condition.
 
@@ -499,6 +635,7 @@ What happened?
 ```
 
 ### Advice Post (LinkedIn) - 680 chars
+
 ```
 Stop wasting time on free API keys.
 
@@ -543,6 +680,7 @@ What's your setup?
 ## Research Sources
 
 This skill is based on analysis of:
+
 - Justin Welsh: 5-step copywriting formula, 162M+ impressions
 - Aisha Riaz: Problem → Process → Outcome → Lesson structure
 - LinkedIn marketing research: 900-1200 chars optimal

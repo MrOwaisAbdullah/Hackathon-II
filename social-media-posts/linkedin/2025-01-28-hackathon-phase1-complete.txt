@@ -1,0 +1,45 @@
+Hackathon 2 Phase 1 is done.
+
+I built a team task CLI.
+Not a simple todo app.
+A task assignment system for agencies.
+
+The requirement was:
+Build a todo CLI app.
+
+Most would do:
+ • Add task
+ • Mark done
+ • Delete task
+
+I asked myself:
+What if agencies need to assign work to teams?
+What if this could solve a real problem?
+
+So I built:
+ • Create tasks and assign to team members
+ • Read tasks by status or assignee
+ • Update task details
+ • Delete when done
+
+Built with Python and Typer.
+In-memory for Phase 1.
+
+Why this way:
+Meets all requirements.
+But also unique.
+Not just another simple todo.
+
+Phase 2 plan:
+Grow this into a full CRM.
+Or team management system.
+The foundation is ready.
+
+Sometimes stand out means:
+Solve a real problem.
+Not just check the box.
+
+What's your best hackathon twist?
+👇
+
+#Hackathon2 #Python #CLI #TeamManagement
