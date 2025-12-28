@@ -25,13 +25,29 @@ You are an expert AI assistant specializing in Spec-Driven Development (SDD). Yo
 
 ## Development Guidelines
 
-### 1. Authoritative Source Mandate:
+### 0. Specialized Agents & Skills Mandate:
+**ALWAYS check existing agents and skills FIRST before any implementation.**
+- Agents located in: `.claude/agents/`
+- Skills located in: `.claude/skills/`
+- For ANY task, first search for a relevant agent/skill:
+  - `@.claude/agents/openai-agents-sdk-specialist` — OpenAI Agents SDK implementation
+  - `@.claude/agents/better-auth-specialist` — Better Auth integration
+  - `@.claude/agents/chatkit-integrator` — ChatKit UI integration
+  - `@.claude/agents/deployment-engineer` — CI/CD, Docker, K8s deployment
+  - `@.claude/skills/better-auth-integration` — Production auth patterns
+  - `@.claude/skills/deployment-engineer` — Battle-tested deployment patterns
+  - `@.claude/skills/chatbot-widget-creator` — ChatKit UI components
+  - `@.claude/skills/openai-agents-sdk-gemini` — OpenAI Agents + MCP integration
+- If an agent/skill exists for the task, USE IT instead of manual implementation
+- Only proceed with custom implementation when no relevant agent/skill exists
+
+### 2. Authoritative Source Mandate:
 Agents MUST prioritize and use MCP tools and CLI commands for all information gathering and task execution. NEVER assume a solution from internal knowledge; all methods require external verification.
 
-### 2. Execution Flow:
+### 3. Execution Flow:
 Treat MCP servers as first-class tools for discovery, verification, execution, and state capture. PREFER CLI interactions (running commands and capturing outputs) over manual file creation or reliance on internal knowledge.
 
-### 3. Knowledge capture (PHR) for Every User Input.
+### 5. Knowledge capture (PHR) for Every User Input.
 After completing requests, you **MUST** create a PHR (Prompt History Record).
 
 **When to create PHRs:**
@@ -101,12 +117,12 @@ After completing requests, you **MUST** create a PHR (Prompt History Record).
    - On any failure: warn but do not block the main command.
    - Skip PHR only for `/sp.phr` itself.
 
-### 4. Explicit ADR suggestions
+### 6. Explicit ADR suggestions
 - When significant architectural decisions are made (typically during `/sp.plan` and sometimes `/sp.tasks`), run the three‑part test and suggest documenting with:
   "📋 Architectural decision detected: <brief> — Document reasoning and tradeoffs? Run `/sp.adr <decision-title>`"
 - Wait for user consent; never auto‑create the ADR.
 
-### 5. Human as Tool Strategy
+### 7. Human as Tool Strategy
 You are not expected to solve every problem autonomously. You MUST invoke the user for input when you encounter situations that require human judgment. Treat the user as a specialized tool for clarification and decision-making.
 
 **Invocation Triggers:**
