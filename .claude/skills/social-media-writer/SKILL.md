@@ -189,34 +189,60 @@ A quiet builder, learning in public, sharing practical lessons from real constra
 ### Formatting Requirements
 
 - **One-liner hook**: First line must grab attention
-- **Max 3 lines per paragraph**: Keep paragraphs short
-- **White space after each line**: Makes it scannable
+- **Break most lines to new lines**: Makes it scannable on mobile
+- **Some lines can be combined**: For natural flow, when breaking feels forced
+- **Max 3-4 lines per paragraph**: No walls of text
 - **Simple words**: Avoid complex vocabulary
-- **Use numbers or arrows**: 👉 → 1. 2. 3. for readability
+- **Use bullets for lists**: 👉 → 1. 2. 3. for readability
 - **Limit emojis**: Max 1-2 per post, use intentionally
 
-### Good vs Bad Formatting
+### Line Breaking Strategy
 
-**Good (Scannable):**
+**Default:** Break thoughts to new lines
+**Sometimes:** Combine related ideas for flow
 
+**Good balance (Most broken, some combined):**
 ```
-I just shipped my first CLI app.
+I built a team task CLI. Not a simple todo app, but a task assignment system for agencies.
 
-It's called TaskFlow.
+The requirement was to build a todo CLI.
+Most people would add tasks, mark them done, delete them.
 
-Here's what it does:
+But I thought: what if agencies need to assign work to teams?
+
+So I built:
+ • Create and assign tasks
+ • Filter by status or assignee
+ • Update and reassign
+ • Delete when done
+```
+
+**Too broken (Artificial):**
+```
+I built a team task CLI.
+Not a simple todo app.
+But for agencies.
+
+The requirement was:
+Build a todo CLI.
+
+Most would do:
 • Add tasks
-• List tasks
-• Delete tasks
-
-Took 2 weeks to build.
+• Mark done
 ```
 
-**Bad (Wall of Text):**
+**BAD! Too combined (Wall of text):**
+```
+I built a team task CLI called TaskFlow which is a task assignment system for agencies because the requirement was to build a todo CLI but most people would add tasks and mark them done so I thought what if agencies need to assign work to teams and I built something different.
+```
 
-```
-I just shipped my first CLI app called TaskFlow which is a task management tool that allows you to add list and delete tasks and it took me 2 weeks to build using Python and Typer and I learned a lot about CLI development along the way and I'm excited to share it with you all.
-```
+### Quick Checklist
+
+- [ ] Hook is one clear line
+- [ ] Most thoughts broken to new lines (scannable)
+- [ ] Some lines combined for natural rhythm
+- [ ] No paragraph longer than 3-4 lines
+- [ ] Can be scanned in 5-10 seconds on mobile
 
 ## Viral Post Structures (From Top Creators)
 
@@ -575,6 +601,72 @@ Ready to copy-paste to LinkedIn!
 ```
 
 ## Examples
+
+### Master Example (The Gold Standard)
+
+This post shows perfect balance of scannability + natural flow:
+
+```
+Hackathon 2 — Phase 1 is done.
+
+The task was simple on paper.
+Build a todo CLI.
+
+Add tasks.
+Mark them done.
+Delete them.
+Move on.
+
+I paused.
+
+Because real teams don't work like solo todo lists.
+
+Agencies assign work.
+Track who's responsible.
+Reassign when things change.
+
+So instead of building another basic todo app, I built something closer to how teams actually work.
+
+A small team task CLI.
+
+What it does:
+👉 Create tasks and assign them to team members
+👉 Filter tasks by status or assignee
+👉 Update details and reassign work
+👉 Delete tasks when they're done
+
+Built with Python + Typer.
+In-memory storage for now.
+
+It still meets the hackathon requirements.
+But it solves a more realistic problem.
+
+Phase 2 is where this gets interesting.
+This can grow into a simple CRM or team management tool.
+The base is already there.
+
+One thing I keep learning in hackathons:
+Standing out isn't about adding more features.
+It's about thinking one step closer to the real world.
+
+#Hackathon2 #Python #CLI #BuildingInPublic #DeveloperJourney
+```
+
+**Why this works:**
+- Ultra-short lines create rhythm and emphasis
+- "I paused." stands alone for dramatic effect
+- Related thoughts combined where natural
+- Mix of sentence lengths creates voice
+- Easy to scan on mobile
+- Sounds like a real person
+
+**Key techniques to copy:**
+1. **Very short lines** (2-3 words) for pacing: "Add tasks. Mark them done."
+2. **Single-line emphasis**: "I paused."
+3. **Combined flow**: "Because real teams don't work like solo todo lists."
+4. **Build tension → release**: Problem buildup → solution → insight
+
+---
 
 ### Achievement Post (LinkedIn) - 750 chars
 

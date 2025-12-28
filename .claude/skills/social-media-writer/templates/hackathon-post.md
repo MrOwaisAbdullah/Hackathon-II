@@ -57,16 +57,25 @@ What was your biggest hackathon challenge?
 | Rule | Requirement |
 |------|-------------|
 | Hook | One-liner, under 12 words |
-| Paragraphs | Max 3 lines each |
+| Line breaking | Break most lines to new lines, combine some for flow |
+| Paragraphs | Max 3-4 lines each |
 | Sentences | Under 12 words (most under 10) |
 | Length | 700-1000 characters |
 | Emojis | Max 1-2 total |
 | CTA | Required at end |
 | Language | Simple English |
 
+## Key Techniques from Gold Standard
+
+**Rhythm & Pacing:**
+- Ultra-short lines (2-3 words) for emphasis: "We hit them. Requests failed."
+- Single-line dramatic effect: "I paused."
+- Combined thoughts where natural: "Because real teams don't work like solo todo lists."
+- Build tension → Problem → Solution → Insight
+
 ## Examples (Updated v2.0)
 
-### Example 1: Won Placement (820 chars)
+### Example 1: Won Placement (Gold Standard Style - 820 chars)
 
 ```
 Our team took 2nd place at the hackathon.
@@ -74,17 +83,21 @@ Our team took 2nd place at the hackathon.
 48 hours to build from scratch.
 
 We built an AI task manager.
-Using:
- • Python + FastAPI
- • React + Tailwind
- • OpenAI API
+Using Python + FastAPI + React + OpenAI.
 
 Main challenge?
 API rate limits.
 
 We hit them after 6 hours.
-Had to queue requests.
-Added local caching.
+Requests started failing.
+Users saw errors.
+
+I panicked for a minute.
+
+Then we implemented:
+ • Request queuing
+ • Local caching
+ • Retry with backoff
 
 Judges liked the fix.
 And the clean UI.
@@ -103,13 +116,12 @@ How did you solve it?
 ```
 
 **Analysis:**
+- Single-line emphasis: "I panicked for a minute." ✓
+- Ultra-short pacing: "Requests started failing. Users saw errors." ✓
 - Hook: 8 words ✓
-- Scannable: Bullet points ✓
 - Length: 820 chars ✓
-- Emojis: 1 ✓
-- CTA: Question ✓
 
-### Example 2: Built Something Cool (850 chars)
+### Example 2: Built Something Cool (Gold Standard Style - 850 chars)
 
 ```
 Just finished a 24-hour hackathon.
@@ -127,7 +139,14 @@ Concurrent edits.
 When two people type at once?
 Whose change wins?
 
-We used OT.
+We tried everything.
+Last-write-wins.
+Timestamps.
+Vector clocks.
+
+Nothing worked well.
+
+Then we found OT.
 Same tech as Google Docs.
 Each edit composes with others in any order.
 
@@ -144,13 +163,12 @@ What's the best thing you've built in 24 hours?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Last-write-wins. Timestamps. Vector clocks." ✓
+- Single-line emphasis: "Nothing worked well." ✓
 - Hook: 8 words ✓
-- Scannable: Bullets + short lines ✓
 - Length: 850 chars ✓
-- Emojis: 0 ✓
-- CTA: Question ✓
 
-### Example 3: Learning Experience (750 chars)
+### Example 3: Learning Experience (Gold Standard Style - 750 chars)
 
 ```
 First hackathon. Didn't finish.
@@ -166,10 +184,17 @@ Model had 40% accuracy.
 Plant diseases look similar in photos.
 We didn't have good data.
 
-What worked:
- • Built the app
- • Used React Native
- • Learned TensorFlow Lite
+I was disappointed.
+We worked hard.
+But the result was bad.
+
+Then I realized:
+We built a working app.
+Used React Native.
+Learned TensorFlow Lite.
+Deployed to real phones.
+
+That's more than most teams do.
 
 Lesson:
 Pick a smaller problem.
@@ -185,13 +210,12 @@ What's a lesson you learned the hard way?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "We worked hard. But the result was bad." ✓
+- Single-line emphasis: "I was disappointed." ✓
 - Hook: 7 words ✓
-- Scannable: Short lines ✓
 - Length: 750 chars ✓
-- Emojis: 0 ✓
-- CTA: Question ✓
 
-### Example 4: Team Experience (780 chars)
+### Example 4: Team Experience (Gold Standard Style - 780 chars)
 
 ```
 Hackathons are about people.
@@ -212,6 +236,8 @@ Challenge:
 Merge conflicts at hour 20.
 
 Everyone worked on different branches.
+Chaos.
+
 Solution?
 One person handled merges.
 Others kept building.
@@ -228,13 +254,12 @@ What's your best hackathon story?
 ```
 
 **Analysis:**
+- Single-line emphasis: "Chaos." ✓
+- Ultra-short pacing: "Nothing fancy. But it worked." ✓
 - Hook: 7 words ✓
-- Scannable: Bullets ✓
 - Length: 780 chars ✓
-- Emojis: 0 ✓
-- CTA: Question ✓
 
-### Example 5: Honest Failure (720 chars)
+### Example 5: Honest Failure (Gold Standard Style - 720 chars)
 
 ```
 We didn't finish our hackathon project.
@@ -252,8 +277,11 @@ Problems:
  • API latency made it slow
  • Battery drain was huge
 
-We pivoted twice.
-Ran out of time.
+We adjusted.
+Cut features.
+Simplified the scope.
+
+Still didn't finish.
 
 Lesson:
 Test core assumptions early.
@@ -270,11 +298,10 @@ What did you learn?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Cut features. Simplified the scope." ✓
+- Single-line emphasis: "Still didn't finish." ✓
 - Hook: 8 words ✓
-- Scannable: Numbered list ✓
 - Length: 720 chars ✓
-- Emojis: 0 ✓
-- CTA: Question ✓
 
 ## Checklist (v2.0)
 

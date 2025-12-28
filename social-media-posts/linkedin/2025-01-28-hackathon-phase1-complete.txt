@@ -1,45 +1,43 @@
-Hackathon 2 Phase 1 is done.
+Hackathon 2 — Phase 1 is done.
 
-I built a team task CLI.
-Not a simple todo app.
-A task assignment system for agencies.
+The task was simple on paper.
+Build a todo CLI.
 
-The requirement was:
-Build a todo CLI app.
+Add tasks.
+Mark them done.
+Delete them.
+Move on.
 
-Most would do:
- • Add task
- • Mark done
- • Delete task
+I paused.
 
-I asked myself:
-What if agencies need to assign work to teams?
-What if this could solve a real problem?
+Because real teams don't work like solo todo lists.
 
-So I built:
- • Create tasks and assign to team members
- • Read tasks by status or assignee
- • Update task details
- • Delete when done
+Agencies assign work.
+Track who's responsible.
+Reassign when things change.
 
-Built with Python and Typer.
-In-memory for Phase 1.
+So instead of building another basic todo app, I built something closer to how teams actually work.
 
-Why this way:
-Meets all requirements.
-But also unique.
-Not just another simple todo.
+A small team task CLI.
 
-Phase 2 plan:
-Grow this into a full CRM.
-Or team management system.
-The foundation is ready.
+What it does:
+👉 Create tasks and assign them to team members
+👉 Filter tasks by status or assignee
+👉 Update details and reassign work
+👉 Delete tasks when they're done
 
-Sometimes stand out means:
-Solve a real problem.
-Not just check the box.
+Built with Python + Typer.
+In-memory storage for now.
 
-What's your best hackathon twist?
-👇
+It still meets the hackathon requirements.
+But it solves a more realistic problem.
 
-#Hackathon2 #Python #CLI #TeamManagement
+Phase 2 is where this gets interesting.
+This can grow into a simple CRM or team management tool.
+The base is already there.
+
+One thing I keep learning in hackathons:
+Standing out isn't about adding more features.
+It's about thinking one step closer to the real world.
+
+#Hackathon2 #Python #CLI #BuildingInPublic #DeveloperJourney

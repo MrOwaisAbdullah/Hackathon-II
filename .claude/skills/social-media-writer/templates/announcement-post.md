@@ -66,16 +66,25 @@ What do you think?
 | Rule | Requirement |
 |------|-------------|
 | Hook | One-liner, under 12 words |
-| Paragraphs | Max 3 lines each |
+| Line breaking | Break most lines to new lines, combine some for flow |
+| Paragraphs | Max 3-4 lines each |
 | Sentences | Under 12 words (most under 10) |
 | Length | 700-1000 characters |
 | Emojis | Max 1-2 total |
 | CTA | Required at end |
 | Language | Simple English |
 
+## Key Techniques from Gold Standard
+
+**Rhythm & Pacing:**
+- Ultra-short lines (2-3 words) for emphasis: "Not polished. Not scripted."
+- Single-line dramatic effect: "I paused."
+- Combined thoughts where natural: "Because real teams don't work like solo todo lists."
+- Build tension → Problem → Solution → Launch
+
 ## Examples (Updated v2.0)
 
-### Example 1: First Video Launch (820 chars)
+### Example 1: First Video Launch (Gold Standard Style - 820 chars)
 
 ```
 I just recorded my first video.
@@ -120,13 +129,12 @@ What's something you've been putting off?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Not polished. Not scripted." ✓
+- Combined flow: "Perfection isn't the point. Starting is." ✓
 - Hook: 7 words ✓
-- Scannable: Bullet points ✓
 - Length: 820 chars ✓
-- Emojis: 2 ✓
-- CTA: Question ✓
 
-### Example 2: Course Launch (780 chars)
+### Example 2: Course Launch (Gold Standard Style - 780 chars)
 
 ```
 I just launched a free AI agents course.
@@ -137,6 +145,12 @@ When I started, I struggled.
 Docs were confusing.
 Examples too complex.
 No clear starting point.
+
+I felt stuck.
+Overwhelmed.
+Ready to quit.
+
+Then I changed my approach.
 
 So I built small projects.
 Documented everything.
@@ -165,13 +179,12 @@ What topics should I add next?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Stuck. Overwhelmed. Ready to quit." ✓
+- Single-line emphasis: "Then I changed my approach." ✓
 - Hook: 7 words ✓
-- Scannable: Bullets ✓
 - Length: 780 chars ✓
-- Emojis: 2 ✓
-- CTA: Question ✓
 
-### Example 3: Open Source Release (750 chars)
+### Example 3: Open Source Release (Gold Standard Style - 750 chars)
 
 ```
 I just open-sourced my first project.
@@ -209,13 +222,12 @@ How did it go?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Tests included. Contributions welcome." ✓
+- Combined flow: "Existing tools were too complex. Or too basic." ✓
 - Hook: 6 words ✓
-- Scannable: Bullets ✓
 - Length: 750 chars ✓
-- Emojis: 2 ✓
-- CTA: Question ✓
 
-### Example 4: Newsletter Launch (720 chars)
+### Example 4: Newsletter Launch (Gold Standard Style - 720 chars)
 
 ```
 I'm starting a newsletter.
@@ -256,16 +268,14 @@ What newsletters do you read?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "No hype. No fluff. Just stuff that works." ✓
+- Single-line emphasis: "But not everything." ✓
 - Hook: 4 words ✓
-- Scannable: Short lines ✓
 - Length: 720 chars ✓
-- Emojis: 2 ✓
-- CTA: Question ✓
 
-### Example 5: Job Update (680 chars)
+### Example 5: Job Update (Gold Standard Style - 680 chars)
 
 ```
-
 I'm joining [Company] as [Role].
 
 What I'll work on:
@@ -283,7 +293,7 @@ You know who you are.
 
 This is a new chapter.
 
-On to the next one
+On to the next one.
 🚀
 
 What's your best career advice?
@@ -293,11 +303,10 @@ What's your best career advice?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "You know who you are." ✓
+- Combined flow: "The team builds something meaningful." ✓
 - Hook: 6 words ✓
-- Scannable: Lists ✓
 - Length: 680 chars ✓
-- Emojis: 1 ✓
-- CTA: Question ✓
 
 ## Checklist (v2.0)
 

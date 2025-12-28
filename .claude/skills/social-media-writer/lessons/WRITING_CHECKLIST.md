@@ -75,31 +75,45 @@ Every post MUST pass all checks before being returned.
 ## 4. Scannability Rules (Critical for Mobile)
 
 ### Formatting Requirements
-- [ ] **Max 3 lines per paragraph** (critical for mobile readers)
-- [ ] **White space after each line** (makes it scannable)
-- [ ] **No walls of text** (auto-reject if 4+ lines without break)
+- [ ] **Break most lines to new lines** (makes it scannable)
+- [ ] **Some lines combined for flow** (when breaking feels forced)
+- [ ] **Max 3-4 lines per paragraph** (no walls of text)
+- [ ] **No walls of text** (auto-reject if 5+ lines without break)
 - [ ] Simple words throughout
-- [ ] Use numbers or arrows for readability (👉, →, 1., 2., 3.)
+- [ ] Use bullets for lists (👉, →, 1., 2., 3.)
 
-### Good vs Bad Formatting
+### Line Breaking Strategy
 
-**Good (Scannable):**
+**Default:** Break thoughts to new lines
+**Sometimes:** Combine related ideas for natural flow
+
+**Good Balance (Most broken, some combined):**
 ```
-I just shipped my first CLI app.
+I built a team task CLI. Not a simple todo app, but a task assignment system for agencies.
 
-It's called TaskFlow.
+The requirement was to build a todo CLI.
+Most people would add tasks, mark them done, delete them.
 
-Here's what it does:
-• Add tasks
-• List tasks
-• Delete tasks
+But I thought: what if agencies need to assign work to teams?
 
-Took 2 weeks to build.
+So I built:
+ • Create and assign tasks
+ • Filter by status or assignee
 ```
 
-**Bad (Wall of Text):**
+**Too Broken (Artificial):**
 ```
-I just shipped my first CLI app called TaskFlow which is a task management tool that allows you to add list and delete tasks and it took me 2 weeks to build using Python and Typer and I learned a lot about CLI development along the way.
+I built a team task CLI.
+Not a simple todo app.
+But for agencies.
+
+The requirement was:
+Build a todo CLI.
+```
+
+**Too Combined (Wall of text):**
+```
+I built a team task CLI called TaskFlow which is a task assignment system for agencies because the requirement was to build a todo CLI but most people would add tasks and mark them done.
 ```
 
 ### Auto-Reject If:

@@ -63,16 +63,25 @@ What's your experience with this?
 | Rule | Requirement |
 |------|-------------|
 | Hook | One-liner, under 12 words |
-| Paragraphs | Max 3 lines each |
+| Line breaking | Break most lines to new lines, combine some for flow |
+| Paragraphs | Max 3-4 lines each |
 | Sentences | Under 12 words (most under 10) |
 | Length | 700-1000 characters |
 | Emojis | Max 1-2 total |
 | CTA | Required at end |
 | Language | Simple English |
 
+## Key Techniques from Gold Standard
+
+**Rhythm & Pacing:**
+- Ultra-short lines (2-3 words) for emphasis: "Keys expiring. Requests failing."
+- Single-line dramatic effect: "I paused."
+- Combined thoughts where natural: "Because real teams don't work like solo todo lists."
+- Build tension → Problem → Solution → Why it works
+
 ## Examples (Updated v2.0)
 
-### Example 1: API Key Advice (850 chars)
+### Example 1: API Key Advice (Gold Standard Style - 850 chars)
 
 ```
 Stop changing API keys every day.
@@ -83,6 +92,13 @@ The problem:
 Free Gemini keys expire fast.
 They break your workflow.
 Slow everything down.
+
+Keys expiring.
+Requests failing.
+Context lost mid-build.
+
+That's frustrating.
+Especially during a hackathon.
 
 The solution:
 If you can afford $3, get the GLM plan.
@@ -105,13 +121,12 @@ Free or paid?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Keys expiring. Requests failing. Context lost mid-build." ✓
+- Single-line emphasis: "That's frustrating." ✓
 - Hook: 6 words ✓
-- Scannable: Bullet points ✓
 - Length: 850 chars ✓
-- Emojis: 1 ✓
-- CTA: Question ✓
 
-### Example 2: Learning Advice (780 chars)
+### Example 2: Learning Advice (Gold Standard Style - 780 chars)
 
 ```
 Learn one thing at a time.
@@ -129,6 +144,12 @@ I tried to learn everything.
 Result:
 I knew a little about everything.
 But nothing well.
+
+Frustrating.
+Overwhelming.
+Paralyzing.
+
+Then I changed my approach.
 
 Better approach:
  👉 Pick ONE thing
@@ -154,13 +175,12 @@ What did you focus on first?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Frustrating. Overwhelming. Paralyzing." ✓
+- Combined flow: "Depth beats breadth. Always." ✓
 - Hook: 5 words ✓
-- Scannable: Bullets + short lines ✓
 - Length: 780 chars ✓
-- Emojis: 1 ✓
-- CTA: Question ✓
 
-### Example 3: Debugging Tip (720 chars)
+### Example 3: Debugging Tip (Gold Standard Style - 720 chars)
 
 ```
 Make it synchronous first.
@@ -173,6 +193,11 @@ The async function wasn't awaiting a DB call.
 Data races are silent killers.
 By the time you see them?
 Damage is done.
+
+I tried 5 different fixes.
+None worked.
+
+Then I went back to basics.
 
 The fix:
 1. Make it synchronous
@@ -192,13 +217,12 @@ What happened?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Start simple. Add complexity later." ✓
+- Single-line emphasis: "None worked." ✓
 - Hook: 5 words ✓
-- Scannable: Numbered list ✓
 - Length: 720 chars ✓
-- Emojis: 1 ✓
-- CTA: Question ✓
 
-### Example 4: Career Advice (820 chars)
+### Example 4: Career Advice (Gold Standard Style - 820 chars)
 
 ```
 Your network is who you help.
@@ -209,6 +233,9 @@ I spent a year reaching out to strangers.
 Cold messages.
 Generic requests.
 Silence.
+
+It was discouraging.
+I felt invisible.
 
 Then I changed my approach.
 
@@ -239,19 +266,20 @@ The network follows.
 #Career #Advice #Networking #Tech
 ```
 
-### Example 5: Tool Choice
-``
+### Example 5: Tool Choice (Gold Standard Style)
+```
 Hackathon 2 is here.
 And I'm seeing the same issue everywhere.
 
 People aren't stuck on ideas.
 They're stuck on free API limits and errors.
 
-- Keys expiring.
-- Requests failing.
-- Context getting lost mid-build.
+Keys expiring.
+Requests failing.
+Context getting lost mid-build.
 
-That's frustrating, especially during a hackathon.
+That's frustrating.
+Especially during a hackathon.
 
 If you're using Claude Code, here's a simple fix that's actually working:
 
@@ -270,9 +298,9 @@ Setup is straightforward:
 
 That's it.
 
-- No key-swapping.
-- No stress mid-hackathon.
-- Just build.
+No key-swapping.
+No stress mid-hackathon.
+Just build.
 
 If you truly can't spend anything, free options are fine.
 
@@ -289,11 +317,10 @@ What's your hackathon setup?
 ```
 
 **Analysis:**
+- Ultra-short pacing: "Keys expiring. Requests failing. Context getting lost mid-build." ✓
+- Single-line emphasis: "That's frustrating." ✓
 - Hook: 7 words ✓
-- Scannable: Bullets ✓
 - Length: 780 chars ✓
-- Emojis: 1 ✓
-- CTA: Question ✓
 
 ## Checklist (v2.0)
 
