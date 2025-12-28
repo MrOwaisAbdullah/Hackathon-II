@@ -2,39 +2,46 @@
 
 Template for sharing something you learned that might help others.
 
-## Structure (Based on Authentic Voice)
+Updated v2.0: Research-backed format from top LinkedIn creators.
+
+## Structure (Observation → Problem → Solution → Why)
 
 ```
-[Opening hook - observation or situation]
+1. HOOK (One-liner, under 12 words)
+   → What you noticed
 
-[Common mistake or problem you see]
+2. PROBLEM (2-3 lines max)
+   → Common mistake
 
-[What actually works - your approach]
+3. SOLUTION (2-3 lines max)
+   → What actually works
 
-[Specific example or steps]
+4. EXAMPLE (2-3 lines max)
+   → Specific steps or proof
 
-[Why this is better]
+5. WHY (1-2 lines)
+   → Why this is better
 
-[Optional: Personal note or vulnerability]
+6. CTA (Required)
+   → Question
 
-[Call to action or question]
+[3-5 hashtags]
 ```
 
-## Template
+## Template (v2.0)
 
 ```python
 def generate_advice_post(
-    observation: str,      # What you're noticing
-    problem: str,          # Common mistake
-    solution: str,         # What actually works
-    example: str,          # Specific example or steps
-    why: str,              # Why this approach is better
-    personal_note: str = None,  # Optional vulnerability
-    cta: str = None,       # Optional call to action
+    hook: str,           # One-liner observation (under 12 words)
+    problem: str,        # Common mistake (2-3 lines)
+    solution: str,       # What actually works (2-3 lines)
+    example: str,        # Specific steps (2-3 lines)
+    why: str,            # Why this is better (1-2 lines)
+    hashtags: list[str], # 3-5 relevant tags
 ) -> str:
-    """Generate an advice post."""
+    """Generate an advice post (700-1000 chars optimal)."""
     return f"""
-{observation}
+{hook}
 
 {problem}
 
@@ -44,168 +51,184 @@ def generate_advice_post(
 
 {why}
 
-{personal_note or ''}
+What's your experience with this?
+👇
 
-{cta or ''}
-
-{generate_relevant_hashtags(observation, solution)}
+{' '.join('#' + h for h in hashtags)}
     """.strip()
 ```
 
-## Examples
+## v2.0 Requirements
 
-### Example 1: API Key Advice
+| Rule | Requirement |
+|------|-------------|
+| Hook | One-liner, under 12 words |
+| Paragraphs | Max 3 lines each |
+| Sentences | Under 12 words (most under 10) |
+| Length | 700-1000 characters |
+| Emojis | Max 1-2 total |
+| CTA | Required at end |
+| Language | Simple English |
+
+## Examples (Updated v2.0)
+
+### Example 1: API Key Advice (850 chars)
+
 ```
-A small tip for all GIAIC students and learners 👇
+Stop changing API keys every day.
 
-Let's stop wasting time changing free Gemini keys again and again.
-It gets annoying, breaks your workflow, and honestly… slows everything down.
+Here's a better way.
 
-If you can afford it, go for the $20 Claude Code plan.
+The problem:
+Free Gemini keys expire fast.
+They break your workflow.
+Slow everything down.
 
-If not, the $3 GLM 4.6 plan is more than enough.
-It works almost the same and gives higher limits.
+The solution:
+If you can afford $3, get the GLM plan.
+If you can afford $20, get Claude Code.
+Use free keys only as backup.
 
-Use one paid model as your main tool (Claude or GLM).
-Only switch to free Gemini when you hit limits.
+What you get:
+ • Stable usage
+ • No random shutdowns
+ • Focus on building, not retrying
 
-If you really can't spend anything, it's okay.
-We'll continue using the free Gemini key together.
+Why it works:
+One paid tool beats ten free ones that don't work.
 
-I'm using the $3 GLM plan, and it's working great for me.
+What's your setup?
+Free or paid?
+👇
 
-Here's the simple GLM setup ⬇️
-
-How to set up GLM:
- 1. Buy the GLM plan and copy your API key: https://lnkd.in/dPGF-ai5
-
- 2. Open or create this file:
- $HOME/.claude/settings.json
-
- 3. Paste this inside the file (add your API key):
-
-{
- "alwaysThinkingEnabled": true,
- "env": {
- "ANTHROPIC_AUTH_TOKEN": "your api key here",
- "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
- "API_TIMEOUT_MS": "3000000",
- "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
- "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6",
- "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6"
- }
-}
-
- 4. Run Claude Code.
-
-That's it.
-
-Let's spend time building things, not fixing API keys every day.
-
-#AI #ClaudeCode #GLM #Students #Developers
+#AI #ClaudeCode #GLM
 ```
 
-### Example 2: Learning Advice
+**Analysis:**
+- Hook: 6 words ✓
+- Scannable: Bullet points ✓
+- Length: 850 chars ✓
+- Emojis: 1 ✓
+- CTA: Question ✓
+
+### Example 2: Learning Advice (780 chars)
+
 ```
-I wish I knew this earlier.
+Learn one thing at a time.
 
-When I started learning AI, I made a mistake.
+Here's why.
 
-I tried to learn everything at once.
-- Models
-- Frameworks
-- Deployment
-- MLOps
-- Everything
+The mistake:
+I tried to learn everything.
+ • Models
+ • Frameworks
+ • Deployment
+ • MLOps
+ • All of it
 
-Result: I knew a little about everything, but nothing well.
+Result:
+I knew a little about everything.
+But nothing well.
 
-Here's what I wish I did:
-
+Better approach:
  👉 Pick ONE thing
- 👉 Go deep on it
+ 👉 Go deep
  👉 Build something real
- 👉 Then move to the next
+ 👉 Then move on
 
-My first real project was a simple chatbot.
-Just Python + OpenAI API.
+My first project:
+A simple chatbot.
+Python + OpenAI API.
 Nothing fancy.
 
 But I finished it.
-Deployed it.
-Used it.
+That taught me more than 20 tutorials.
 
-That one project taught me more than 20 tutorials.
-
-Learning depth > breadth.
-
+Depth beats breadth.
 Always.
 
-#AI #Learning #Python #Advice
+What did you focus on first?
+👇
+
+#AI #Learning #Python
 ```
 
-### Example 3: Debugging Tip
+**Analysis:**
+- Hook: 5 words ✓
+- Scannable: Bullets + short lines ✓
+- Length: 780 chars ✓
+- Emojis: 1 ✓
+- CTA: Question ✓
+
+### Example 3: Debugging Tip (720 chars)
+
 ```
-Spent 4 hours debugging a race condition today.
+Make it synchronous first.
 
 Here's what I learned.
 
-The issue: Async function wasn't actually awaiting a critical database call.
+Spent 4 hours on a race condition.
+The async function wasn't awaiting a DB call.
 
 Data races are silent killers.
+By the time you see them?
+Damage is done.
 
-Here's how I fixed it:
+The fix:
+1. Make it synchronous
+2. Add type hints
+3. Make it async only where needed
 
-1. Made it synchronous first (to confirm logic)
-2. Added type hints (to catch issues early)
-3. Made it async again (only where needed)
+The lesson:
+Start simple.
+Add complexity later.
+Explicit beats implicit.
 
-The lesson?
+Ever hit a race condition?
+What happened?
+👇
 
-When in doubt, make it synchronous first.
-Add async only when you have a proven need.
-
-Explicit > implicit.
-
-Always.
-
-#Python #Async #Debugging #Coding
+#Python #Async #Debugging
 ```
 
-### Example 4: Career Advice
+**Analysis:**
+- Hook: 5 words ✓
+- Scannable: Numbered list ✓
+- Length: 720 chars ✓
+- Emojis: 1 ✓
+- CTA: Question ✓
+
+### Example 4: Career Advice (820 chars)
+
 ```
-Something I wish someone told me earlier.
+Your network is who you help.
 
-Your network isn't about collecting connections.
+Not who you know.
 
-It's about:
-
- ❌ How many people you know
- ❌ How many business cards you have
- ❌ How many followers you have
-
-It's actually about:
-
- ✅ Who you've helped
- ✅ Who trusts your work
- ✅ Who would vouch for you
-
-I spent my first year trying to "network" by reaching out to strangers.
-
+I spent a year reaching out to strangers.
 Cold messages.
 Generic requests.
 Silence.
 
-Then I changed approach.
+Then I changed my approach.
 
-I started sharing what I was learning.
+I started sharing what I learned.
 Helping in communities.
 Building in public.
 
-Slowly, people started reaching out to me.
-
+People reached out to me.
 Not because I asked.
-But because they saw my work.
+But they saw my work.
+
+Real network:
+ ✅ Who you help
+ ✅ Who trusts your work
+ ✅ Who would vouch for you
+
+Fake network:
+ ❌ How many connections
+ ❌ How many followers
+ ❌ How many cards
 
 Build good things.
 Share them.
@@ -253,115 +276,128 @@ That's it.
 
 If you truly can't spend anything, free options are fine.
 
-But if Hackathon 2 matters to you, this small upgrade saves real time.
+But if the hackathon matters?
+This small upgrade saves real time.
 
-Let's focus on shipping projects, not fighting APIs.
+Focus on shipping.
+Not fighting APIs.
 
-#Hackathon2 #ClaudeCode #Developers #BuildInPublic
+What's your hackathon setup?
+👇
+
+#Hackathon #ClaudeCode #Developers
 ```
 
-## Authentic Voice Patterns (From Real Posts)
+**Analysis:**
+- Hook: 7 words ✓
+- Scannable: Bullets ✓
+- Length: 780 chars ✓
+- Emojis: 1 ✓
+- CTA: Question ✓
 
-### Sentence Structure
-- **Very short** - often 2-5 words per line
-- **One thought per line** - lots of vertical space
-- **Fragments work** - "But then—something happened."
-- **Repeat for emphasis** - "Always." (standalone line)
-
-### Emotional Arc
-1. **Doubt/Hesitation** - "I held back", "I wasn't sure"
-2. **Turning Point** - "But then something happened"
-3. **Action** - "So I hit record"
-4. **Result** - What happened
-5. **Reflection** - What you'd tell others
-
-### Formatting Rules
-- Use emoji bullets for lists: 👉 ❌ ✅ 👇
-- Use emoji sparingly: 1-2 impactful ones
-- Space between EVERY section
-- Hashtags at the end (5-6 relevant)
-
-### Tone Markers
-| Authentic | Generic (Avoid) |
-|-----------|-----------------|
-| "I'm usually the quiet type" | "I'm a visionary leader" |
-| "Not polished. Not scripted." | "Revolutionary content" |
-| "That's it." | "Game-changing solution" |
-| "Let's focus on X" | "This will transform everything" |
-
-## Checklist
+## Checklist (v2.0)
 
 Every advice post must include:
 
-- [ ] Clear observation or situation
+- [ ] **One-liner hook** (observation, under 12 words)
+- [ ] **Max 3 lines per paragraph** (scannable on mobile)
+- [ ] **White space after each line** (easy to read)
 - [ ] Common mistake you see
 - [ ] What actually works (your approach)
-- [ ] Specific example or numbered steps
+- [ ] Specific example or steps
 - [ ] Why this is better
-- [ ] Optional: personal note or vulnerability
-- [ ] 5-6 relevant hashtags
+- [ ] **CTA at end** (question or prompt)
+- [ ] 3-5 relevant hashtags
+- [ ] **700-1000 characters** (optimal length)
+- [ ] Simple English (non-native friendly)
+
+## Tone Guidelines
+
+| Do | Don't |
+|----|----|
+| Share from experience | Pretend you're an expert |
+| Be specific ("3 weeks") | Be vague ("a while") |
+| Admit mistakes | Only share wins |
+| Keep it simple | Use jargon |
+| End with a question | End without CTA |
+
+## Common Mistakes (v2.0)
+
+1. **No clear hook**: "So today I want to share some advice..."
+   - Fix: "Stop changing API keys every day."
+
+2. **Too much backstory**: Long story about how you learned
+   - Fix: Get straight to the problem and solution
+
+3. **Wall of text**: Long paragraphs without breaks
+   - Fix: Max 3 lines per paragraph, add white space
+
+4. **No CTA**: Post just ends with the advice
+   - Fix: Always ask "What's your experience?"
+
+5. **Too many emojis**: Using 5+ emojis throughout
+   - Fix: Max 1-2 impactful emojis total
 
 ## Platform Variations
 
-### LinkedIn (up to 1300 chars)
-- Generous spacing between paragraphs
-- Use emoji bullets for lists
-- 1-2 impactful emojis total
-- End with hashtags
+### LinkedIn (700-1000 chars optimal)
+- One-liner hook first
+- Max 3 lines per paragraph
+- Bullet points for lists
+- CTA required at end
 
-### Twitter (thread format for longer)
+### Twitter (200-270 chars, use thread)
 ```
-1/ A small tip for learners 👇
+1/ Stop changing API keys every day.
 
-Stop wasting time changing free API keys.
-It breaks your flow.
+Free keys expire fast.
+Break your workflow.
 
-If you can afford $3, get a paid plan.
-If not, it's okay.
-
-Let's build things, not fix keys.
+If you can afford $3, get the GLM plan.
+Use free keys as backup.
 
 #AI #Coding
 
-2/ Here's how I set up GLM:
+2/ Why it works:
+One paid tool beats ten free ones.
+Stable usage.
+No random shutdowns.
 
-1. Buy the plan
-2. Get API key
-3. Add to settings.json
-4. Done
-
-That's it.
-
-No more key-swapping.
-Just building.
+What's your setup?
+Free or paid?
 ```
 
-### WhatsApp (brief advice)
+### WhatsApp (50-150 chars, brief)
 ```
-Quick tip: If you're coding daily, the $3 GLM plan saves you
-constant API key headaches. Worth it if you can afford it.
+Quick tip: If you code daily, the $3 GLM plan
+saves constant API key headaches. Worth it if
+you can afford it.
 ```
 
 ## Prompt Examples
 
 When invoking the skill, describe:
 
-1. **Observation** - What you're noticing
-2. **Problem** - Common mistake you see
+1. **Hook** - One-liner observation
+2. **Problem** - Common mistake
 3. **Solution** - What actually works
-4. **Example** - Specific steps or details
-5. **Personal note** (optional) - Vulnerability or experience
+4. **Example** - Specific steps
+5. **Why** - Why this is better
+6. **Platform** - LinkedIn, Twitter, or WhatsApp
 
 Example prompt:
 ```
-"Write an advice post about using paid API keys instead of
-free ones during hackathons. Problem: keys expiring mid-build.
-Solution: $3 GLM plan. Personal note: I use it and it works.
-LinkedIn post with my authentic style."
+"Write a LinkedIn advice post.
+Hook: Stop changing API keys every day
+Problem: Free keys expire fast, break workflow
+Solution: Use $3 GLM plan as main tool
+Example: Stable usage, no shutdowns
+Why: One paid tool beats ten free broken ones
+Target 850 characters, include CTA"
 ```
 
 ---
 
-**Template Version**: 1.0.0
+**Version**: 2.0.0
 **Last Updated**: 2025-01-28
-**Based On**: Authentic user voice and patterns
+**Based On**: Justin Welsh 5-step formula + user's authentic voice

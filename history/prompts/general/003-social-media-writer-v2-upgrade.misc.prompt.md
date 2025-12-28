@@ -19,6 +19,11 @@ files:
  - .claude/skills/social-media-writer/SKILL.md
  - .claude/skills/social-media-writer/lessons/WRITING_CHECKLIST.md
  - .claude/skills/social-media-writer/scripts/validator.py
+ - .claude/skills/social-media-writer/templates/achievement-post.md
+ - .claude/skills/social-media-writer/templates/technical-post.md
+ - .claude/skills/social-media-writer/templates/hackathon-post.md
+ - .claude/skills/social-media-writer/templates/advice-post.md
+ - .claude/skills/social-media-writer/templates/announcement-post.md
 tests: []
 ---
 
@@ -84,6 +89,47 @@ Updated existing functions:
 - `validate_emojis()`: Reduced limits (2 LinkedIn, 1 Twitter)
 - `validate_length()`: Added optimal range warnings (700-1000 LinkedIn)
 
+### 4. All 5 Template Updates (v2.0)
+Updated all post templates to match v2.0 guidelines:
+
+**achievement-post.md** (Hook → Setup → Value → Lesson → CTA):
+- One-liner hook (under 12 words)
+- Max 3 lines per paragraph
+- 700-1000 character optimal length
+- Required CTA at end
+- Updated all 5 examples with analysis showing compliance
+
+**technical-post.md** (Problem → Process → Outcome → Lesson → CTA):
+- One-liner problem hook (under 12 words)
+- Code snippets limited to 5-15 lines
+- All examples include CTA questions
+- Simple English throughout
+
+**hackathon-post.md** (Challenge → Solution → Lesson → CTA):
+- One-liner result hook (under 12 words)
+- Examples include both wins and honest failures
+- Tech stack shown as bullet points
+- Key lesson learned required
+
+**advice-post.md** (Observation → Problem → Solution → Why → CTA):
+- One-liner observation hook (under 12 words)
+- Common mistake → What works format
+- Specific examples or steps
+- Why it's better section
+
+**announcement-post.md** (Hook → What → Why → Details → Who → CTA):
+- One-liner big moment hook (under 12 words)
+- What + Why + Details structure
+- Who it's for section
+- Direct link required with 👉
+
+All templates now include:
+- v2.0 Requirements table
+- Updated examples with character count analysis
+- Common mistakes section
+- Platform variations (LinkedIn, Twitter, WhatsApp)
+- Prompt examples for invocation
+
 ## Key New Rules
 
 | Rule | Old | New (v2.0) |
@@ -108,9 +154,12 @@ Updated existing functions:
 
 - **Impact**: Skill now produces posts that follow proven viral structures from top creators
 - **Version bump**: 1.0.0 → 2.0.0
-- **Files modified**: 3 core files (SKILL.md, WRITING_CHECKLIST.md, validator.py)
+- **Files modified**: 8 files total
+  - 3 core files (SKILL.md, WRITING_CHECKLIST.md, validator.py)
+  - 5 templates (achievement, technical, hackathon, advice, announcement)
 - **New validations**: Hook, scannability, CTA, simple English
 - **Stricter limits**: Sentence length (25→15), emojis (3→2 LinkedIn), optimal length targeting
+- **Template improvements**: All 5 templates updated with v2.0 structures and examples
 - **Research-backed**: All changes based on analysis of top performing posts
 
 ## Evaluation Notes

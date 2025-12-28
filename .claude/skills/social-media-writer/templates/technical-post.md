@@ -2,86 +2,134 @@
 
 Template for explaining technical concepts, solutions, or debugging stories.
 
-## Structure
+Updated v2.0: Research-backed format from top LinkedIn creators.
+
+## Structure (Problem → Process → Outcome → Lesson)
 
 ```
-[Problem statement - what you were trying to solve]
+1. HOOK (One-liner problem, under 12 words)
+   → What you were solving
 
-[Why existing solutions didn't work - 1-2 sentences]
+2. PROBLEM (2-3 lines max)
+   → Why it was hard
 
-[Your approach - 2-3 sentences]
+3. SOLUTION (2-3 lines max)
+   → Your approach + code snippet
 
-[Code snippet or technical detail]
+4. OUTCOME (1-2 lines)
+   → Result
 
-[Result - what happened]
+5. LESSON (1-2 lines)
+   → Key takeaway
 
-[Key takeaway]
+6. CTA (Required)
+   → Question
+
+[3-5 hashtags]
 ```
 
-## Template
+## Template (v2.0)
 
 ```python
 def generate_technical_post(
-    problem: str,           # What you were trying to solve
-    context: str,           # Why existing approaches failed
-    solution: str,          # Your approach
-    code_snippet: str,      # Relevant code or config
-    result: str,            # What happened
-    takeaway: str,          # Key lesson
+    hook: str,           # Problem one-liner (under 12 words)
+    problem: str,        # What was hard (2-3 lines)
+    solution: str,       # Your approach + code
+    outcome: str,        # Result (1-2 lines)
+    lesson: str,         # Key takeaway (1-2 lines)
+    hashtags: list[str], # 3-5 relevant tags
 ) -> str:
-    """Generate a technical deep-dive post."""
+    """Generate a technical post (700-1000 chars optimal)."""
     return f"""
-{problem}
+{hook}
 
-{context}
+{problem}
 
 {solution}
 
-{code_snippet}
+{outcome}
 
-{result}
+{lesson}
 
-{takeaway}
+Ever hit this?
+What happened?
+👇
 
-{generate_relevant_hashtags(problem, solution)}
+{' '.join('#' + h for h in hashtags)}
     """.strip()
 ```
 
-## Examples
+## v2.0 Requirements
 
-### Example 1: Debugging Story
+| Rule | Requirement |
+|------|-------------|
+| Hook | One-liner problem, under 12 words |
+| Paragraphs | Max 3 lines each |
+| Sentences | Under 12 words (most under 10) |
+| Length | 700-1000 characters |
+| Emojis | Max 1-2 total |
+| Code | 5-15 lines max (relevant only) |
+| CTA | Required at end |
+| Language | Simple English |
+
+## Examples (Updated v2.0)
+
+### Example 1: Debugging Story (820 chars)
+
 ```
-Spent 4 hours today debugging why my FastAPI endpoints
-were returning 422 errors.
+Spent 4 hours debugging a 422 error.
 
-Turns out Pydantic models don't automatically handle
-optional nested fields. If a field is Optional, it needs
-explicit type hints at every level.
+Here's what I learned.
+
+The problem:
+FastAPI kept returning 422.
+My Pydantic model had optional nested fields.
+
+Turns out?
+Optional needs explicit type hints at every level.
 
 The fix:
-
+```python
 class Item(BaseModel):
     name: str
     metadata: Optional[Dict[str, Any]] = None
+```
 
-Explicit > implicit. Got it.
+Now it works.
 
-Lesson: Read the Pydantic docs cover to cover. The
-validation rules are powerful but non-obvious.
+Lesson:
+Read the Pydantic docs.
+The validation rules are powerful but non-obvious.
+
+Ever hit a 422 error?
+What was the cause?
+👇
 
 #python #fastapi #debugging
 ```
 
-### Example 2: Performance Optimization
+**Analysis:**
+- Hook: 7 words ✓
+- Scannable: Short lines, code block ✓
+- Length: 820 chars ✓
+- Emojis: 1 ✓
+- CTA: Question ✓
+
+### Example 2: Performance Fix (780 chars)
+
 ```
-Reduced API response time from 800ms to 120ms today.
+Reduced API response time from 800ms to 120ms.
 
-Problem: Database queries were N+1-ing on every request.
-User list was fetching, then fetching permissions for
-each user individually.
+Here's how.
 
-Solution: Eager loading with select_inload.
+The problem:
+Database was N+1-ing on every request.
+Fetching users, then fetching permissions one by one.
 
+The solution:
+Eager loading with select_inload.
+
+```python
 from sqlalchemy.orm import select_inload
 
 users = (
@@ -89,202 +137,255 @@ users = (
     .options(select_inload(User.permissions))
     .all()
 )
+```
 
-Now all permissions load in a single query.
+Now all permissions load in one query.
 
-Lesson: Profile before optimizing. The bottleneck was
-not where I expected.
+Huge speed up.
+
+Lesson:
+Profile before optimizing.
+The bottleneck is rarely where you expect.
+
+What's your biggest performance win?
+👇
 
 #python #sqlalchemy #performance
 ```
 
-### Example 3: Architecture Decision
+**Analysis:**
+- Hook: 8 words ✓
+- Scannable: Code block with syntax ✓
+- Length: 780 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
+
+### Example 3: Architecture Decision (850 chars)
+
 ```
-Why I chose PostgreSQL over MongoDB for my latest project.
+I chose PostgreSQL over MongoDB.
+
+Here's why.
 
 I needed:
-- Complex joins across related data
-- ACID transactions for payments
-- Full-text search on user content
-- Mature tooling and monitoring
+ • Complex joins
+ • ACID transactions
+ • Full-text search
+ • Mature tooling
 
-MongoDB is great for document storage, but relational
-data with foreign keys is where Postgres shines.
+MongoDB is great for documents.
+But relational data with foreign keys?
+That's Postgres territory.
 
-Added pgvector later for AI similarity search. Postgres
-keeps being the right choice.
+Added pgvector later for AI search.
+Postgres keeps being the right choice.
 
-Lesson: Choose boring technology that fits your data
-model, not whatever's trending.
+Lesson:
+Pick boring tech that fits your data.
+Not whatever's trending.
+
+What's your favorite database?
+Why?
+👇
 
 #database #postgres #architecture
 ```
 
-### Example 4: Code Pattern
-```
-The sentinel pattern in Python - when None isn't enough.
+**Analysis:**
+- Hook: 7 words ✓
+- Scannable: Bullet points ✓
+- Length: 850 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
 
-Problem: Distinguishing "parameter not provided" from
-"parameter explicitly set to None".
+### Example 4: Code Pattern (750 chars)
+
+```
+The sentinel pattern in Python.
+
+When None isn't enough.
+
+The problem:
+How to tell if a parameter was provided?
+When "not set" and "set to None" look the same.
 
 Wrong way:
+```python
 def update(task_id: int, assignee: Optional[int] = None):
-    if assignee:  # Bug: Can't set assignee to 0!
+    if assignee:  # Bug! Can't set to 0
         ...
+```
 
 Right way:
+```python
 _UNSET = object()  # Module level
 
 def update(task_id: int, assignee: Optional[int] = _UNSET):
-    if assignee is not _UNSET:  # Works for any value
+    if assignee is not _UNSET:  # Works!
         ...
+```
 
-This is the pattern Typer and Pydantic use internally.
+This is what Typer and Pydantic use.
 
-Lesson: When None is a valid value, use a sentinel.
+Lesson:
+When None is a valid value?
+Use a sentinel.
+
+Ever use this pattern?
+Where?
+👇
 
 #python #patterns #coding
 ```
 
-### Example 5: Tooling Setup
+**Analysis:**
+- Hook: 7 words ✓
+- Scannable: Code blocks compared ✓
+- Length: 750 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
+
+### Example 5: Tooling Setup (720 chars)
+
 ```
-Set up pre-commit hooks for my Python project today.
+I set up pre-commit hooks today.
 
-What it does:
-- Runs black (formatting) on every commit
-- Runs isort (import sorting)
-- Runs mypy (type checking)
-- Runs pytest (tests)
+Here's what changed.
 
-If any check fails, commit is rejected.
+What they do:
+ • Run black (formatting)
+ • Sort imports
+ • Check types
+ • Run tests
 
-Setup in .pre-commit-config.yaml:
+If any check fails?
+Commit is rejected.
 
+Setup:
+```yaml
 repos:
   - repo: https://github.com/psf/black
     rev: 23.1.0
     hooks:
       - id: black
+```
 
-Caught 3 type hints I missed before first push.
+Caught 3 type hints I missed.
+Before my first push.
 
-Lesson: Automate quality checks. Your future self will
-thank you.
+Lesson:
+Automate quality checks.
+Your future self will thank you.
+
+What tools do you use?
+👇
 
 #python #tooling #workflow
 ```
 
-## Checklist
+**Analysis:**
+- Hook: 6 words ✓
+- Scannable: Bullets + code block ✓
+- Length: 720 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
+
+## Checklist (v2.0)
 
 Every technical post must include:
 
+- [ ] **One-liner hook** (problem, under 12 words)
+- [ ] **Max 3 lines per paragraph** (scannable on mobile)
+- [ ] **White space after each line** (easy to read)
 - [ ] Clear problem statement
-- [ ] Why it was a problem (context)
 - [ ] Your specific approach or solution
-- [ ] Code snippet, config, or technical detail
+- [ ] Code snippet (5-15 lines max, relevant only)
 - [ ] Result or outcome
-- [ ] Key takeaway or lesson
-- [ ] Relevant hashtags (2-5)
+- [ ] **CTA at end** (question or prompt)
+- [ ] 3-5 relevant hashtags
+- [ ] **700-1000 characters** (optimal length)
+- [ ] Simple English (non-native friendly)
 
-## Tone Guidelines
+## Common Mistakes (v2.0)
 
-| Do | Don't |
-|----|----|
-| Explain the "why" | Just dump code |
-| Show the before/after | Show only the solution |
-| Admit what you got wrong | Pretend you knew all along |
-| Use concrete examples | Abstract descriptions |
-| Teach one thing clearly | Cover too much |
-
-## Common Mistakes
-
-1. **Too much code**: Posting entire files
-   - Fix: Show only relevant snippets (5-15 lines)
+1. **Too much code**: Posting 50+ lines
+   - Fix: Show only relevant snippet (5-15 lines)
 
 2. **No context**: Here's how to do X
    - Fix: Start with the problem you were solving
 
-3. **No explanation**: Just code
-   - Fix: Explain what each part does
+3. **Wall of text**: Long paragraphs
+   - Fix: Max 3 lines per paragraph, add white space
 
-4. **Too broad**: How to build an entire API
-   - Fix: Focus on one specific aspect
+4. **No CTA**: Post just ends with the code
+   - Fix: Always ask "Ever hit this? What happened?"
 
-5. **No lesson**: Here's what I did
-   - Fix: Always end with what you learned
-
-## Twitter Thread Format
-
-For technical content on Twitter, use a thread:
-
-```
-1/ Spent 4 hours debugging a 422 error in FastAPI.
-
-Turns out Pydantic models don't automatically handle
-optional nested fields.
-
-The fix 👇
-
-#python #fastapi
-
-2/ The issue: Optional fields need explicit type hints
-at every level.
-
-Wrong:
-class Item(BaseModel):
-    metadata: dict  # Required
-
-Right:
-class Item(Base BaseModel):
-    metadata: Optional[Dict[str, Any]] = None
-
-3/ Explicit > implicit.
-
-Read the Pydantic docs cover to cover. The validation
-rules are powerful but non-obvious.
-
-Lesson learned: Type hints matter.
-
-#debugging #pydantic
-```
+5. **Too broad**: How to build an entire API
+   - Fix: Focus on one specific problem or pattern
 
 ## Platform Variations
 
-### LinkedIn (up to 1300 chars)
-- 3-5 paragraphs
+### LinkedIn (700-1000 chars optimal)
+- One-liner hook first
+- Max 3 lines per paragraph
 - Code blocks with triple backticks
-- Space between paragraphs
-- End with hashtags
+- CTA required at end
 
-### Twitter (use thread format)
-- Each tweet: one concept
-- Number them (1/, 2/, 3/)
-- End with takeaway
+### Twitter (200-270 chars, use thread)
+```
+1/ Spent 4 hours debugging a 422 error.
 
-### WhatsApp
-- Rarely used for deep technical content
-- Better for: "Just fixed a tricky bug, learning: X"
+The problem:
+Pydantic models don't handle optional nested fields well.
+
+The fix:
+class Item(BaseModel):
+    metadata: Optional[Dict] = None
+
+#python #fastapi
+
+2/ Lesson:
+Explicit type hints at every level.
+
+Read the Pydantic docs.
+The rules are powerful but non-obvious.
+
+Ever hit a 422?
+What happened?
+👇
+```
+
+### WhatsApp (50-150 chars, brief)
+```
+Just fixed a tricky bug in 4 hours.
+Turns out Pydantic needs explicit type hints for optional fields.
+Read the docs, folks.
+```
 
 ## Prompt Examples
 
 When invoking the skill, describe:
 
-1. **Problem** you solved
-2. **Context** (why it was hard)
-3. **Solution** (technical approach)
-4. **Result** (what happened)
-5. **Lesson** learned
+1. **Hook** - Problem one-liner
+2. **Problem** - What was hard
+3. **Solution** - Your approach + code
+4. **Outcome** - Result
+5. **Lesson** - Key takeaway
+6. **Platform** - LinkedIn, Twitter, or WhatsApp
 
 Example prompt:
 ```
-"Write a technical post about fixing a race condition
-in Python. Was using async but forgot to await a DB
-call. Took 4 hours to debug. Fixed by adding type hints
-and strict linting. Lesson: make it synchronous first,
-add async when you need it. LinkedIn post."
+"Write a LinkedIn technical post.
+Hook: Spent 4 hours debugging a race condition
+Problem: Async function wasn't awaiting DB call
+Solution: Made it synchronous first, added type hints
+Outcome: Fixed it, learned to start simple
+Lesson: Add complexity only when proven
+Target 800 characters, include CTA"
 ```
 
 ---
 
-**Template Version**: 1.0.0
+**Version**: 2.0.0
 **Last Updated**: 2025-01-28
+**Based On**: Aisha Riaz Problem-Process-Outcome-Lesson structure

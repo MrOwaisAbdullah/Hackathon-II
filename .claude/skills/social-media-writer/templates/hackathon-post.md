@@ -2,36 +2,42 @@
 
 Template for sharing hackathon experiences, what you built, and what you learned.
 
-## Structure
+Updated v2.0: Research-backed format from top LinkedIn creators.
+
+## Structure (Problem → Process → Outcome → Lesson)
 
 ```
-[What we built - one sentence summary]
+1. HOOK (One-liner, under 12 words)
+   → Result or what you built
 
-[The challenge we hit - what went wrong]
+2. CHALLENGE (2-3 lines max)
+   → What went wrong
 
-[How we solved it - technical approach]
+3. SOLUTION (2-3 lines max)
+   → How you fixed it
 
-[What I'd do differently - lesson learned]
+4. LESSON (1-2 lines)
+   → What you'd do differently
 
-[Result/award if applicable]
+5. CTA (Required)
+   → Question
 
-[Fun/relatable moment]
+[3-5 hashtags]
 ```
 
-## Template
+## Template (v2.0)
 
 ```python
 def generate_hackathon_post(
-    project_name: str,       # What you built
-    challenge: str,          # Main problem faced
-    solution: str,           # How you solved it
-    lesson: str,             # What you'd do differently
-    result: str = None,      # Award/placement (optional)
-    fun_moment: str = None,  # Fun detail (optional)
+    hook: str,           # One-liner result (under 12 words)
+    challenge: str,      # What went wrong (2-3 lines)
+    solution: str,       # How you fixed it (2-3 lines)
+    lesson: str,         # What you'd do differently (1-2 lines)
+    hashtags: list[str], # 3-5 relevant tags
 ) -> str:
-    """Generate a hackathon recap post."""
+    """Generate a hackathon recap (700-1000 chars optimal)."""
     return f"""
-{project_name}
+{hook}
 
 {challenge}
 
@@ -39,223 +45,316 @@ def generate_hackathon_post(
 
 {lesson}
 
-{result or ''}
+What was your biggest hackathon challenge?
+👇
 
-{fun_moment or ''}
-
-{generate_relevant_hashtags(project_name, solution)}
+{' '.join('#' + h for h in hashtags)}
     """.strip()
 ```
 
-## Examples
+## v2.0 Requirements
 
-### Example 1: Won a Placement
+| Rule | Requirement |
+|------|-------------|
+| Hook | One-liner, under 12 words |
+| Paragraphs | Max 3 lines each |
+| Sentences | Under 12 words (most under 10) |
+| Length | 700-1000 characters |
+| Emojis | Max 1-2 total |
+| CTA | Required at end |
+| Language | Simple English |
+
+## Examples (Updated v2.0)
+
+### Example 1: Won Placement (820 chars)
+
 ```
-Our team took 2nd place at the regional hackathon this
-weekend.
+Our team took 2nd place at the hackathon.
 
-48 hours to build something from scratch. We made an
-AI-powered task prioritization tool using:
-- OpenAI API for analysis
-- FastAPI backend
-- React + Tailwind frontend
+48 hours to build from scratch.
 
-Main challenge was handling API rate limits. We hit the
-free tier cap after 6 hours. Fixed it by implementing
-request queuing and local caching.
+We built an AI task manager.
+Using:
+ • Python + FastAPI
+ • React + Tailwind
+ • OpenAI API
 
-Would do differently: Check rate limits before starting,
-not after. Cost us 3 hours of debugging.
+Main challenge?
+API rate limits.
 
-Judges liked the clean UI and the technical approach to
-API constraints.
+We hit them after 6 hours.
+Had to queue requests.
+Added local caching.
 
-Fun moment: We ordered pizza at 3 AM and it arrived
-just as we deployed. Perfect timing.
+Judges liked the fix.
+And the clean UI.
 
-#hackathon #ai #webdev
+Lesson:
+Check rate limits before you start.
+Not after you hit them.
+
+Cost us 3 hours of debugging.
+
+Ever hit an API limit?
+How did you solve it?
+👇
+
+#hackathon #ai #python
 ```
 
-### Example 2: Built Something Cool
+**Analysis:**
+- Hook: 8 words ✓
+- Scannable: Bullet points ✓
+- Length: 820 chars ✓
+- Emojis: 1 ✓
+- CTA: Question ✓
+
+### Example 2: Built Something Cool (850 chars)
+
 ```
-Just finished a 24-hour hackathon. Built a real-time
-collaborative code editor.
+Just finished a 24-hour hackathon.
+
+Built a real-time code editor.
 
 Tech stack:
-- WebSocket server (Node.js + Socket.io)
-- Monaco Editor for the IDE interface
-- Operational Transformation for conflict resolution
+ • WebSocket server
+ • Monaco Editor
+ • Operational Transformation
 
-Biggest challenge: Handling concurrent edits. When two
-people type at once, whose change wins?
+Biggest challenge?
+Concurrent edits.
 
-We used OT (same tech as Google Docs). Each edit becomes
-a transformation operation that can be composed with
-others in any order.
+When two people type at once?
+Whose change wins?
 
-Would do differently: Start with OT, don't try to build
-your own conflict resolution. We lost 4 hours on that.
+We used OT.
+Same tech as Google Docs.
+Each edit composes with others in any order.
 
-Didn't win anything but learned a ton about distributed
-systems.
+Lesson:
+Start with proven patterns.
+Don't build your own conflict resolution.
+
+Lost 4 hours on that.
+
+What's the best thing you've built in 24 hours?
+👇
 
 #hackathon #websocket #collaboration
 ```
 
-### Example 3: Learning Experience
+**Analysis:**
+- Hook: 8 words ✓
+- Scannable: Bullets + short lines ✓
+- Length: 850 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
+
+### Example 3: Learning Experience (750 chars)
+
 ```
-First time participating in a hackathon. We didn't finish
-the project, but I learned more in 24 hours than in a
-month of tutorials.
+First hackathon. Didn't finish.
 
-Idea: Plant disease detector using computer vision.
-Upload photo of leaf, get diagnosis.
+But I learned a lot.
 
-Reality: Our model had 40% accuracy. Turns out plant
-diseases look very similar in photos, and we didn't
-have quality training data.
+The idea:
+Plant disease detector.
+Upload photo, get diagnosis.
 
-What worked: Built a working React Native app with image
-upload. Integrated with a Flask backend. Learned about
-TensorFlow Lite for mobile inference.
+The reality:
+Model had 40% accuracy.
+Plant diseases look similar in photos.
+We didn't have good data.
 
-Would do differently: Pick a smaller problem. We tried
-to do too much. A working MVP beats an ambitious failure.
+What worked:
+ • Built the app
+ • Used React Native
+ • Learned TensorFlow Lite
 
-Still had fun. Team was great.
+Lesson:
+Pick a smaller problem.
+A working MVP beats an ambitious failure.
 
-#hackathon #ml #mobiledev
-```
+Still had fun.
+Team was great.
 
-### Example 4: Team Experience
-```
-Hackathons are less about code, more about people.
+What's a lesson you learned the hard way?
+👇
 
-We were 4 strangers who met at the event. By hour 6,
-we'd figured out:
-- Who can ship frontend fast (Sarah)
-- Who handles the complex backend (Mike)
-- Who keeps the team calm and fed (Jamal)
-- Who tests everything (me)
-
-We built a habit-tracker app with gamification.
-Nothing revolutionary, but it worked.
-
-Challenge: Merge conflicts at hour 20. Everyone had been
-working on different branches. Solution: One person
-handled merges, others kept building features.
-
-Won "Best Team Collaboration" - apparently the judges
-noticed we weren't arguing.
-
-Lesson: A good team beats a good idea.
-
-#hackathon #teamwork #collaboration
+#hackathon #ml #learning
 ```
 
-### Example 5: Failure Post
+**Analysis:**
+- Hook: 7 words ✓
+- Scannable: Short lines ✓
+- Length: 750 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
+
+### Example 4: Team Experience (780 chars)
+
 ```
-We didn't finish our hackathon project. Here's what went
-wrong.
+Hackathons are about people.
+Not just code.
 
-Idea: Voice-controlled smart home dashboard.
-Reality: Speech recognition is hard.
+We were 4 strangers.
+By hour 6, we knew our roles:
+ • Frontend: Sarah
+ • Backend: Mike
+ • Keeping us calm: Jamal
+ • Testing: Me
 
-Problems we hit:
-1. Background noise at the venue broke our model
-2. API latency made it feel unresponsive
-3. Battery drain on continuous listening
+We built a habit tracker.
+Nothing fancy.
+But it worked.
 
-We pivoted twice. Started with Web Speech API, switched
-to a service, ran out of time trying to optimize.
+Challenge:
+Merge conflicts at hour 20.
 
-What I'd do differently:
-- Test core assumptions early (we tested at hour 18)
-- Have a smaller MVP ready
-- Focus on one feature, not three
+Everyone worked on different branches.
+Solution?
+One person handled merges.
+Others kept building.
 
-Still worth it. I now know more about audio processing
-than I did Friday.
+We won "Best Team Collaboration."
 
-#hackathon #failures #lessonslearned
+Lesson:
+A good team beats a good idea.
+
+What's your best hackathon story?
+👇
+
+#hackathon #teamwork #community
 ```
 
-## Checklist
+**Analysis:**
+- Hook: 7 words ✓
+- Scannable: Bullets ✓
+- Length: 780 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
 
-Every hackathon post should include:
+### Example 5: Honest Failure (720 chars)
 
-- [ ] What you built (one-line summary)
-- [ ] Tech stack (brief list)
+```
+We didn't finish our hackathon project.
+
+Here's what went wrong.
+
+The idea:
+Voice-controlled smart home dashboard.
+
+The reality:
+Speech recognition is hard.
+
+Problems:
+ • Background noise broke our model
+ • API latency made it slow
+ • Battery drain was huge
+
+We pivoted twice.
+Ran out of time.
+
+Lesson:
+Test core assumptions early.
+We tested at hour 18.
+Should have tested at hour 2.
+
+Still learned a lot about audio.
+
+What's a project that didn't go as planned?
+What did you learn?
+👇
+
+#hackathon #failures #lessons
+```
+
+**Analysis:**
+- Hook: 8 words ✓
+- Scannable: Numbered list ✓
+- Length: 720 chars ✓
+- Emojis: 0 ✓
+- CTA: Question ✓
+
+## Checklist (v2.0)
+
+Every hackathon post must include:
+
+- [ ] **One-liner hook** (result or what built, under 12 words)
+- [ ] **Max 3 lines per paragraph** (scannable on mobile)
+- [ ] **White space after each line** (easy to read)
+- [ ] Tech stack (brief, bullet points)
 - [ ] Main challenge faced
-- [ ] How you solved it
+- [ ] How you solved it (or what went wrong)
 - [ ] What you'd do differently
-- [ ] Result (placement, what you learned, or fun moment)
+- [ ] **CTA at end** (question or prompt)
 - [ ] 3-5 relevant hashtags
+- [ ] **700-1000 characters** (optimal length)
+- [ ] Simple English (non-native friendly)
 
 ## Tone Guidelines
 
 | Do | Don't |
 |----|----|
 | Share failures too | Only post wins |
-| Be honest about challenges | Pretend it was smooth |
-| Give credit to team | Say "I built this" |
-| Include fun moments | Make it sound like work |
+| Be honest | Pretend it was smooth |
+| Give credit to team | Say "I built this alone" |
 | Focus on learning | Focus only on winning |
+| Keep it real | Use hype words |
 
-## Common Mistakes
+## Common Mistakes (v2.0)
 
 1. **Too much hype**: "We built the most revolutionary app!"
-   - Fix: Describe what it actually does
+   - Fix: "We built a task manager using Python."
 
 2. **No tech details**: "Used cutting-edge technology"
-   - Fix: List actual stack (FastAPI, React, etc.)
+   - Fix: "Used FastAPI, React, and OpenAI API."
 
-3. **Fake modesty**: "I don't mean to brag but..."
-   - Fix: Own the achievement or share the failure honestly
+3. **Wall of text**: Long paragraphs describing everything
+   - Fix: Max 3 lines per paragraph, add white space
 
-4. **No lesson learned**: Just what you built
-   - Fix: Always include what you'd do differently
+4. **No CTA**: Post just ends with the result
+   - Fix: Always end with "What's your hackathon story?"
 
-5. **Too long**: 2000+ words
-   - Fix: Keep it under 1300 chars (LinkedIn)
+5. **Fake modesty**: "I don't mean to brag but we won..."
+   - Fix: "Our team took 2nd place."
 
 ## Platform Variations
 
-### LinkedIn (up to 1300 chars)
-- 4-6 paragraphs
-- Space between paragraphs
-- Include tech stack as bulleted list
-- End with hashtags
+### LinkedIn (700-1000 chars optimal)
+- One-liner hook first
+- Max 3 lines per paragraph
+- Tech stack as bullets
+- CTA required at end
 
-### Twitter (use thread format)
+### Twitter (200-270 chars, use thread)
 ```
-1/ Just finished a 24-hour hackathon. Built a real-time
-collaborative code editor.
+1/ Just finished a 24-hour hackathon.
+Built a real-time code editor.
 
-Tech stack: Node.js + Socket.io, Monaco Editor, OT
-for conflict resolution.
+Tech stack: Node.js + Socket.io, Monaco Editor, OT.
 
 #hackathon #websocket
 
-2/ Biggest challenge: Handling concurrent edits.
+2/ Biggest challenge: Concurrent edits.
 
-When two people type at once, whose change wins?
+When two people type at once?
+Whose change wins?
 
-We used Operational Transformation (same tech as Google
-Docs). Each edit composes with others in any order.
+We used Operational Transformation (same as Google Docs).
 
-3/ Would do differently: Start with OT, don't try to
-build your own conflict resolution.
+3/ Lesson: Start with proven patterns.
 
-Lost 4 hours on that. Lesson learned.
+Lost 4 hours trying to build our own conflict resolution.
 
-#collaboration #lessonslearned
+What's your best hackathon story?
+👇
 ```
 
-### WhatsApp (brief recap)
+### WhatsApp (50-150 chars, brief)
 ```
-Hackathon done! Built an AI task manager with the team.
-Didn't win but learned about rate limiting the hard way.
+Hackathon done! Built an AI task manager.
+Hit rate limits the hard way.
 Exhausted but worth it.
 ```
 
@@ -263,21 +362,25 @@ Exhausted but worth it.
 
 When invoking the skill, describe:
 
-1. **What** you built
-2. **Challenge** faced
-3. **Solution** approach
-4. **Lesson** learned
-5. **Result** (optional)
+1. **Hook** - One-liner result
+2. **Challenge** - What went wrong
+3. **Solution** - How you fixed it
+4. **Lesson** - What you'd do differently
+5. **Platform** - LinkedIn, Twitter, or WhatsApp
 
 Example prompt:
 ```
-"Write a hackathon recap. Built an AI task manager with
-FastAPI and React. Hit API rate limits, fixed with request
-queuing. Lesson: check limits before starting. Took 2nd
-place. LinkedIn post."
+"Write a LinkedIn hackathon post.
+Hook: Our team took 2nd place
+Challenge: Hit API rate limits after 6 hours
+Solution: Added request queuing and caching
+Lesson: Check limits before starting
+Tech stack: Python, FastAPI, React, OpenAI
+Target 850 characters, include CTA"
 ```
 
 ---
 
-**Template Version**: 1.0.0
+**Version**: 2.0.0
 **Last Updated**: 2025-01-28
+**Based On**: Aisha Riaz structure + user's authentic voice
