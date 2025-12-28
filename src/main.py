@@ -6,19 +6,19 @@ It displays an interactive menu-driven interface for task management.
 
 import sys
 
-from cli.menus import (
+from src.cli.menus import (
     MainMenu,
     TaskManagementMenu,
     UserManagementMenu,
     display_exit_confirmation,
 )
-from cli.prompts import TaskPrompts, UserPrompts
-from lib.formatting import create_console
-from lib.storage import get_task_store, get_team_store, get_user_store
-from lib.validation import validate_numbered_input
-from services.menu_service import MenuService, MenuState
-from services.task_service import TaskService
-from services.user_service import UserService
+from src.cli.prompts import TaskPrompts, UserPrompts
+from src.lib.formatting import create_console
+from src.lib.storage import get_task_store, get_team_store, get_user_store
+from src.lib.validation import validate_numbered_input
+from src.services.menu_service import MenuService, MenuState
+from src.services.task_service import TaskService
+from src.services.user_service import UserService
 
 # Data loss warning
 DATA_LOSS_WARNING = """

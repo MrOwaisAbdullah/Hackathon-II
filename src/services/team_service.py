@@ -5,7 +5,7 @@ This module contains the business logic for team operations.
 
 from typing import Protocol
 
-from models.team import Team
+from src.models.team import Team
 
 
 class TeamStoreProtocol(Protocol):
