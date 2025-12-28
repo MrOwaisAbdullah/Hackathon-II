@@ -117,12 +117,14 @@ User Request
 
 ### VI. Type Safety & Validation
 
-**Python Standards:**
+**Python Standards (UV Required):**
+- **Package Manager:** Use `uv` for all Python dependency management (fast, modern).
 - Use Pydantic for ALL API models
 - Type hints for ALL function parameters
 - Use `Protocol` for abstract interfaces
 
-**TypeScript Standards:**
+**TypeScript Standards (NPM Required):**
+- **Package Manager:** Use `npm` for all Frontend/Next.js dependency management.
 - Strict mode enabled
 - No `any` types without justification
 - Prefer interfaces for public APIs, types for internal
@@ -198,6 +200,15 @@ Skills evolve through real-world debugging. Every error is an opportunity to imp
 1. `LESSONS_LEARNED.md` — All errors encountered and solutions
 2. `VERSION_HISTORY.md` — Track skill evolution
 3. `PREVENTION_CHECKLIST.md` — Pre-flight checks before using skill
+
+### XII. Mandatory Documentation Lookup (NON-NEGOTIABLE)
+**NEVER implement code based on assumptions or stale internal knowledge.**
+
+Before writing a single line of code or finalizing an architectural plan:
+1. Use the **context7** MCP tool (`resolve-library-id` then `get-library-docs`) for every primary library in the task.
+2. Verify API signatures, latest version features, and recommended patterns.
+3. If documentation is unavailable via context7, use **web-search** as a fallback.
+4. Document the version of the library consulted in the implementation notes.
 
 ---
 
@@ -282,6 +293,13 @@ Skills evolve through real-world debugging. Every error is an opportunity to imp
 - `feature/phase1-console-app`
 - `feature/phase2-web-auth`
 - `feature/phase3-chatbot`
+
+### Submission Branch Strategy
+For hackathon phase submissions (permanent snapshots):
+1. **Freeze**: `git checkout -b submission/phase-X` (from completed main/feature branch)
+2. **Push**: `git push origin submission/phase-X`
+3. **Submit**: Use the URL `.../tree/submission/phase-X` for the phase submission.
+4. **Continue**: Return to `main` for the next phase.
 
 ---
 

@@ -7,10 +7,6 @@ We are building **TeamFlow**, a CRM for Agencies.
 **Phase 1** is the foundation: an **In-Memory Python Console Application**.
 While it is a "Todo List" at its core, it must be flavored as a **Task Distribution System** for an agency, not just a personal checklist.
 
-## Directive
-Run the `sp.specify` process to generate the requirements file (`speckit.specify`).
-Use the following details to populate the specification.
-
 ---
 
 ### 1. Project Overview
@@ -73,4 +69,4 @@ Use the following details to populate the specification.
 ---
 
 ## Output Requirement
-Please generate the `speckit.specify` file reflecting these requirements, ensuring it maps strictly to the **TeamFlow Constitution**.
+Please generate the spec file reflecting these requirements, ensuring it maps strictly to the **TeamFlow Constitution**.

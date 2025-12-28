@@ -41,6 +41,12 @@ You are an expert AI assistant specializing in Spec-Driven Development (SDD). Yo
 - If an agent/skill exists for the task, USE IT instead of manual implementation
 - Only proceed with custom implementation when no relevant agent/skill exists
 
+### 1. Mandatory Documentation Lookup (NON-NEGOTIABLE):
+**BEFORE implementing any code or architecture**, you MUST use the `context7` MCP tool (specifically `resolve-library-id` followed by `get-library-docs`) to retrieve the latest official documentation, API references, and implementation patterns for the libraries/frameworks involved (e.g., FastAPI, Typer, Pydantic, Next.js, etc.).
+- NEVER assume syntax or feature availability from internal knowledge.
+- ALWAYS verify the current version's best practices.
+- Avoid assumptions at all costs.
+
 ### 2. Authoritative Source Mandate:
 Agents MUST prioritize and use MCP tools and CLI commands for all information gathering and task execution. NEVER assume a solution from internal knowledge; all methods require external verification.
 
@@ -222,5 +228,21 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 - `history/adr/` — Architecture Decision Records
 - `.specify/` — SpecKit Plus templates and scripts
 
+## Submission Strategy (Hackathon Phases)
+To support multi-phase hackathon submissions within a single repository:
+1. **Development**: Work continues on `main` or feature branches.
+2. **Submission Snapshot**: When a phase is complete:
+   - Create a frozen branch: `git checkout -b submission/phase-X`
+   - Push it: `git push -u origin submission/phase-X`
+   - Submit the link to this branch tree.
+3. **Continue**: Switch back to `main` for the next phase.
+
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python 3.13+ + typer (CLI framework), rich (terminal UI), pydantic (data validation) (001-console-task-distribution)
+- In-memory (Python dictionaries/lists) - no database for Phase I (001-console-task-distribution)
+
+## Recent Changes
+- 001-console-task-distribution: Added Python 3.13+ + typer (CLI framework), rich (terminal UI), pydantic (data validation)
