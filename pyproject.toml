@@ -1,6 +1,6 @@
 [project]
 name = "teamflow-console"
-version = "0.1.5"
+version = "0.2.0"
 description = "TeamFlow Console App - Phase 1: In-Memory Task Distribution"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -36,7 +36,7 @@ Repository = "https://github.com/MrOwaisAbdullah/Teamflow"
 "Bug Tracker" = "https://github.com/MrOwaisAbdullah/Teamflow/issues"
 
 [project.scripts]
-teamflow = "main:main"
+teamflow = "teamflow_console:main"
 
 [project.optional-dependencies]
 dev = [
@@ -57,25 +57,15 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 include = [
-    "main.py",
-    "cli/**/*.py",
-    "lib/**/*.py",
-    "models/**/*.py",
-    "services/**/*.py",
-    "__init__.py",
+    "teamflow_console/**/*.py",
 ]
 
 [tool.hatch.build.targets.wheel]
-# Don't restrict packages - let include handle what gets bundled
+packages = ["teamflow_console"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "main.py",
-    "cli/",
-    "lib/",
-    "models/",
-    "services/",
-    "__init__.py",
+    "teamflow_console/",
 ]
 
 [tool.black]

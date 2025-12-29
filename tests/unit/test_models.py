@@ -2,9 +2,9 @@
 
 import pytest
 
-from models.task import Priority, Status, Task
-from models.team import Team
-from models.user import Role, User
+from teamflow_console.models.task import Priority, Status, Task
+from teamflow_console.models.team import Team
+from teamflow_console.models.user import Role, User
 
 
 class TestTaskModel:

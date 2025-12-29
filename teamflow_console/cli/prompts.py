@@ -6,7 +6,7 @@ listing, updating, completing, and deleting tasks.
 
 from typing import Optional
 
-from lib.formatting import (
+from teamflow_console.lib.formatting import (
     Style,
     create_console,
     render_border,
@@ -14,17 +14,17 @@ from lib.formatting import (
     render_success_panel,
     render_task_table,
 )
-from lib.validation import (
+from teamflow_console.lib.validation import (
     validate_enum_selection,
     validate_numbered_input,
     validate_optional_text,
     validate_required_text,
 )
-from models.task import Priority, Status, Task
-from models.team import Team
-from models.user import Role, User
-from services.task_service import TaskNotFoundError, TaskService
-from services.user_service import DuplicateUserNameError, UserNotFoundError, UserService
+from teamflow_console.models.task import Priority, Status, Task
+from teamflow_console.models.team import Team
+from teamflow_console.models.user import Role, User
+from teamflow_console.services.task_service import TaskNotFoundError, TaskService
+from teamflow_console.services.user_service import DuplicateUserNameError, UserNotFoundError, UserService
 
 
 class TaskPrompts:
@@ -945,8 +945,8 @@ class UserPrompts:
                 return
 
             # Import here to avoid circular dependency
-            from lib.storage import get_team_store
-            from services.team_service import TeamService
+            from teamflow_console.lib.storage import get_team_store
+            from teamflow_console.services.team_service import TeamService
 
             team_service = TeamService(get_team_store())
             team = team_service.create(team_name, [m.name for m in members])
@@ -964,8 +964,8 @@ class UserPrompts:
         self.console.print()
 
         # Import here to avoid circular dependency
-        from lib.storage import get_team_store
-        from services.team_service import TeamService
+        from teamflow_console.lib.storage import get_team_store
+        from teamflow_console.services.team_service import TeamService
 
         team_service = TeamService(get_team_store())
         teams = team_service.list_all()
@@ -1082,8 +1082,8 @@ class UserPrompts:
                 validated = validate_required_text(name, min_length=1, max_length=100)
 
                 # Check for duplicate name
-                from lib.storage import get_team_store
-                from services.team_service import TeamService
+                from teamflow_console.lib.storage import get_team_store
+                from teamflow_console.services.team_service import TeamService
 
                 team_service = TeamService(get_team_store())
 

@@ -9,11 +9,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from cli.prompts import TaskPrompts
-from lib.formatting import create_console
-from lib.storage import InMemoryTaskStore
-from models.task import Priority
-from services.task_service import TaskService
+from teamflow_console.cli.prompts import TaskPrompts
+from teamflow_console.lib.formatting import create_console
+from teamflow_console.lib.storage import InMemoryTaskStore
+from teamflow_console.models.task import Priority
+from teamflow_console.services.task_service import TaskService
 
 
 class TestTaskCreationPromptContract:

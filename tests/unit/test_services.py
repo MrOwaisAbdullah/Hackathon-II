@@ -2,9 +2,9 @@
 
 import pytest
 
-from lib.storage import InMemoryTaskStore
-from models.task import Priority, Status, Task
-from services.task_service import TaskNotFoundError, TaskService
+from teamflow_console.lib.storage import InMemoryTaskStore
+from teamflow_console.models.task import Priority, Status, Task
+from teamflow_console.services.task_service import TaskNotFoundError, TaskService
 
 
 class TestTaskService:

@@ -2,7 +2,7 @@
 
 import pytest
 
-from services.menu_service import MenuService, MenuState
+from teamflow_console.services.menu_service import MenuService, MenuState
 
 
 class TestMenuService:
