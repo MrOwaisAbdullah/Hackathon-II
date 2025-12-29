@@ -1,0 +1,154 @@
+"""Entry point template for CLI applications.
+
+This is your_package/__init__.py - the main entry point for your CLI.
+"""
+
+from .cli.menus import MainMenu
+from .cli.prompts import TaskPrompts, UserPrompts
+from .lib.formatting import create_console
+from .lib.storage import get_task_store, get_team_store, get_user_store
+from .lib.validation import validate_numbered_input
+from .services.menu_service import MenuService, MenuState
+from .services.task_service import TaskService
+from .services.user_service import UserService
+
+
+def main() -> None:
+    """Main entry point for the CLI application.
+
+    This function is called when the user runs your command.
+    It should:
+    1. Initialize the application
+    2. Display the main menu
+    3. Run the main event loop
+    4. Handle clean exit on KeyboardInterrupt
+    """
+    console = create_console()
+
+    # Initialize services
+    task_store = get_task_store()
+    user_store = get_user_store()
+    team_store = get_team_store()
+
+    user_service = UserService(user_store)
+    task_service = TaskService(task_store, user_service=user_service)
+
+    # Initialize menu service
+    menu_service = MenuService()
+
+    # Initialize prompts
+    task_prompts = TaskPrompts(console, task_service)
+    user_prompts = UserPrompts(console, user_service, task_service)
+
+    try:
+        # Show data loss warning
+        console.print()
+        console.print("[yellow bold]⚠️  WARNING: DATA STORAGE[/yellow bold]")
+        console.print()
+        console.print("[dim]This application uses in-memory storage.[/dim]")
+        console.print("[dim]All data will be lost when you exit.[/dim]")
+        console.print()
+        input("Press Enter to continue...")
+
+        # Main event loop
+        while True:
+            # Display main menu
+            MainMenu.display(console)
+
+            # Get user selection
+            selection = MainMenu.get_selection()
+
+            # Handle selection
+            if selection == "1":
+                _handle_task_management(console, task_prompts)
+            elif selection == "2":
+                _handle_user_management(console, user_prompts)
+            elif selection == "3":
+                _handle_view_tasks(console, task_service)
+            elif selection == "4":
+                _handle_view_resources(console, user_service)
+            elif selection == "5" or selection.lower() == "q":
+                if _confirm_exit(console):
+                    break
+            elif selection.lower() == "c":
+                _handle_task_management(console, task_prompts)
+            elif selection.lower() == "l":
+                _handle_view_tasks(console, task_service)
+            else:
+                console.print("[red]Invalid option. Please try again.[/red]")
+                input("Press Enter to continue...")
+
+    except KeyboardInterrupt:
+        console.print()
+        console.print("[yellow]Exiting...[/yellow]")
+        raise SystemExit(0)
+
+
+def _handle_task_management(console, task_prompts):
+    """Handle task management submenu."""
+    # Display task management menu
+    from .cli.menus import TaskManagementMenu
+    TaskManagementMenu.display(console)
+
+    selection = input("Select option [0-5]: ").strip()
+
+    if selection == "1":
+        task_prompts.prompt_create_task()
+    elif selection == "2":
+        task_prompts.prompt_list_tasks()
+    elif selection == "3":
+        task_prompts.prompt_update_task()
+    elif selection == "4":
+        task_prompts.prompt_complete_task()
+    elif selection == "5":
+        task_prompts.prompt_delete_task()
+
+
+def _handle_user_management(console, user_prompts):
+    """Handle user & team management submenu."""
+    from .cli.menus import UserManagementMenu
+    UserManagementMenu.display(console)
+
+    selection = input("Select option [0-4]: ").strip()
+
+    if selection == "1":
+        user_prompts.prompt_create_user()
+    elif selection == "2":
+        user_prompts.prompt_create_team()
+    elif selection == "3":
+        user_prompts.prompt_list_users()
+    elif selection == "4":
+        user_prompts.prompt_list_teams()
+
+
+def _handle_view_tasks(console, task_service):
+    """Handle view tasks."""
+    tasks = task_service.list_all()
+    if tasks:
+        from .lib.formatting import render_task_table
+        render_task_table(console, tasks)
+    else:
+        console.print("[yellow]No tasks found.[/yellow]")
+    input("Press Enter to continue...")
+
+
+def _handle_view_resources(console, user_service):
+    """Handle view resources (users/teams)."""
+    users = user_service.list_all()
+    if users:
+        console.print("[bold]Users:[/bold]")
+        for user in users:
+            console.print(f"  - {user.name} ({user.role.value})")
+    else:
+        console.print("[yellow]No users found.[/yellow]")
+    input("Press Enter to continue...")
+
+
+def _confirm_exit(console) -> bool:
+    """Display exit confirmation and get user response."""
+    from .cli.menus import display_exit_confirmation
+    return display_exit_confirmation(console)
+
+
+if __name__ == "__main__":
+    main()
