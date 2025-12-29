@@ -9,12 +9,14 @@ Interactive menu-driven console application for task distribution in small agenc
 ## Installation
 
 ```bash
-# Install from PyPI
+# Install from PyPI (latest version)
 pip install teamflow-console
 
-# Or install with pipx (recommended for isolated environments)
-pipx install teamflow-console
+# Or install a specific version
+pip install teamflow-console==0.2.3
 ```
+
+**Requirements:** Python 3.13 or higher
 
 ## Quick Start
 
@@ -22,6 +24,8 @@ pipx install teamflow-console
 # Run the application
 teamflow
 ```
+
+That's it! The app will launch and show you the main menu.
 
 ## Features
 
@@ -31,15 +35,75 @@ teamflow
 - **Task Assignment**: Assign tasks to team members with workload warnings
 - **Task Filtering**: Filter by status, priority, and assignee
 - **Keyboard Shortcuts**: Quick actions for power users (c=create, l=list, q=quit)
+- **Visual Spacing**: Clean menu displays with proper line breaks
 
 ## First Run
 
-1. Launch `python -m src.main`
-2. See main menu with numbered options
-3. Press `1` for Task Management
-4. Press `1` to Create Task
-5. Follow the prompts (title, description, priority, assignee)
-6. Task created! Press `l` to list all tasks
+1. Run `teamflow` in your terminal
+2. You'll see a data loss warning (press Enter to continue)
+3. Main menu appears with 5 options
+4. Press `1` for Task Management
+5. Press `1` to Create Task
+6. Follow the prompts (title, description, priority, assignee)
+7. Task created! Press `l` to list all tasks
+
+## Menu Navigation
+
+| Key | Action |
+|-----|--------|
+| `1-5` | Select menu option |
+| `0` | Go back to main menu |
+| `c` | Quick create task (from main menu) |
+| `l` | Quick list tasks (from main menu) |
+| `q` | Quit application |
+| `Enter` | Confirm / Continue |
+
+## Example Usage
+
+```
+$ teamflow
+
+┌─────────────────────────────────────────────┐
+│          TEAMFLOW - Task Manager           │
+├─────────────────────────────────────────────┤
+│  1. Task Management                         │
+│  2. User & Team Management                  │
+│  3. View Tasks                              │
+│  4. View Resources                          │
+│  5. Exit                                    │
+├─────────────────────────────────────────────┤
+│ c=Create, l=List, q=Quit                     │
+└─────────────────────────────────────────────┘
+
+Select option [1-5]: 1
+
+[Task Management Menu appears...]
+
+Select option [0-5]: 1
+
+Enter task title: Fix login bug
+Enter description (optional): [Enter to skip]
+Select priority:
+  1. High
+  2. Medium
+  3. Low
+Select [1-3]: 1
+
+┌─────────────────────────────────────────────┐
+│ [SUCCESS] Task created!                      │
+│                                             │
+│ ID: 1                                        │
+│ Title: Fix login bug                         │
+│ Priority: High                               │
+│ Status: Todo                                 │
+│                                             │
+│ Press Enter to continue...                    │
+└─────────────────────────────────────────────┘
+```
+
+## Development
+
+For development setup, see the [quickstart guide](specs/001-console-task-distribution/quickstart.md).
 
 ## Tech Stack
 
@@ -52,17 +116,19 @@ teamflow
 ## Project Structure
 
 ```
-src/
-├── models/      # Pydantic data models
-├── services/    # Business logic layer
-├── cli/         # CLI interface (menus, prompts)
-└── lib/         # Utilities (formatting, storage)
+teamflow_console/
+├── __init__.py   # Entry point
+├── cli/          # CLI interface (menus, prompts)
+├── lib/          # Utilities (formatting, storage, validation)
+├── models/       # Pydantic data models
+└── services/     # Business logic layer
 tests/
-├── unit/        # Model and service tests
-├── integration/ # End-to-end workflow tests
-└── contract/    # Interface contract tests
+├── unit/         # Model and service tests
+├── integration/  # End-to-end workflow tests
+└── contract/     # Interface contract tests
 ```
 
 ## License
 
-MIT
+MIT © 2025 Owais Abdullah
+
