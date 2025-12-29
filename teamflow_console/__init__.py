@@ -6,19 +6,19 @@ It displays an interactive menu-driven interface for task management.
 
 import sys
 
-from teamflow_console.cli.menus import (
+from .cli.menus import (
     MainMenu,
     TaskManagementMenu,
     UserManagementMenu,
     display_exit_confirmation,
 )
-from teamflow_console.cli.prompts import TaskPrompts, UserPrompts
-from teamflow_console.lib.formatting import create_console
-from teamflow_console.lib.storage import get_task_store, get_team_store, get_user_store
-from teamflow_console.lib.validation import validate_numbered_input
-from teamflow_console.services.menu_service import MenuService, MenuState
-from teamflow_console.services.task_service import TaskService
-from teamflow_console.services.user_service import UserService
+from .cli.prompts import TaskPrompts, UserPrompts
+from .lib.formatting import create_console
+from .lib.storage import get_task_store, get_team_store, get_user_store
+from .lib.validation import validate_numbered_input
+from .services.menu_service import MenuService, MenuState
+from .services.task_service import TaskService
+from .services.user_service import UserService
 
 # Data loss warning
 DATA_LOSS_WARNING = """

@@ -4,14 +4,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from teamflow_console.lib.formatting import (
+from ..lib.formatting import (
     BoxChars,
     Style,
     create_console,
     render_border,
     render_bottom_border,
 )
-from teamflow_console.lib.validation import validate_numbered_input
+from ..lib.validation import validate_numbered_input
 
 
 class MainMenu:
