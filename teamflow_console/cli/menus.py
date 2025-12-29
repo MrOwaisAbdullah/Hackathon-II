@@ -28,6 +28,7 @@ class MainMenu:
             use_unicode: Whether to use Unicode box-drawing characters (unused with Panel)
         """
         console.clear()
+        console.print()  # Line break before menu
 
         menu_text = Text()
         menu_text.append("1. Task Management\n", style="white")
@@ -44,6 +45,7 @@ class MainMenu:
             width=51,
         )
         console.print(panel)
+        console.print()  # Line break after menu
 
     @staticmethod
     def get_selection(prompt: str = "Select option [1-5]: ") -> str:
@@ -72,6 +74,7 @@ class TaskManagementMenu:
             use_unicode: Whether to use Unicode box-drawing characters (unused with Panel)
         """
         console.clear()
+        console.print()  # Line break before menu
 
         menu_text = Text()
         menu_text.append("1. Create Task\n", style="white")
@@ -88,6 +91,7 @@ class TaskManagementMenu:
             width=51,
         )
         console.print(panel)
+        console.print()  # Line break after menu
 
 
 class UserManagementMenu:
@@ -104,6 +108,7 @@ class UserManagementMenu:
             use_unicode: Whether to use Unicode box-drawing characters (unused with Panel)
         """
         console.clear()
+        console.print()  # Line break before menu
 
         menu_text = Text()
         menu_text.append("1. Create User\n", style="white")
@@ -119,6 +124,7 @@ class UserManagementMenu:
             width=51,
         )
         console.print(panel)
+        console.print()  # Line break after menu
 
 
 def display_exit_confirmation(console: Console) -> bool:

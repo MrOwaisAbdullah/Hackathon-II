@@ -1,6 +1,6 @@
 [project]
 name = "teamflow-console"
-version = "0.2.2"
+version = "0.2.3"
 description = "TeamFlow Console App - Phase 1: In-Memory Task Distribution"
 readme = "README.md"
 requires-python = ">=3.13"
