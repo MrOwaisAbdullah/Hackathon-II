@@ -64,7 +64,7 @@ That's it! The app will launch and show you the main menu.
 $ teamflow
 
 ┌─────────────────────────────────────────────┐
-│          TEAMFLOW - Task Manager           │
+│          TEAMFLOW - Task Manager            │
 ├─────────────────────────────────────────────┤
 │  1. Task Management                         │
 │  2. User & Team Management                  │
@@ -72,7 +72,7 @@ $ teamflow
 │  4. View Resources                          │
 │  5. Exit                                    │
 ├─────────────────────────────────────────────┤
-│ c=Create, l=List, q=Quit                     │
+│ c=Create, l=List, q=Quit                    │
 └─────────────────────────────────────────────┘
 
 Select option [1-5]: 1
@@ -90,14 +90,14 @@ Select priority:
 Select [1-3]: 1
 
 ┌─────────────────────────────────────────────┐
-│ [SUCCESS] Task created!                      │
+│ [SUCCESS] Task created!                     │
 │                                             │
-│ ID: 1                                        │
-│ Title: Fix login bug                         │
-│ Priority: High                               │
-│ Status: Todo                                 │
+│ ID: 1                                       │
+│ Title: Fix login bug                        │
+│ Priority: High                              │
+│ Status: Todo                                │
 │                                             │
-│ Press Enter to continue...                    │
+│ Press Enter to continue...                  │
 └─────────────────────────────────────────────┘
 ```
 
