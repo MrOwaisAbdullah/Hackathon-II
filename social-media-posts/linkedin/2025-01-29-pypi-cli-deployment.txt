@@ -1,0 +1,41 @@
+I just published my first Python package to PyPI.
+
+It's called TeamFlow Console.
+
+The journey wasn't straightforward.
+
+I hit 7 different deployment issues.
+Each one taught me something new.
+
+Here's what broke:
+• ModuleNotFoundError (flat structure)
+• Import errors (absolute vs relative)
+• Files missing from wheel (.gitignore)
+• Entry point not found
+• Version conflicts
+
+The biggest lesson?
+Package structure matters more than I thought.
+
+```bash
+pip install teamflow-console
+teamflow
+```
+
+One command and it works.
+
+What I learned:
+- Use package namespace (your_package/)
+- Use relative imports inside packages
+- Check .gitignore doesn't exclude your dirs
+- Test wheel contents before publishing
+
+Created a reusable skill from all the lessons.
+So future deployments go smoothly.
+
+Ever deployed to PyPI?
+What was your biggest blocker?
+
+👇
+
+#python #packaging #pypi #CLI #DeveloperJourney

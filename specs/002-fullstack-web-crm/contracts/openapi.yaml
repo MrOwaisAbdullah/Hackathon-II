@@ -1,0 +1,868 @@
+openapi: 3.1.0
+info:
+  title: TeamFlow API
+  description: |
+    RESTful API for TeamFlow Phase 2 - Agency CRM with task management,
+    time tracking, and profitability reporting.
+
+    **Authentication**: JWT Bearer tokens (httpOnly cookies)
+    **Multi-Tenant**: All requests scoped to agency_id from JWT claims
+    **Base URL**: https://api.teamflow.example.com/v1
+
+  version: 1.0.0
+  contact:
+    name: TeamFlow API Support
+    email: api@teamflow.example.com
+
+servers:
+  - url: http://localhost:8000/v1
+    description: Local development
+  - url: https://api.teamflow.example.com/v1
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: auth
+    description: Authentication and agency registration
+  - name: tasks
+    description: Task CRUD and management
+  - name: projects
+    description: Project management
+  - name: users
+    description: Team member management
+  - name: time-entries
+    description: Time tracking
+  - name: agencies
+    description: Agency administration
+
+paths:
+  # ============================================================
+  # AUTH ENDPOINTS
+  # ============================================================
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register new agency and user
+      description: |
+        Creates a new agency and first user (admin). Returns JWT token.
+        This is the only endpoint that doesn't require authentication.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agency_name, email, password, name]
+              properties:
+                agency_name:
+                  type: string
+                  minLength: 2
+                  maxLength: 255
+                  example: "Creative Studio Inc"
+                email:
+                  type: string
+                  format: email
+                  example: "admin@creativestudio.com"
+                password:
+                  type: string
+                  minLength: 8
+                  example: "SecurePass123!"
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 255
+                  example: "Jane Admin"
+      responses:
+        '201':
+          description: Registration successful
+          headers:
+            Set-Cookie:
+              description: JWT token in httpOnly cookie
+              schema:
+                type: string
+                example: "auth_token=eyJ...; Path=/; HttpOnly; Secure; SameSite=Strict"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login with email and password
+      description: |
+        Authenticates user and returns JWT token.
+        Token includes agency_id for tenant scoping.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@agency.com"
+                password:
+                  type: string
+                  example: "MyPassword123!"
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Get current user
+      description: Returns authenticated user's profile from JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # ============================================================
+  # TASKS ENDPOINTS
+  # ============================================================
+  /tasks:
+    get:
+      tags: [tasks]
+      summary: List tasks
+      description: |
+        Returns all tasks for the user's agency.
+        Supports filtering by status, project, assignee.
+      parameters:
+        - $ref: '#/components/parameters/StatusFilter'
+        - $ref: '#/components/parameters/ProjectFilter'
+        - $ref: '#/components/parameters/AssigneeFilter'
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/PageOffset'
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  total:
+                    type: integer
+                    example: 42
+                  page:
+                    type: integer
+                    example: 1
+
+    post:
+      tags: [tasks]
+      summary: Create task
+      description: |
+        Creates a new task. Automatically scoped to user's agency.
+        Returns 201 with created task on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /tasks/{task_id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+
+    get:
+      tags: [tasks]
+      summary: Get task by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [tasks]
+      summary: Update task
+      description: |
+        Partial update of task fields. Supports last-write-wins concurrency.
+        Returns 200 with updated task on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [tasks]
+      summary: Delete task (soft delete)
+      description: |
+        Soft deletes task. Sets status to 'archived'.
+        Task remains in database for 90 days.
+      responses:
+        '204':
+          description: Task deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tasks/{task_id}/assign:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+
+    post:
+      tags: [tasks]
+      summary: Assign task to user
+      description: |
+        Assigns a task to a team member within the same agency.
+        Sets assignee_id. If assignee_id is null, unassigns task.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignee_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: User not in same agency
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # PROJECTS ENDPOINTS
+  # ============================================================
+  /projects:
+    get:
+      tags: [projects]
+      summary: List projects
+      description: Returns all projects for user's agency
+      parameters:
+        - $ref: '#/components/parameters/PageLimit'
+        - $ref: '#/components/parameters/PageOffset'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+
+    post:
+      tags: [projects]
+      summary: Create project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+  /projects/{project_id}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+
+    get:
+      tags: [projects]
+      summary: Get project by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+    patch:
+      tags: [projects]
+      summary: Update project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+
+    delete:
+      tags: [projects]
+      summary: Delete project
+      responses:
+        '204':
+          description: Project deleted
+
+  /projects/{project_id}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+
+    get:
+      tags: [projects]
+      summary: Get tasks for project
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+
+  # ============================================================
+  # USERS ENDPOINTS
+  # ============================================================
+  /users:
+    get:
+      tags: [users]
+      summary: List team members
+      description: Returns all users in the same agency
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+
+  /users/{user_id}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+
+    get:
+      tags: [users]
+      summary: Get user by ID
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  # ============================================================
+  # TIME ENTRIES ENDPOINTS
+  # ============================================================
+  /time-entries:
+    get:
+      tags: [time-entries]
+      summary: List time entries
+      description: Returns time entries filtered by date range, task, or user
+      parameters:
+        - $ref: '#/components/parameters/TaskIdFilter'
+        - $ref: '#/components/parameters/UserIdFilter'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimeEntry'
+
+    post:
+      tags: [time-entries]
+      summary: Log time entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeEntryCreate'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+
+  /analytics/profitability:
+    get:
+      tags: [analytics]
+      summary: Get profitability report
+      description: |
+        Calculates profitability for agency across projects and time period.
+        Returns billable revenue vs costs.
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - $ref: '#/components/parameters/ProjectIdFilter'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfitabilityReport'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from httpOnly cookie or Authorization header
+
+  parameters:
+    TaskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    ProjectId:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    StatusFilter:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [todo, doing, review, done]
+      example: "doing"
+
+    ProjectFilter:
+      name: project_id
+      in: query
+      schema:
+        type: string
+        format: uuid
+
+    AssigneeFilter:
+      name: assignee_id
+      in: query
+      schema:
+        type: string
+        format: uuid
+
+    TaskIdFilter:
+      name: task_id
+      in: query
+      schema:
+        type: string
+        format: uuid
+
+    UserIdFilter:
+      name: user_id
+      in: query
+      schema:
+        type: string
+        format: uuid
+
+    StartDate:
+      name: start_date
+      in: query
+      schema:
+        type: string
+        format: date
+      example: "2025-01-01"
+
+    EndDate:
+      name: end_date
+      in: query
+      schema:
+        type: string
+        format: date
+      example: "2025-01-31"
+
+    PageLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    PageOffset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "Validation failed"
+        details:
+          type: object
+
+    AuthResponse:
+      type: object
+      required: [access_token, token_type, user]
+      properties:
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        token_type:
+          type: string
+          example: "bearer"
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, email, name, agency_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        agency_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      required: [id, name, agency_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        agency_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        description:
+          type: string
+
+    ProjectUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        description:
+          type: string
+
+    Task:
+      type: object
+      required: [id, title, status, agency_id]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [todo, doing, review, done]
+        priority:
+          type: string
+          enum: [low, medium, high]
+          nullable: true
+        project_id:
+          type: string
+          format: uuid
+          nullable: true
+        assignee_id:
+          type: string
+          format: uuid
+          nullable: true
+        agency_id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TaskCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+        description:
+          type: string
+        status:
+          type: string
+          enum: [todo, doing, review, done]
+          default: todo
+        priority:
+          type: string
+          enum: [low, medium, high]
+        project_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+        description:
+          type: string
+        status:
+          type: string
+          enum: [todo, doing, review, done]
+        priority:
+          type: string
+          enum: [low, medium, high]
+        project_id:
+          type: string
+          format: uuid
+        assignee_id:
+          type: string
+          format: uuid
+        due_date:
+          type: string
+          format: date
+
+    TimeEntry:
+      type: object
+      required: [id, task_id, user_id, duration, date]
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        duration:
+          type: integer
+          description: Duration in minutes
+          minimum: 1
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    TimeEntryCreate:
+      type: object
+      required: [task_id, duration, date]
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        duration:
+          type: integer
+          minimum: 1
+          description: Duration in minutes
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+
+    ProfitabilityReport:
+      type: object
+      properties:
+        total_revenue:
+          type: number
+          description: Billable revenue (hours * rate)
+        total_cost:
+          type: number
+          description: Total costs
+        profit:
+          type: number
+          description: Revenue - cost
+        profit_margin:
+          type: number
+          description: Profit as percentage
+        by_project:
+          type: array
+          items:
+            type: object
+            properties:
+              project_id:
+                type: string
+              project_name:
+                type: string
+              revenue:
+                type: number
+              cost:
+                type: number
+              profit:
+                type: number
+        by_user:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              user_name:
+                type: string
+              billable_hours:
+                type: number
+              revenue:
+                type: number
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

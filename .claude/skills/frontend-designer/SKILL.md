@@ -47,6 +47,15 @@ Commit to a BOLD aesthetic direction (No "Safe" Choices):
 - **Texture & Depth:** Avoid flat solid colors. Use noise, gradients, blurs, glassmorphism, or grain overlays to create atmosphere.
 - **Layout:** Break the grid. Use asymmetry, overlap, diagonal flow, and generous negative space.
 
+## Phase 2.5: Design Tokens & Variable-First Styling
+
+To ensure the UI is maintainable and logically consistent, you MUST use a **Design Token** approach:
+
+1.  **CSS Variables:** Define all core aesthetic properties (primary colors, surface blurs, noise opacity, border-radius) as CSS variables in your global stylesheet.
+2.  **Tailwind Extension:** Map these variables into the `tailwind.config.js` theme object.
+3.  **Semantic Naming:** Use semantic names like `--brand-epicenter`, `--surface-glass`, `--accent-vibrant` rather than literal names like `--blue-500`.
+4.  **BANNED:** Hardcoded hex/rgb codes in component files. Every color must come from the theme or a variable.
+
 ## Phase 3: Implementation Rules (The Code)
 
 Implement working code (React, Vue, HTML/CSS) with these specific technical constraints:
