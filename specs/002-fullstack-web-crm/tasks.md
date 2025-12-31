@@ -24,19 +24,19 @@
 
 **Purpose**: Project initialization and basic structure for both backend and frontend
 
-- [ ] T001 Create backend directory structure in backend/ with src/api, src/models, src/services, src/schemas, src/core, src/db, tests/unit, tests/integration, tests/contract
+- [X] T001 Create backend directory structure in backend/ with src/api, src/models, src/services, src/schemas, src/core, src/db, tests/unit, tests/integration, tests/contract
 - [ ] T002 Create frontend directory structure in frontend/ with src/app, src/components, src/lib, src/hooks, src/types, tests/unit, tests/integration, tests/e2e
-- [ ] T003 [P] Initialize Python project with FastAPI, SQLModel, pytest, Better Auth dependencies in backend/pyproject.toml
+- [X] T003 [P] Initialize Python project with FastAPI, SQLModel, pytest, Better Auth dependencies in backend/pyproject.toml
 - [ ] T004 [P] Initialize Next.js 16 project with TypeScript, React Query, Zustand, Motion.dev, @dnd-kit, Tailwind CSS in frontend/package.json
-- [ ] T005 [P] Configure backend linting with Black, isort, and pylint in backend/pyproject.toml
+- [X] T005 [P] Configure backend linting with Black, isort, and pylint in backend/pyproject.toml
 - [ ] T006 [P] Configure frontend linting with ESLint and Prettier in frontend/.eslintrc.js
-- [ ] T007 [P] Create backend .env.example with DATABASE_URL, JWT_SECRET, BETTER_AUTH_SECRET, FRONTEND_URL, ENVIRONMENT
+- [X] T007 [P] Create backend .env.example with DATABASE_URL, JWT_SECRET, BETTER_AUTH_SECRET, FRONTEND_URL, ENVIRONMENT
 - [ ] T008 [P] Create frontend .env.local.example with NEXT_PUBLIC_API_URL and NEXT_PUBLIC_BETTER_AUTH_URL
-- [ ] T009 [P] Setup Alembic for database migrations in backend/alembic.ini and backend/alembic/
+- [X] T009 [P] Setup Alembic for database migrations in backend/alembic.ini and backend/alembic/
 - [ ] T010 [P] Setup Playwright for E2E testing in frontend/playwright.config.ts
-- [ ] T011 [P] Create backend pytest fixtures in backend/tests/conftest.py for database session and test client
+- [X] T011 [P] Create backend pytest fixtures in backend/tests/conftest.py for database session and test client
 - [ ] T012 [P] Create frontend Vitest config in frontend/vitest.config.ts
-- [ ] T013 [P] Create backend README.md with setup instructions
+- [X] T013 [P] Create backend README.md with setup instructions
 - [ ] T014 [P] Create frontend README.md with setup instructions
 
 ---
@@ -47,19 +47,19 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T015 Setup Neon PostgreSQL database connection in backend/src/db/session.py with SQLAlchemy engine and session factory
-- [ ] T016 [P] Implement core configuration with environment variables in backend/src/core/config.py
-- [ ] T017 [P] Implement JWT verification and password hashing utilities in backend/src/core/security.py
-- [ ] T018 [P] Implement agency scoping middleware in backend/src/core/middleware.py to enforce tenant isolation
-- [ ] T019 [P] Setup CORS middleware for frontend origin in backend/src/main.py
+- [X] T015 Setup Neon PostgreSQL database connection in backend/src/db/session.py with SQLAlchemy engine and session factory
+- [X] T016 [P] Implement core configuration with environment variables in backend/src/core/config.py
+- [X] T017 [P] Implement JWT verification and password hashing utilities in backend/src/core/security.py
+- [X] T018 [P] Implement agency scoping middleware in backend/src/core/middleware.py to enforce tenant isolation
+- [X] T019 [P] Setup CORS middleware for frontend origin in backend/src/main.py
 - [ ] T020 [P] Setup error handling middleware with structured logging in backend/src/main.py
-- [ ] T021 [P] Create FastAPI application with health check endpoint in backend/src/main.py
+- [X] T021 [P] Create FastAPI application with health check endpoint in backend/src/main.py
 - [ ] T022 [P] Create database initialization script in backend/src/db/init_db.py
 - [ ] T023 Create Alembic initial schema migration for Agency and User tables in backend/alembic/versions/001_initial_schema.py
-- [ ] T024 [P] Create Agency SQLModel in backend/src/models/agency.py
-- [ ] T025 [P] Create User SQLModel in backend/src/models/user.py
-- [ ] T026 [P] Create base Pydantic schemas in backend/src/schemas/auth.py
-- [ ] T027 [P] Implement AuthService for agency/user operations in backend/src/services/auth_service.py
+- [X] T024 [P] Create Agency SQLModel in backend/src/models/agency.py
+- [X] T025 [P] Create User SQLModel in backend/src/models/user.py
+- [X] T026 [P] Create base Pydantic schemas in backend/src/schemas/auth.py
+- [X] T027 [P] Implement AuthService for agency/user operations in backend/src/services/auth_service.py
 - [ ] T028 [P] Create frontend root layout with React Query and Zustand providers in frontend/src/app/layout.tsx
 - [ ] T029 [P] Create API client wrapper with fetch in frontend/src/lib/api.ts
 - [ ] T030 [P] Create Zustand store for UI state in frontend/src/lib/store.ts
@@ -97,13 +97,13 @@
 
 ### Backend Implementation for User Story 1
 
-- [ ] T040 [P] [US1] Implement agency registration endpoint POST /auth/register in backend/src/api/auth.py
-- [ ] T041 [P] [US1] Implement login endpoint POST /auth/login in backend/src/api/auth.py
-- [ ] T042 [P] [US1] Implement current user endpoint GET /auth/me in backend/src/api/auth.py
-- [ ] T043 [P] [US1] Implement logout endpoint POST /auth/logout in backend/src/api/auth.py
-- [ ] T044 [US1] Implement JWT middleware for token verification in backend/src/core/middleware.py
-- [ ] T045 [US1] Implement agency_id scoping in all query methods in backend/src/services/auth_service.py
-- [ ] T046 [US1] Add password validation with bcrypt in backend/src/core/security.py
+- [X] T040 [P] [US1] Implement agency registration endpoint POST /auth/register in backend/src/api/auth.py
+- [X] T041 [P] [US1] Implement login endpoint POST /auth/login in backend/src/api/auth.py
+- [X] T042 [P] [US1] Implement current user endpoint GET /auth/me in backend/src/api/auth.py
+- [X] T043 [P] [US1] Implement logout endpoint POST /auth/logout in backend/src/api/auth.py
+- [X] T044 [US1] Implement JWT middleware for token verification in backend/src/core/middleware.py
+- [X] T045 [US1] Implement agency_id scoping in all query methods in backend/src/services/auth_service.py
+- [X] T046 [US1] Add password validation with bcrypt in backend/src/core/security.py
 
 ### Frontend Implementation for User Story 1
 
