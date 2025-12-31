@@ -327,12 +327,19 @@ App Router (app/)
 ├── Root Layout
 │   ├── React Query Provider
 │   ├── Zustand Provider
-│   └── Theme Provider
+│   └── Theme Provider (with ThemeContext)
 │
 ├── Dashboard Layout
-│   ├── Sidebar
+│   ├── Sidebar (collapsible with localStorage persistence)
+│   │   ├── Collapse/Expand Button
+│   │   ├── Navigation Items
+│   │   └── Theme Toggle Button
 │   ├── Header
+│   │   └── User Menu / Theme Toggle
 │   └── Content Area
+│       ├── StatCard Grid (with stagger animations)
+│       ├── TaskDistributionChart (animated bars)
+│       └── WorkflowProgress (animated steps)
 │
 └── Task Board Page (Server Component)
     ├── TaskBoard (Client - dnd-kit)
@@ -350,6 +357,10 @@ const {data: tasks} = useTasks()  // Auto-refetch every 10s
 
 // Client State (Zustand)
 const {selectedTask, setSelectedTask} = useUIStore()
+const {isSidebarCollapsed, toggleSidebar} = useSidebarStore()
+
+// Theme State (ThemeContext)
+const {theme, toggleTheme} = useTheme()  // 'light' | 'dark', persisted to localStorage
 
 // Local State (useState)
 const [isDragging, setIsDragging] = useState(false)
@@ -371,6 +382,89 @@ API Call (fetch PATCH /tasks/{id})
       │
       ├─ Success → Invalidate Query (refetch)
       └─ Error → Rollback (setQueryData with previous)
+```
+
+---
+
+### Theme Implementation Design
+
+**Approach**: CSS-first theming with Tailwind dark mode and React Context for state
+
+```typescript
+// Theme Context (contexts/ThemeContext.tsx)
+interface ThemeContextType {
+  theme: 'light' | 'dark'
+  toggleTheme: () => void
+}
+
+const ThemeContext = createContext<ThemeContextType>({
+  theme: 'light',
+  toggleTheme: () => {}
+})
+
+export function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    localStorage.getItem('theme') as 'light' | 'dark' || 'light'
+  )
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    setTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+    document.documentElement.classList.toggle('dark')
+  }
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  )
+}
+```
+
+**Tailwind Configuration** (tailwind.config.ts):
+```typescript
+export default {
+  darkMode: 'class',  // Uses .dark class on HTML element
+  theme: {
+    extend: {
+      colors: {
+        // Light mode colors (default)
+        primary: { DEFAULT: '#8b5cf6', hover: '#7c3aed' },
+        background: '#ffffff',
+        foreground: '#0f172a',
+
+        // Dark mode colors
+        dark: {
+          background: '#0f172a',
+          foreground: '#f8fafc',
+          primary: { DEFAULT: '#a78bfa', hover: '#8b5cf6' }
+        }
+      }
+    }
+  }
+}
+```
+
+**Theme Toggle Component** (components/ui/ThemeToggle.tsx):
+```typescript
+import { motion } from 'framer-motion'
+import { useTheme } from '@/contexts/ThemeContext'
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme()
+
+  return (
+    <motion.button
+      onClick={toggleTheme}
+      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800"
+      whileTap={{ scale: 0.95 }}
+      animate={{ rotate: theme === 'dark' ? 180 : 0 }}
+    >
+      {theme === 'light' ? '🌙' : '☀️'}
+    </motion.button>
+  )
+}
 ```
 
 ---

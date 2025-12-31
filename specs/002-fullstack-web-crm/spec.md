@@ -354,6 +354,11 @@ This section documents the complete user journey from first visit to active usag
 3. **Given** I am viewing the dashboard, **When** I hover over a stat card, **Then** the card lifts slightly and shows a subtle glow
 4. **Given** tasks have been created and completed, **When** I view the dashboard, **Then** all statistics accurately reflect the current state
 5. **Given** I want to see more detail, **When** I click on a stat card, **Then** I am navigated to a detailed view or filtered list
+6. **Given** I am on desktop viewing the dashboard, **When** I click the sidebar collapse button, **Then** the sidebar smoothly collapses to icons-only and the content area expands to fill the space
+7. **Given** the sidebar is collapsed, **When** I click the expand button, **Then** the sidebar smoothly expands to show full labels
+8. **Given** I am viewing any page, **When** I click the theme toggle button, **Then** the color scheme smoothly animates between light and dark modes
+9. **Given** I have selected a theme, **When** I refresh the page or return later, **Then** my theme preference persists
+10. **Given** I am viewing the dashboard, **When** the page loads, **Then** I see animated visualizations including bar charts for task distribution and workflow progress indicators with smooth animations
 
 ---
 
@@ -444,10 +449,12 @@ This section documents the complete user journey from first visit to active usag
 - **FR-047**: When a team member is deleted from the agency, all tasks assigned to that member MUST become unassigned (assignee_id set to null) and display an empty avatar placeholder
 
 #### Dashboard & Analytics
-- **FR-022**: System MUST display a dashboard with key metrics (active projects, tasks, team utilization)
+- **FR-022**: System MUST display a dashboard with key metrics (active projects, tasks, team utilization) AND animated visualizations (bar charts, workflow progress indicators)
 - **FR-023**: System MUST show profitability calculations when time and rate data are available
 - **FR-024**: Dashboard cards MUST animate in on page load with stagger effect
 - **FR-025**: Dashboard MUST provide statistics updated via polling every 10 seconds and a manual refresh button for immediate sync
+- **FR-048**: Dashboard sidebar MUST support collapse/expand on desktop with smooth transition animation
+- **FR-049**: When sidebar is collapsed, it MUST show icons-only and content area MUST expand to fill available space
 
 #### Time & Profitability
 - **FR-026**: Users MUST be able to log time against tasks (via timer or manual entry)
@@ -462,6 +469,12 @@ This section documents the complete user journey from first visit to active usag
 - **FR-033**: Task cards MUST stagger in when displayed in a list
 - **FR-034**: Layout changes MUST animate smoothly (using layout-aware transitions)
 - **FR-035**: System MUST support keyboard shortcuts (CMD+K for quick actions)
+
+#### Theme Support
+- **FR-050**: System MUST support light and dark color themes
+- **FR-051**: Theme preference MUST persist across sessions (localStorage)
+- **FR-052**: Theme transition MUST animate smoothly between modes
+- **FR-053**: System MUST provide a theme toggle button accessible from all pages
 
 #### Task Editing & Archive
 - **FR-036**: Users MUST be able to edit task details in a side drawer (sheet)

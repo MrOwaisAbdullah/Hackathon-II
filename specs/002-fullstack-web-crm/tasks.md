@@ -236,6 +236,13 @@
 - [ ] T115 [US4] Add React Query hooks for analytics in frontend/src/lib/query.ts
 - [ ] T116 [US4] Implement stagger animation for stat cards on load in frontend/src/app/dashboard/page.tsx
 - [ ] T117 [US4] Add hover lift effect on stat cards in frontend/src/components/dashboard/StatCard.tsx
+- [ ] T111a [US4] Implement collapsible sidebar with smooth transition animation in frontend/src/components/dashboard/Sidebar.tsx
+- [ ] T111b [US4] Add sidebar collapse state persistence to localStorage in frontend/src/components/dashboard/Sidebar.tsx
+- [ ] T111c [P] [US4] Create ThemeProvider context with theme toggle in frontend/src/contexts/ThemeContext.tsx
+- [ ] T111d [P] [US4] Create ThemeToggle component with sun/moon icon animation in frontend/src/components/ui/ThemeToggle.tsx
+- [ ] T111e [P] [US4] Define dark mode color palette in Tailwind config in frontend/tailwind.config.ts
+- [ ] T111f [US4] Create TaskDistributionChart component with animated bars in frontend/src/components/dashboard/TaskDistributionChart.tsx
+- [ ] T111g [US4] Create WorkflowProgress component with animated step indicators in frontend/src/components/dashboard/WorkflowProgress.tsx
 
 **Checkpoint**: User Stories 1-4 should now be independently functional - dashboard complete
 
