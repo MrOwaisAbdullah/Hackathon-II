@@ -1,11 +1,24 @@
 """FastAPI application for TeamFlow backend."""
+import logging
 from contextlib import asynccontextmanager
+from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app.api.endpoints import auth
+from app.api.endpoints import auth, projects, tasks
 from app.core.config import settings
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+    ]
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -34,6 +47,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+app.include_router(tasks.router, prefix=settings.api_v1_prefix)
+app.include_router(projects.router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/health")
@@ -64,3 +79,59 @@ async def jwt_middleware(request: Request, call_next):
             request.state.role = payload.get("role")
 
     return await call_next(request)
+
+
+# Error handling middleware with structured logging
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler for unhandled errors."""
+    logger.error(
+        f"Unhandled exception on {request.url.path}: {str(exc)}",
+        exc_info=True,
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "user_id": getattr(request.state, "user_id", None),
+            "agency_id": getattr(request.state, "agency_id", None),
+        }
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "Internal server error",
+            "detail": str(exc) if settings.environment != "production" else "An unexpected error occurred",
+            "path": str(request.url.path),
+        },
+    )
+
+
+@app.exception_handler(status.HTTP_404_NOT_FOUND)
+async def not_found_exception_handler(request: Request, exc: Exception):
+    """Handle 404 errors."""
+    logger.warning(
+        f"404 error on {request.url.path}: {str(exc)}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+        }
+    )
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": "Not found", "path": str(request.url.path)},
+    )
+
+
+@app.exception_handler(status.HTTP_422_UNPROCESSABLE_ENTITY)
+async def validation_exception_handler(request: Request, exc: Exception):
+    """Handle validation errors."""
+    logger.warning(
+        f"Validation error on {request.url.path}: {str(exc)}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+        }
+    )
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"error": "Validation error", "detail": str(exc)},
+    )

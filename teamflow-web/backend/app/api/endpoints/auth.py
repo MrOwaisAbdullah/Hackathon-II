@@ -1,8 +1,10 @@
 """Authentication endpoints - signup, login, logout."""
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, status
 
+from app.db.session import SessionDep, get_session
 from app.models.agency import AgencyCreate, AgencyRead
 from app.models.user import (
     UserCreate,
@@ -12,35 +14,35 @@ from app.models.user import (
 )
 from app.services.auth_service import AuthService
 
-from app.core.memory_db import db as memory_db
-
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# Test credentials bypass (for development without database)
-TEST_EMAIL = "admin@test.com"
-TEST_PASSWORD = "password123"
-TEST_AGENCY_ID = UUID("00000000-0000-0000-0000-000000000001")
-TEST_USER_ID = UUID("00000000-0000-0000-0000-000000000001")
+# Service instance
+auth_service = AuthService()
 
 
-@router.post("/signup", response_model=dict)
-async def signup(
+@router.post("/register", response_model=dict, status_code=status.HTTP_201_CREATED)
+def register(
     agency_data: AgencyCreate,
     user_data: UserCreate,
+    session: SessionDep,
 ) -> dict:
-    """Register a new agency with admin user."""
-    # Create agency in memory
-    agency = await memory_db.create_agency(agency_data)
+    """
+    Register a new agency with admin user.
 
-    # Create admin user in memory
-    auth_service = AuthService()
-    user = await auth_service.register(
+    This endpoint creates both an agency and the first admin user for that agency.
+    """
+    # Create agency
+    agency = auth_service.register_agency(agency_data, session)
+
+    # Create admin user for the agency
+    user = auth_service.register_user(
         user_data,
-        role=UserRole.ADMIN,
         agency_id=agency.id,
+        session=session,
+        role=UserRole.admin,
     )
 
-    # Generate JWT token for the new user
+    # Generate JWT token
     from app.core.security import create_access_token
 
     token = create_access_token(
@@ -60,107 +62,64 @@ async def signup(
     }
 
 
-@router.post("/login")
-async def login(
+@router.post("/login", response_model=dict)
+def login(
     credentials: UserLogin,
+    session: SessionDep,
 ) -> dict:
     """Authenticate user and return JWT token."""
-    # === TEST BYPASS: For development without database ===
-    if credentials.email == TEST_EMAIL and credentials.password == TEST_PASSWORD:
-        from app.core.security import create_access_token
-
-        # Mock test user
-        test_user_data = {
-            "id": str(TEST_USER_ID),
-            "name": "Test Admin",
-            "email": TEST_EMAIL,
-            "role": "admin",
-            "agency_id": str(TEST_AGENCY_ID),
-        }
-
-        token = create_access_token(
-            data={
-                "sub": str(TEST_USER_ID),
-                "agency_id": str(TEST_AGENCY_ID),
-                "email": TEST_EMAIL,
-                "role": "admin",
-            }
-        )
-
+    try:
+        user, token = auth_service.login(credentials, session)
         return {
             "access_token": token,
             "token_type": "bearer",
-            "user": test_user_data,
+            "user": UserRead.model_validate(user).model_dump(),
         }
-    # === END TEST BYPASS ===
-
-    # Get user from memory (will search all agencies)
-    user = await memory_db.get_user_by_email(credentials.email)
-
-    if not user:
+    except ValueError as e:
         raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
         )
-
-    # Verify password
-    from app.core.security import verify_password
-
-    if not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email or password",
-        )
-
-    # Generate JWT token
-    from app.core.security import create_access_token
-
-    token = create_access_token(
-        data={
-            "sub": str(user.id),
-            "agency_id": str(user.agency_id),
-            "email": user.email,
-            "role": user.role.value,
-        }
-    )
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": UserRead.model_validate(user).model_dump(),
-    }
 
 
 @router.post("/logout")
-async def logout() -> dict[str, str]:
-    """Logout user (client-side token removal)."""
+def logout() -> dict[str, str]:
+    """
+    Logout user.
+
+    JWT tokens are stateless - logout is handled client-side by removing the token.
+    This endpoint exists for API completeness and future token blacklisting.
+    """
     return {"message": "Successfully logged out"}
 
 
 @router.get("/me", response_model=UserRead)
-async def get_current_user(
+def get_current_user(
     request: Request,
+    session: SessionDep,
 ) -> UserRead:
-    """Get current authenticated user."""
-    # Get user_id from request state (set by middleware)
-    user_id = request.state.user_id
-    agency_id = request.state.agency_id
+    """
+    Get current authenticated user.
 
-    # === TEST BYPASS: Handle test user ===
-    if user_id == str(TEST_USER_ID) and agency_id == str(TEST_AGENCY_ID):
-        return UserRead(
-            id=TEST_USER_ID,
-            name="Test Admin",
-            email=TEST_EMAIL,
-            role=UserRole.ADMIN,
-            agency_id=TEST_AGENCY_ID,
+    Requires valid JWT token. User info is extracted from token by middleware.
+    """
+    # Get user_id from request state (set by JWT middleware)
+    user_id = getattr(request.state, "user_id", None)
+    agency_id = getattr(request.state, "agency_id", None)
+
+    if not user_id or not agency_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
         )
-    # === END TEST BYPASS ===
 
-    # Get user from memory
-    user = await memory_db.get_user_by_id(UUID(user_id), UUID(agency_id))
+    # Get user from database (scoped to agency for multi-tenant isolation)
+    user = auth_service.get_user_by_id(UUID(user_id), UUID(agency_id), session)
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
 
     return UserRead.model_validate(user)

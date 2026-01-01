@@ -85,3 +85,59 @@ Implement working code (React, Vue, HTML/CSS) with these specific technical cons
 - **Differentiation:** What makes this UNFORGETTABLE? If it looks like a standard Bootstrap/Material UI template, you have failed.
 
 **IMPORTANT:** Match implementation complexity to the aesthetic vision. Don't hold back. Show what can truly be created when thinking outside the box. You are not just a coder; you are a builder using the best tools. Use the MCPs to verify your knowledge, then execute with bold creativity.
+
+---
+
+## Next.js SSR-Safe Patterns
+
+When building for Next.js App Router (server-side rendering), follow these critical patterns to avoid infinite loops and hydration errors:
+
+### The SSR-Safe Component Pattern
+
+**Use this pattern for ANY component that:**
+- Uses `localStorage` / `sessionStorage`
+- Uses browser APIs (`window`, `document`, `navigator`)
+- Uses state management with persistence (Zustand, Redux, etc.)
+- Needs to access browser-only data
+
+```typescript
+"use client"
+
+import { useState, useEffect } from "react"
+
+export function SSRSafeComponent() {
+  const [mounted, setMounted] = useState(false)
+  const [value, setValue] = useState(defaultValue)
+
+  useEffect(() => {
+    setMounted(true)
+
+    // ONLY access browser APIs here
+    const stored = localStorage.getItem('key')
+    if (stored) setValue(JSON.parse(stored))
+  }, [])
+
+  // BEFORE mount: render static placeholder (SSR-safe)
+  if (!mounted) {
+    return <div className="w-10 h-10 bg-muted" />
+  }
+
+  // AFTER mount: render full component with browser data
+  return <div>{value}</div>
+}
+```
+
+### Common SSR Errors to Avoid
+
+| Error | Cause | Solution |
+|-------|--------|----------|
+| "Maximum update depth exceeded" | Zustand persist accessing localStorage during SSR | Use local state + useEffect instead |
+| "Rendered more hooks than during the previous render" | Conditional hook calling: `mounted ? useHook() : null` | Never call hooks conditionally |
+| "Text content does not match server-rendered HTML" | Browser API accessed during render | Use useEffect for browser-only code |
+
+### Key Rules
+
+1. **NEVER** call hooks conditionally based on `mounted` state
+2. **NEVER** use Zustand persist middleware for SSR components
+3. **ALWAYS** use `useEffect` for browser APIs
+4. **ALWAYS** render static placeholders before client-side mount

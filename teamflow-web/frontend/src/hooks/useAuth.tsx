@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import React from "react";
 
 import type { User } from "@/types";
-import { apiClient } from "@/lib/api";
+import { api } from "@/lib/api";
 
 interface AuthContextValue {
   user: User | null;
@@ -33,9 +33,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const token = localStorage.getItem("auth_token");
         if (token) {
-          // TODO: Implement /me endpoint or use Better Auth's session endpoint
-          // For now, we'll decode the JWT manually or call an endpoint
-          const response = await apiClient.get<{ user: User }>("/v1/auth/me");
+          // Call the /me endpoint to get current user
+          const response = await api.get<{ user: User }>("/api/v1/auth/me");
           setUser(response.data.user);
         }
       } catch (error) {
@@ -53,10 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiClient.post<{
+    const response = await api.post<{
       user: User;
       access_token: string;
-    }>("/v1/auth/login", {
+    }>("/api/v1/auth/login", {
       email,
       password,
     });
@@ -74,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
-    const response = await apiClient.get<{ user: User }>("/v1/auth/me");
+    const response = await api.get<{ user: User }>("/api/v1/auth/me");
     setUser(response.data.user);
   };
 

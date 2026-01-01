@@ -388,7 +388,15 @@ API Call (fetch PATCH /tasks/{id})
 
 ### Theme Implementation Design
 
-**PRE-IMPLEMENTATION**: Run `@.claude/skills/frontend-designer/` to generate color palette and theme structure BEFORE implementing.
+**⭐ PRE-IMPLEMENTATION: Use `@.claude/agents/nextjs-frontend-architect.md` for ALL frontend tasks.**
+
+This agent orchestrates:
+- `building-nextjs-apps` skill for Next.js 16 patterns and SSR-safe components
+- `theme-factory` skill for professional color palettes
+- `frontend-designer` skill for animation choreography
+- `gemini-frontend-assistant` skill for code generation
+
+**For theme specifically**, the architect will use `theme-factory` to generate color palette and theme structure BEFORE implementing.
 
 **Approach**: CSS-first theming with Tailwind dark mode, React Context for state, and design tokens for consistency
 

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
-import { apiClient } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -19,10 +19,10 @@ export default function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      const response = await apiClient.post<{
+      const response = await api.post<{
         access_token: string;
         user: Record<string, unknown>;
-      }>("/v1/auth/login", {
+      }>("/api/v1/auth/login", {
         email,
         password,
       });

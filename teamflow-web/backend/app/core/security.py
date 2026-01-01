@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# Settings
-SECRET_KEY = "your-secret-key-change-in-production"
+from app.core.config import settings
+
+# JWT Settings
+SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 1 week
 

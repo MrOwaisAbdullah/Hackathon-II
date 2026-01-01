@@ -1,50 +1,67 @@
 """User models."""
+from datetime import datetime
 from enum import Enum
+from typing import List, Optional, TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field as PDField
+from sqlalchemy import Enum as SQLEnum
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class UserRole(str, Enum):
     """User roles."""
 
-    ADMIN = "admin"
-    MEMBER = "member"
-    CLIENT = "client"
+    admin = "admin"
+    member = "member"
+    client = "client"
 
 
-class User(BaseModel):
-    """User model."""
+class User(SQLModel, table=True):
+    """User database table model."""
 
-    id: UUID = Field(default_factory=uuid4)
-    name: str = Field(..., min_length=1, max_length=100)
+    __tablename__ = "users"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    email: EmailStr = Field(unique=True, index=True, max_length=255)
+    name: str = Field(max_length=255)
+    hashed_password: str = Field(max_length=255)
+    role: UserRole = Field(default=UserRole.member)
+    agency_id: UUID = Field(foreign_key="agencies.id", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    assigned_tasks: List["Task"] = Relationship(back_populates="assignee")
+
+
+# Pydantic schemas for API operations
+class UserBase(SQLModel):
+    """Base user schema."""
+
     email: EmailStr
-    hashed_password: str
-    role: UserRole = Field(default=UserRole.MEMBER)
-    agency_id: UUID
+    name: str = PDField(..., min_length=1, max_length=100)
 
 
-class UserCreate(BaseModel):
-    """User creation model."""
+class UserCreate(UserBase):
+    """User creation schema."""
 
-    name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr
-    password: str = Field(..., min_length=8)
-    role: UserRole = Field(default=UserRole.MEMBER)
+    password: str = PDField(..., min_length=8)
+    role: UserRole = PDField(default=UserRole.member)
 
 
-class UserLogin(BaseModel):
-    """User login model."""
+class UserLogin(SQLModel):
+    """User login schema."""
 
     email: EmailStr
     password: str
 
 
-class UserRead(BaseModel):
-    """User read model."""
+class UserRead(UserBase):
+    """User read/response schema."""
 
     id: UUID
-    name: str
-    email: EmailStr
     role: UserRole
     agency_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None

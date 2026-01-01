@@ -4,61 +4,81 @@
 
 @layer base {
   :root {
-    /* Brand: Deep Orange (#f97316 = hsl(24.7, 96.5%, 53.3%)) */
-    --brand-primary: 24.7 96.5% 53.3%;
-    --brand-primary-dark: 24.7 95% 45%;
-    --brand-primary-light: 24.7 97% 65%;
-    /* Secondary: Teal (#14b8a6 = hsl(173.3, 77.4%, 40.8%)) */
-    --brand-secondary: 173.3 77.4% 40.8%;
-    --brand-secondary-dark: 173.3 75% 35%;
-    --brand-secondary-light: 173.3 80% 50%;
-    /* Accent: Electric Blue (#3b82f6 = hsl(217.2, 91.2%, 59.8%)) */
-    --brand-accent: 217.2 91.2% 59.8%;
-    --brand-accent-dark: 217.2 90% 50%;
-    --brand-accent-light: 217.2 92% 70%;
-
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* 
+      Theme: "Modern Industrial" (Light Mode)
+      Refined for crispness and contrast.
+    */
+    /* Background: Very light slate gray, not pure white, to make white cards pop */
+    --background: 210 40% 98%;     /* #f8fafc (slate-50) */
+    --foreground: 222 47% 11%;     /* #0f172a (slate-900) */
+    
+    /* Cards: Pure white with subtle borders */
+    --card: 0 0% 100%;             /* #ffffff */
+    --card-foreground: 222 47% 11%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: var(--brand-primary);
+    --popover-foreground: 222 47% 11%;
+    
+    /* Primary: Deep Orange - Bold interaction points */
+    --primary: 24.7 96.5% 53.3%;      /* #f97316 */
     --primary-foreground: 0 0% 100%;
-    --secondary: var(--brand-secondary);
-    --secondary-foreground: 0 0% 100%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: var(--brand-accent);
+    
+    /* Secondary: White/Gray for buttons that shouldn't compete with primary */
+    --secondary: 240 4.8% 95.9%;      /* #f4f4f5 (zinc-100) */
+    --secondary-foreground: 240 5.9% 10%;
+    
+    /* Muted: Subdued text/backgrounds */
+    --muted: 210 40% 96.1%;           /* #f1f5f9 (slate-100) */
+    --muted-foreground: 215.4 16.3% 46.9%; /* #64748b (slate-500) */
+    
+    /* Accent: Electric Blue */
+    --accent: 217.2 91.2% 59.8%;
     --accent-foreground: 0 0% 100%;
+    
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders: Distinct enough to separate areas */
+    --border: 214.3 31.8% 91.4%;      /* #e2e8f0 (slate-200) */
     --input: 214.3 31.8% 91.4%;
-    --ring: var(--brand-primary);
+    --ring: 24.7 96.5% 53.3%;
+    
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    /* 
+      Theme: "Black Shirt" (Dark Mode)
+      Rich, deep, and elegant.
+    */
+    --background: 222 47% 4%;       /* #020617 (slate-950) */
+    --foreground: 210 40% 98%;      /* #f8fafc */
+    
+    /* Cards: Slightly lighter than background */
+    --card: 222 47% 6%;             /* #0f172a (slate-900) */
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    
+    --popover: 222 47% 6%;
     --popover-foreground: 210 40% 98%;
-    --primary: var(--brand-primary-dark);
+    
+    --primary: 24.7 96.5% 53.3%;
     --primary-foreground: 0 0% 100%;
-    --secondary: var(--brand-secondary-light);
-    --secondary-foreground: 0 0% 100%;
+    
+    --secondary: 217.2 32.6% 17.5%; /* #1e293b (slate-800) */
+    --secondary-foreground: 210 40% 98%;
+    
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: var(--brand-accent-dark);
+    
+    --accent: 217.2 91.2% 59.8%;
     --accent-foreground: 0 0% 100%;
+    
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
+    
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: var(--brand-primary-dark);
+    --ring: 24.7 96.5% 53.3%;
   }
 }
 
@@ -68,7 +88,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Glassmorphism Utilities - Refined */
+.glass {
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm;
+}
+
+.glass-hover {
+  @apply hover:bg-white/90 dark:hover:bg-slate-800/90 transition-colors duration-200;
 }
 
 /* Animation utilities */
@@ -81,12 +112,14 @@
   }
 }
 
-@keyframes slide-out-right {
+@keyframes fade-in-up {
   from {
-    transform: translateX(0);
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
-    transform: translateX(100%);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -94,13 +127,14 @@
   animation: slide-in-right 0.3s ease-out;
 }
 
-.animate-slide-out-right {
-  animation: slide-out-right 0.3s ease-in;
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
 }
 
 /* Drag and drop styles */
 .draggable {
   cursor: grab;
+  touch-action: none;
 }
 
 .draggable:active {
@@ -108,5 +142,5 @@
 }
 
 .drop-zone-active {
-  @apply ring-2 ring-primary ring-offset-2;
+  @apply ring-2 ring-primary/50 bg-primary/5 transition-all duration-200;
 }

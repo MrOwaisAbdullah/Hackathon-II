@@ -8,8 +8,8 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        default="postgresql+asyncpg://user:pass@localhost/teamflow",
-        description="Database connection URL",
+        default="postgresql://user:pass@localhost:5432/teamflow",
+        description="Neon PostgreSQL connection URL",
     )
 
     # API
@@ -27,12 +27,18 @@ class Settings(BaseSettings):
         description="JWT secret key",
     )
 
+    # Environment
+    environment: str = Field(
+        default="development",
+        description="Environment (development, staging, production)",
+    )
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
-        """Ensure database_url starts with postgresql+asyncpg://"""
-        if not v.startswith("postgresql+asyncpg://"):
-            raise ValueError("Database URL must use postgresql+asyncpg:// scheme")
+        """Ensure database_url is a valid PostgreSQL connection string."""
+        if not v.startswith("postgresql://") and not v.startswith("postgresql+"):
+            raise ValueError("Database URL must use postgresql:// scheme (Neon PostgreSQL)")
         return v
 
     class Config:

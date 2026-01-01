@@ -52,10 +52,10 @@
 - [X] T017 [P] Implement JWT verification and password hashing utilities in backend/src/core/security.py
 - [X] T018 [P] Implement agency scoping middleware in backend/src/core/middleware.py to enforce tenant isolation
 - [X] T019 [P] Setup CORS middleware for frontend origin in backend/src/main.py
-- [ ] T020 [P] Setup error handling middleware with structured logging in backend/src/main.py
+- [X] T020 [P] Setup error handling middleware with structured logging in backend/src/main.py
 - [X] T021 [P] Create FastAPI application with health check endpoint in backend/src/main.py
-- [ ] T022 [P] Create database initialization script in backend/src/db/init_db.py
-- [ ] T023 Create Alembic initial schema migration for Agency and User tables in backend/alembic/versions/001_initial_schema.py
+- [X] T022 [P] Create database initialization script in backend/src/db/init_db.py
+- [X] T023 Create Alembic initial schema migration for Agency and User tables in backend/alembic/versions/001_initial_schema.py
 - [X] T024 [P] Create Agency SQLModel in backend/src/models/agency.py
 - [X] T025 [P] Create User SQLModel in backend/src/models/user.py
 - [X] T026 [P] Create base Pydantic schemas in backend/src/schemas/auth.py
@@ -88,12 +88,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T034 [P] [US1] Contract test for POST /auth/register in backend/tests/contract/test_register_contract.py
-- [ ] T035 [P] [US1] Contract test for POST /auth/login in backend/tests/contract/test_login_contract.py
-- [ ] T036 [P] [US1] Contract test for GET /auth/me in backend/tests/contract/test_me_contract.py
-- [ ] T037 [P] [US1] Integration test for signup flow in backend/tests/integration/test_auth_api.py
-- [ ] T038 [P] [US1] Integration test for multi-tenant isolation in backend/tests/integration/test_agency_isolation.py
-- [ ] T039 [P] [US1] E2E test for signup and login in frontend/tests/e2e/auth.spec.ts
+- [X] T034 [P] [US1] Contract test for POST /auth/register in backend/tests/contract/test_register_contract.py
+- [X] T035 [P] [US1] Contract test for POST /auth/login in backend/tests/contract/test_login_contract.py
+- [X] T036 [P] [US1] Contract test for GET /auth/me in backend/tests/contract/test_me_contract.py
+- [X] T037 [P] [US1] Integration test for signup flow in backend/tests/integration/test_auth_api.py
+- [X] T038 [P] [US1] Integration test for multi-tenant isolation in backend/tests/integration/test_agency_isolation.py
+- [X] T039 [P] [US1] E2E test for signup and login in frontend/tests/e2e/auth.spec.ts
 
 ### Backend Implementation for User Story 1
 
@@ -115,7 +115,7 @@
 - [X] T052 [US1] Implement authentication hook with JWT storage in frontend/src/hooks/useAuth.tsx
 - [X] T053 [US1] Implement protected route wrapper component in frontend/src/components/auth/ProtectedRoute.tsx
 - [X] T054 [US1] Add signup/login page transitions with Motion animations in frontend/src/app/signup/page.tsx and login/page.tsx
-- [ ] T055 [US1] Create API proxy route for backend requests in frontend/src/app/api/[...]/route.ts
+- [X] T055 [US1] Create API proxy route for backend requests in frontend/src/app/api/[...]/route.ts
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can signup, login, and agencies are isolated
 
@@ -139,20 +139,20 @@
 
 ### Backend Implementation for User Story 2
 
-- [ ] T063 [P] [US2] Create Task SQLModel with status enum in backend/src/models/task.py
-- [ ] T064 [P] [US2] Create Project SQLModel in backend/src/models/project.py
-- [ ] T065 [P] [US2] Create TaskCreate, TaskUpdate, TaskRead Pydantic schemas in backend/src/schemas/task.py
-- [ ] T066 [P] [US2] Create ProjectCreate, ProjectUpdate, ProjectRead Pydantic schemas in backend/src/schemas/project.py
-- [ ] T067 [US2] Implement TaskService with CRUD operations in backend/src/services/task_service.py
-- [ ] T068 [US2] Implement ProjectService in backend/src/services/project_service.py
-- [ ] T069 [P] [US2] Implement GET /tasks endpoint with agency scoping in backend/src/api/tasks.py
-- [ ] T070 [P] [US2] Implement POST /tasks endpoint with agency_id auto-assignment in backend/src/api/tasks.py
-- [ ] T071 [P] [US2] Implement PATCH /tasks/{id} endpoint in backend/src/api/tasks.py
-- [ ] T072 [P] [US2] Implement DELETE /tasks/{id} soft delete endpoint in backend/src/api/tasks.py
-- [ ] T073 [P] [US2] Implement GET /projects endpoint in backend/src/api/projects.py
-- [ ] T074 [P] [US2] Implement POST /projects endpoint in backend/src/api/projects.py
-- [ ] T075 [US2] Add database migration for Task and Project tables in backend/alembic/versions/002_add_tasks_projects.py
-- [ ] T076 [US2] Add composite index on (agency_id, status) in backend/alembic/versions/003_add_task_indexes.py
+- [X] T063 [P] [US2] Create Task SQLModel with status enum in backend/src/models/task.py
+- [X] T064 [P] [US2] Create Project SQLModel in backend/src/models/project.py
+- [X] T065 [P] [US2] Create TaskCreate, TaskUpdate, TaskRead Pydantic schemas in backend/src/schemas/task.py
+- [X] T066 [P] [US2] Create ProjectCreate, ProjectUpdate, ProjectRead Pydantic schemas in backend/src/schemas/project.py
+- [X] T067 [US2] Implement TaskService with CRUD operations in backend/src/services/task_service.py
+- [X] T068 [US2] Implement ProjectService in backend/src/services/project_service.py
+- [X] T069 [P] [US2] Implement GET /tasks endpoint with agency scoping in backend/src/api/tasks.py
+- [X] T070 [P] [US2] Implement POST /tasks endpoint with agency_id auto-assignment in backend/src/api/tasks.py
+- [X] T071 [P] [US2] Implement PATCH /tasks/{id} endpoint in backend/src/api/tasks.py
+- [X] T072 [P] [US2] Implement DELETE /tasks/{id} soft delete endpoint in backend/src/api/tasks.py
+- [X] T073 [P] [US2] Implement GET /projects endpoint in backend/src/api/projects.py
+- [X] T074 [P] [US2] Implement POST /projects endpoint in backend/src/api/projects.py
+- [X] T075 [US2] Add database migration for Task and Project tables in backend/alembic/versions/002_add_tasks_projects.py
+- [X] T076 [US2] Add composite index on (agency_id, status) in backend/alembic/versions/003_add_task_indexes.py
 
 ### Frontend Implementation for User Story 2
 

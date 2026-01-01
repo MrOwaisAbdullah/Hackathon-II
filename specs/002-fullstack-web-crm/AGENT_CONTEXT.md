@@ -246,10 +246,16 @@ When implementing, ALWAYS use these MCP tools:
 
 | Skill/Agent | Purpose | When to Use |
 |-------------|---------|-------------|
+| **`@.claude/agents/nextjs-frontend-architect.md`** ⭐ | **PRIMARY: Orchestrates all Next.js frontend implementation** | **USE FOR ALL FRONTEND TASKS** - Coordinates building-nextjs-apps, theme-factory, frontend-designer, and gemini-frontend-assistant |
+| `@.claude/skills/building-nextjs-apps/` | Next.js 16 patterns, SSR-safe components | Reference for Next.js-specific patterns |
+| `@.claude/skills/theme-factory/` | Professional color palettes | When establishing visual identity |
 | `@.claude/skills/frontend-designer/` | UI design with animations | Before implementing UI components |
+| `@.claude/skills/gemini-frontend-assistant/` | Generate frontend code from descriptions | For rapid UI code generation |
 | `@.claude/skills/better-auth-integration/` | Auth patterns | When implementing auth flows |
 | `.agent-better-auth-specialist` | Better Auth expert | Complex auth scenarios |
 | `@.claude/agents/deployment-engineer/` | CI/CD and deployment | When setting up production |
+
+**⭐ CRITICAL: For all frontend implementation, start with `nextjs-frontend-architect` agent.** This agent ensures SSR-safe patterns, proper Next.js 16 architecture, and coordinates all other frontend skills.
 
 ---
 

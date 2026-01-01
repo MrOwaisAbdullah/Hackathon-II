@@ -626,17 +626,33 @@ This project has specialized skills and agents available. Use them where appropr
 
 | Skill/Agent | Purpose | When to Use |
 |-------------|---------|-------------|
-| `@.claude/skills/frontend-designer/` | Generate component structure, animation choreography, UI design | Before implementing any UI component |
+| **`@.claude/agents/nextjs-frontend-architect.md`** ⭐ | **PRIMARY: Orchestrates all Next.js frontend implementation** | **USE FOR ALL FRONTEND TASKS** - This agent coordinates building-nextjs-apps, frontend-designer, theme-factory, and gemini-frontend-assistant skills |
+| `@.claude/skills/building-nextjs-apps/` | Next.js 16 patterns, SSR-safe components, async params | When needing Next.js-specific patterns reference |
+| `@.claude/skills/frontend-designer/` | Animation choreography, visual direction | For planning motion and aesthetics |
+| `@.claude/skills/theme-factory/` | Professional color palettes and theming | When establishing visual identity |
+| `@.claude/skills/gemini-frontend-assistant/` | Generate frontend code from descriptions | For rapid UI code generation |
 | `@.claude/skills/better-auth-integration/` | Production-ready authentication patterns | When implementing auth flows |
 | `.agent-better-auth-specialist` | Better Auth implementation expert | For complex auth scenarios |
 | `@.claude/skills/ux-evaluator/` | Evaluate UX quality, identify issues | **AFTER** designing any flow/feature |
-| `@.claude/skills/gemini-frontend-assistant/` | Generate frontend code from UI descriptions | For rapid UI prototyping |
 | `@.claude/skills/cli-deployment/` | Deployment patterns and scripts | When preparing for production |
 | `@.claude/skills/deployment-engineer/` | CI/CD, Docker, K8s deployment | For infrastructure setup |
 | `@.claude/skills/chatbot-widget-creator/` | ChatKit UI integration | If adding chat support |
 | `@.claude/skills/rag-pipeline-builder/` | RAG implementation with FastAPI | If adding AI search |
 
+**⭐ CRITICAL: All frontend implementation MUST use the `nextjs-frontend-architect` agent as the primary orchestrator.** This agent ensures SSR-safe patterns, proper Next.js 16 architecture, and coordinates all other frontend skills.
+
 ### Mandatory Implementation Workflow
+
+**⭐ FOR ALL FRONTEND TASKS: Start with `@.claude/agents/nextjs-frontend-architect.md`**
+
+The `nextjs-frontend-architect` agent orchestrates all frontend implementation by:
+1. Reading specs/plans to understand requirements
+2. Using `building-nextjs-apps` skill for Next.js 16 patterns (async params, SSR-safe components, etc.)
+3. Using `theme-factory` skill for professional color palettes
+4. Using `frontend-designer` skill for animation choreography
+5. Using `gemini-frontend-assistant` skill for code generation
+
+**General Implementation Workflow:**
 
 1. **Documentation First**: Before writing any code, use `context7` MCP to fetch latest documentation for:
    - `dnd-kit` (drag and drop library)
@@ -644,12 +660,11 @@ This project has specialized skills and agents available. Use them where appropr
    - `@tanstack/react-query` (server state)
    - `motion` (animation library)
 
-2. **Visual Planning**: Use `@.claude/skills/frontend-designer/` to generate component structure and animation choreography for:
-   - Landing page layout and animations
-   - Kanban board component hierarchy
-   - Dashboard layout and animations
-   - Task card and detail drawer interactions
-   - Auth pages (signup, login) design
+2. **Frontend Implementation** (via `nextjs-frontend-architect`):
+   - Establish visual identity with `theme-factory`
+   - Plan animation choreography with `frontend-designer`
+   - Generate SSR-safe components with `gemini-frontend-assistant`
+   - Ensure all patterns follow Next.js 16 best practices
 
 3. **Authentication Implementation**: Use `@.claude/skills/better-auth-integration/` or invoke `.agent-better-auth-specialist` for:
    - JWT-based authentication setup
@@ -707,11 +722,14 @@ None at this time. All requirements have been specified with reasonable defaults
 - **State Management**: React Query for server state, Zustand for client state
 
 ### Internal Skills & Agents
+- **`@.claude/agents/nextjs-frontend-architect.md`** ⭐ — **PRIMARY for all frontend implementation** - Orchestrates building-nextjs-apps, frontend-designer, theme-factory, and gemini-frontend-assistant
+- `@.claude/skills/building-nextjs-apps/` — Next.js 16 patterns, SSR-safe components, breaking changes
+- `@.claude/skills/theme-factory/` — Professional color palettes and theming
 - `@.claude/skills/frontend-designer/` — Animation-first UI component generation
+- `@.claude/skills/gemini-frontend-assistant/` — Frontend code generation
 - `@.claude/skills/better-auth-integration/` — Authentication patterns and setup
 - `.agent-better-auth-specialist` — Better Auth expert for complex scenarios
 - `@.claude/skills/ux-evaluator/` — UX quality evaluation (run after each design)
-- `@.claude/skills/gemini-frontend-assistant/` — Frontend code generation
 - `@.claude/skills/deployment-engineer/` — CI/CD and deployment automation
 
 ---

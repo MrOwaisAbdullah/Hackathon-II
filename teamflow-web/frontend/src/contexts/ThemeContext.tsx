@@ -1,41 +1,78 @@
-/** Theme provider context with support for light/dark mode. */
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+type Theme = 'dark' | 'light' | 'system';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
+  defaultTheme?: Theme;
+  storageKey?: string;
 }
 
-export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [mounted, setMounted] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+interface ThemeProviderState {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}
 
-  // Only run on client
-  useEffect(() => {
-    setMounted(true);
+const initialState: ThemeProviderState = {
+  theme: 'system',
+  setTheme: () => null,
+};
 
-    // Get theme from localStorage
-    const storedTheme = localStorage.getItem('teamflow-ui-storage');
-    if (storedTheme) {
-      try {
-        const parsed = JSON.parse(storedTheme);
-        const themeValue = parsed?.state?.theme;
-        if (themeValue) {
-          setTheme(themeValue);
-          document.documentElement.classList.add(themeValue);
-        }
-      } catch (e) {
-        // Use default
-        document.documentElement.classList.add('light');
-      }
+const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+
+export function ThemeProvider({
+  children,
+  defaultTheme = 'system',
+  storageKey = 'vite-ui-theme',
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(() => {
+    // Check if running on client
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
     }
-  }, []);
+    return defaultTheme;
+  });
 
-  // Don't render anything until mounted to prevent SSR mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
+  useEffect(() => {
+    const root = window.document.documentElement;
 
-  return <>{children}</>;
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+        .matches
+        ? 'dark'
+        : 'light';
+
+      root.classList.add(systemTheme);
+      return;
+    }
+
+    root.classList.add(theme);
+  }, [theme]);
+
+  const value = {
+    theme,
+    setTheme: (theme: Theme) => {
+      localStorage.setItem(storageKey, theme);
+      setTheme(theme);
+    },
+  };
+
+  return (
+    <ThemeProviderContext.Provider value={value}>
+      {children}
+    </ThemeProviderContext.Provider>
+  );
 }
+
+export const useTheme = () => {
+  const context = useContext(ThemeProviderContext);
+
+  if (context === undefined)
+    throw new Error('useTheme must be used within a ThemeProvider');
+
+  return context;
+};

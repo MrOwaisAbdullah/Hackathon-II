@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
-import { apiClient } from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function SignupPage() {
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function SignupPage() {
     };
 
     try {
-      const response = await apiClient.post("/v1/auth/register", {
+      const response = await api.post("/api/v1/auth/register", {
         agency_data: agencyData,
         user_data: userData,
       });

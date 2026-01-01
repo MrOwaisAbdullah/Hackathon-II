@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+coverage/
+*.log
+.env*.local
+.vscode/
+.idea/
+*.min.js
+*.min.css
