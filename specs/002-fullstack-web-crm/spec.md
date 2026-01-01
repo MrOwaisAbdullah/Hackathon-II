@@ -476,6 +476,12 @@ This section documents the complete user journey from first visit to active usag
 - **FR-052**: Theme transition MUST animate smoothly between modes
 - **FR-053**: System MUST provide a theme toggle button accessible from all pages
 
+#### Brand Identity & Design Tokens
+- **FR-054**: System MUST use a unique brand color palette that avoids AI-cliché purple (#8b5cf6, #7c3aed, #a78bfa)
+- **FR-055**: Primary brand color MUST be defined in CSS custom properties for theme consistency
+- **FR-056**: Color palette MUST follow "Modern Industrial / Glass & Grain" aesthetic with deep orange primary
+- **FR-057**: All color values MUST use CSS custom properties (design tokens) for maintainability
+
 #### Task Editing & Archive
 - **FR-036**: Users MUST be able to edit task details in a side drawer (sheet)
 - **FR-037**: System MUST provide a rich text editor for task descriptions
@@ -589,6 +595,17 @@ This specification mandates **Animation-First Design**. Implementers MUST follow
 - Bento-grid style dashboard (asymmetric rectangles)
 - Generous padding and spacing
 - High contrast for readability (WCAG AA compliant)
+
+**Color Palette** (BANNED: Generic Purple #8b5cf6, #7c3aed, #a78bfa):
+- **Primary**: Deep Orange (`#f97316`) - Creative energy, industrial warmth, stands out from AI tools
+- **Secondary**: Teal (`#14b8a6`) - Professional balance, complements orange
+- **Accent**: Electric Blue (`#3b82f6`) - Trustworthy tech feel
+- **Success**: Emerald (`#10b981`)
+- **Warning**: Amber (`#f59e0b`)
+- **Error**: Rose (`#f43f5e`)
+- **Neutral Scale**: Slate 50-900 (light mode), Slate 950-50 (dark mode)
+
+**Rationale**: Deep orange evokes creativity and industrial warmth while distinguishing from the overused purple in AI tools. Teal provides professional balance. Electric blue adds trustworthiness for a tech product.
 
 ### Phase 3: Implementation Rules
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 export const metadata: Metadata = {
   title: "TeamFlow - Agency Task Management",
@@ -13,11 +14,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased" suppressHydrationWarning>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased">
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

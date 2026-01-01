@@ -29,7 +29,7 @@ export default function SignupPage() {
     };
 
     try {
-      const response = await apiClient.post("/api/v1/auth/signup", {
+      const response = await apiClient.post("/v1/auth/register", {
         agency_data: agencyData,
         user_data: userData,
       });
@@ -46,20 +46,25 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold mb-2">Create your agency</h1>
-          <p className="text-gray-600 mb-6">
-            Start managing your team's tasks with TeamFlow
-          </p>
+        <div className="bg-card rounded-lg shadow-md p-8 border border-border">
+          <div className="mb-8">
+            <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center mb-4">
+              <span className="text-primary-foreground font-bold text-xl">T</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Create your agency</h1>
+            <p className="text-muted-foreground">
+              Start managing your team's tasks with TeamFlow
+            </p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded">
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded">
               {error}
             </div>
           )}
@@ -67,7 +72,7 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Agency Information */}
             <div>
-              <label htmlFor="agency_name" className="block text-sm font-medium mb-1">
+              <label htmlFor="agency_name" className="block text-sm font-medium text-foreground mb-1">
                 Agency Name
               </label>
               <input
@@ -75,13 +80,13 @@ export default function SignupPage() {
                 id="agency_name"
                 name="agency_name"
                 required
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="Creative Agency Inc."
               />
             </div>
 
             <div>
-              <label htmlFor="agency_email" className="block text-sm font-medium mb-1">
+              <label htmlFor="agency_email" className="block text-sm font-medium text-foreground mb-1">
                 Agency Email
               </label>
               <input
@@ -89,16 +94,16 @@ export default function SignupPage() {
                 id="agency_email"
                 name="agency_email"
                 required
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="contact@agency.com"
               />
             </div>
 
-            <hr className="my-4" />
+            <div className="border-t border-border my-4" />
 
             {/* Your Information */}
             <div>
-              <label htmlFor="user_name" className="block text-sm font-medium mb-1">
+              <label htmlFor="user_name" className="block text-sm font-medium text-foreground mb-1">
                 Your Name
               </label>
               <input
@@ -106,13 +111,13 @@ export default function SignupPage() {
                 id="user_name"
                 name="user_name"
                 required
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="John Doe"
               />
             </div>
 
             <div>
-              <label htmlFor="user_email" className="block text-sm font-medium mb-1">
+              <label htmlFor="user_email" className="block text-sm font-medium text-foreground mb-1">
                 Your Email
               </label>
               <input
@@ -120,13 +125,13 @@ export default function SignupPage() {
                 id="user_email"
                 name="user_email"
                 required
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="john@agency.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                 Password
               </label>
               <input
@@ -135,27 +140,33 @@ export default function SignupPage() {
                 name="password"
                 required
                 minLength={8}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="••••••••"
               />
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
-              className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-primary text-primary-foreground py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity font-medium"
             >
               {loading ? "Creating account..." : "Create agency"}
-            </button>
+            </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an agency?{" "}
-            <Link href="/login" className="text-purple-600 hover:underline">
+            <Link href="/login" className="text-primary hover:underline font-medium">
               Sign in
             </Link>
           </p>
         </div>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Or use test credentials: admin@test.com / password123
+        </p>
       </motion.div>
     </div>
   );

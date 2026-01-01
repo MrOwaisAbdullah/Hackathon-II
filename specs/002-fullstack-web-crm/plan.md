@@ -388,7 +388,9 @@ API Call (fetch PATCH /tasks/{id})
 
 ### Theme Implementation Design
 
-**Approach**: CSS-first theming with Tailwind dark mode and React Context for state
+**PRE-IMPLEMENTATION**: Run `@.claude/skills/frontend-designer/` to generate color palette and theme structure BEFORE implementing.
+
+**Approach**: CSS-first theming with Tailwind dark mode, React Context for state, and design tokens for consistency
 
 ```typescript
 // Theme Context (contexts/ThemeContext.tsx)
@@ -429,20 +431,64 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Light mode colors (default)
-        primary: { DEFAULT: '#8b5cf6', hover: '#7c3aed' },
-        background: '#ffffff',
-        foreground: '#0f172a',
-
-        // Dark mode colors
+        // Primary brand color - Deep Orange (Creative Industrial)
+        primary: {
+          DEFAULT: 'var(--color-primary)',        /* #f97316 */
+          hover: 'var(--color-primary-hover)',     /* #ea580c */
+          light: 'var(--color-primary-light)',     /* #fdba74 */
+        },
+        // Secondary - Teal (Professional balance)
+        secondary: {
+          DEFAULT: 'var(--color-secondary)',       /* #14b8a6 */
+          hover: 'var(--color-secondary-hover)',   /* #0d9488 */
+        },
+        // Accent - Electric Blue (Trustworthy tech)
+        accent: {
+          DEFAULT: 'var(--color-accent)',         /* #3b82f6 */
+          hover: 'var(--color-accent-hover)',     /* #2563eb */
+        },
+        // Light mode
+        background: 'hsl(var(--color-bg) / <alpha-value>)',
+        foreground: 'hsl(var(--color-fg) / <alpha-value>)',
+        // Dark mode override
         dark: {
-          background: '#0f172a',
-          foreground: '#f8fafc',
-          primary: { DEFAULT: '#a78bfa', hover: '#8b5cf6' }
+          background: 'hsl(var(--color-dark-bg) / <alpha-value>)',
+          foreground: 'hsl(var(--color-dark-fg) / <alpha-value>)',
         }
       }
     }
   }
+}
+```
+
+**CSS Variables** (globals.css):
+```css
+:root {
+  /* Primary - Deep Orange (Creative, Industrial) */
+  --color-primary: 251 146 22;      /* #f97316 - orange-500 */
+  --color-primary-hover: 234 88 12; /* #ea580c - orange-600 */
+  --color-primary-light: 251 186 116; /* #fdba74 - orange-400 */
+
+  /* Secondary - Teal */
+  --color-secondary: 20 184 166;    /* #14b8a6 - teal-500 */
+  --color-secondary-hover: 13 148 136; /* #0d9488 - teal-600 */
+
+  /* Accent - Electric Blue */
+  --color-accent: 59 130 246;       /* #3b82f6 - blue-500 */
+  --color-accent-hover: 37 99 235;  /* #2563eb - blue-600 */
+
+  /* Light mode */
+  --color-bg: 0 0% 100%;            /* white */
+  --color-fg: 222 47% 11%;          /* slate-900 */
+
+  /* Dark mode */
+  --color-dark-bg: 222 47% 4%;       /* slate-950 */
+  --color-dark-fg: 210 40% 98%;      /* slate-50 */
+}
+
+.dark {
+  --color-bg: var(--color-dark-bg);
+  --color-fg: var(--color-dark-fg);
 }
 ```
 
@@ -457,11 +503,17 @@ export function ThemeToggle() {
   return (
     <motion.button
       onClick={toggleTheme}
-      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800"
+      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
       whileTap={{ scale: 0.95 }}
-      animate={{ rotate: theme === 'dark' ? 180 : 0 }}
+      whileHover={{ rotate: 15 }}
+      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
-      {theme === 'light' ? '🌙' : '☀️'}
+      <motion.span
+        animate={{ rotate: theme === 'dark' ? 360 : 0 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+      >
+        {theme === 'light' ? '🌙' : '☀️'}
+      </motion.span>
     </motion.button>
   )
 }

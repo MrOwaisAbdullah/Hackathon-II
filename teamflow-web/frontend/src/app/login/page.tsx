@@ -38,25 +38,30 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold mb-2">Welcome back</h1>
-          <p className="text-gray-600 mb-6">Sign in to your agency workspace</p>
+        <div className="bg-card rounded-lg shadow-md p-8 border border-border">
+          <div className="mb-8">
+            <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center mb-4">
+              <span className="text-primary-foreground font-bold text-xl">T</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
+            <p className="text-muted-foreground">Sign in to your agency workspace</p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded">
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
                 Email
               </label>
               <input
@@ -64,13 +69,13 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 required
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="you@agency.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                 Password
               </label>
               <input
@@ -78,27 +83,33 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 required
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                 placeholder="••••••••"
               />
             </div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
-              className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-primary text-primary-foreground py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity font-medium"
             >
               {loading ? "Signing in..." : "Sign in"}
-            </button>
+            </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an agency?{" "}
-            <Link href="/signup" className="text-purple-600 hover:underline">
+            <Link href="/signup" className="text-primary hover:underline font-medium">
               Create one
             </Link>
           </p>
         </div>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Test credentials: admin@test.com / password123
+        </p>
       </motion.div>
     </div>
   );
