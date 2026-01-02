@@ -1,114 +1,95 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useDraggable } from "@dnd-kit/core";
-import { AssigneeAvatar } from "../task/AssigneeAvatar";
+import { motion } from "framer-motion";
+import { Flag, MoreHorizontal, Clock, User } from "lucide-react";
 import type { Task } from "@/types";
+import { CSS } from "@dnd-kit/utilities";
 
 interface TaskCardProps {
   task: Task;
   isDragging?: boolean;
 }
 
-const priorityColors: Record<string, string> = {
-  LOW: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-  MEDIUM: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  HIGH: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-};
-
 export function TaskCard({ task, isDragging = false }: TaskCardProps) {
-  const {
-    setNodeRef,
-    attributes,
-    listeners,
-    isDragging: isDraggingKit,
-  } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, isDragging: isDndDragging } = useDraggable({
     id: task.id,
     data: {
-      type: "task",
+      type: "Task",
       task,
     },
   });
 
-  // T156: Generate accessible label
-  const priorityLabel = task.priority?.toLowerCase() || "no priority";
-  const assigneeLabel = task.assignee?.name || "Unassigned";
-  const ariaLabel = `Task: ${task.title}. Priority: ${priorityLabel}. Assigned to: ${assigneeLabel}. Status: ${task.status?.toLowerCase()}. Drag to move to another column.`;
+  const style = transform
+    ? {
+        transform: CSS.Translate.toString(transform),
+      }
+    : undefined;
+
+  // Priority Badge Colors - High Contrast for Readability
+  const priorityColors = {
+    LOW: "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700",
+    MEDIUM: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    HIGH: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800",
+  };
+
+  const priorityColor = task.priority ? priorityColors[task.priority] : priorityColors.LOW;
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
-      {...attributes}
+      style={style}
       {...listeners}
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{
-        opacity: isDragging ? 0.5 : 1,
-        scale: isDragging ? 1.05 : 1,
-        rotate: isDragging ? 3 : 0,
-      }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{
-        type: "spring",
-        stiffness: 300,
-        damping: 20,
-      }}
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ cursor: "grabbing" }}
+      {...attributes}
       className={`
-        draggable bg-card rounded-lg p-4 border border-border
-        shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing
-        transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/50
-        ${isDraggingKit ? "shadow-xl ring-2 ring-primary/50" : ""}
+        group relative p-4 rounded-xl border bg-card transition-all duration-200
+        ${isDragging || isDndDragging ? "opacity-50 ring-2 ring-lime-500 rotate-2 shadow-xl z-50 cursor-grabbing" : "opacity-100 border-border shadow-sm hover:shadow-md hover:border-lime-500/50 cursor-grab"}
       `}
-      // T156: Accessibility attributes
-      role="button"
-      tabIndex={0}
-      aria-label={ariaLabel}
-      aria-pressed={isDragging}
-      aria-describedby={`task-${task.id}-details`}
-      draggable="true"
     >
-      {/* Priority Badge */}
-      <div className="flex items-start justify-between mb-2">
-        <span
-          className={`
-            inline-block px-2 py-0.5 rounded text-xs font-medium capitalize
-            ${priorityColors[task.priority]}
-          `}
-        >
-          {task.priority}
-        </span>
+      <div className="flex justify-between items-start mb-2">
+        <div className={`
+          px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border
+          ${priorityColor}
+        `}>
+          {task.priority || "LOW"}
+        </div>
+        <button className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+          <MoreHorizontal size={16} />
+        </button>
       </div>
 
-      {/* Title */}
-      <h3 className="font-medium text-sm text-card-foreground mb-2 leading-tight">
+      <h4 className="font-semibold text-sm mb-1 text-foreground leading-tight">
         {task.title}
-      </h3>
-
-      {/* Description (truncated) */}
+      </h4>
+      
       {task.description && (
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
           {task.description}
         </p>
       )}
 
-      {/* Footer: Due Date & Assignee */}
-      <div className="flex items-center justify-between mt-auto">
-        {/* Due Date */}
-        {task.due_date && (
-          <div className="text-xs text-muted-foreground">
-            {new Date(task.due_date).toLocaleDateString()}
-          </div>
-        )}
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+        <div className="flex items-center gap-2">
+          {task.due_date && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+              <Clock size={12} />
+              <span>{new Date(task.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+            </div>
+          )}
+        </div>
 
-        {/* Assignee Avatar */}
-        <AssigneeAvatar
-          name={task.assignee?.name}
-          email={task.assignee?.email}
-          size="sm"
-        />
+        <div className="flex items-center">
+          {task.assignee_id ? (
+            <div className="w-6 h-6 rounded-full bg-lime-400 flex items-center justify-center text-[10px] font-bold text-black border border-white dark:border-zinc-900">
+              U
+            </div>
+          ) : (
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-muted-foreground border border-background">
+              <User size={12} />
+            </div>
+          )}
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

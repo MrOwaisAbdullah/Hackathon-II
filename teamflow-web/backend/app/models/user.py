@@ -66,3 +66,11 @@ class UserRead(UserBase):
     agency_id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+
+class UserUpdate(SQLModel):
+    """User update schema (all fields optional)."""
+
+    name: Optional[str] = PDField(None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None

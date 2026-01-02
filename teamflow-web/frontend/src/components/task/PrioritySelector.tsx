@@ -63,12 +63,12 @@ export function PrioritySelector({
               ${
                 isSelected
                   ? `${config.activeClass} shadow-sm ring-1 ring-lime-500`
-                  : "bg-transparent border-zinc-200 text-zinc-500 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                  : "bg-white border-zinc-300 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 font-medium"
               }
             `}
           >
             <Flag 
-              className={`w-4 h-4 ${isSelected ? "fill-black text-black" : "text-zinc-400"}`} 
+              className={`w-4 h-4 ${isSelected ? "fill-black text-black" : "text-zinc-400 dark:text-zinc-500"}`} 
             />
             <span>{config.label}</span>
           </motion.button>

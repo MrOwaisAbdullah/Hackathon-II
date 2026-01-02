@@ -112,6 +112,14 @@ export default function LoginPage() {
           </p>
         </div>
 
+        <div className="mt-6 p-4 bg-zinc-900/50 rounded-xl border border-zinc-800 text-center">
+          <p className="text-xs font-bold text-lime-400 uppercase tracking-widest mb-1">Test Credentials</p>
+          <p className="text-sm text-zinc-300">
+            <span className="text-zinc-500">Email:</span> admin@test.com <br />
+            <span className="text-zinc-500">Pass:</span> password123
+          </p>
+        </div>
+
         <p className="mt-6 text-center text-xs text-zinc-600">
           Secure enterprise-grade task management
         </p>
