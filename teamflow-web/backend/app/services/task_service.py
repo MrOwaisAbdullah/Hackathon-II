@@ -61,6 +61,7 @@ class TaskService:
         status: Optional[TaskStatus] = None,
         project_id: Optional[UUID] = None,
         assignee_id: Optional[UUID] = None,
+        include_archived: bool = False,
     ) -> list[Task]:
         """List tasks for an agency with optional filters."""
         query = select(Task).where(Task.agency_id == agency_id)
@@ -71,6 +72,10 @@ class TaskService:
             query = query.where(Task.project_id == project_id)
         if assignee_id:
             query = query.where(Task.assignee_id == assignee_id)
+
+        # Exclude archived tasks by default unless include_archived=True
+        if not include_archived:
+            query = query.where(Task.status != TaskStatus.ARCHIVED)
 
         # Order by status then created_at
         query = query.order_by(Task.status, Task.created_at.desc())
@@ -126,3 +131,108 @@ class TaskService:
         session.delete(task)
         session.commit()
         return True
+
+    def assign_task(
+        self,
+        task_id: UUID,
+        assignee_id: UUID,
+        agency_id: UUID,
+        session: Session,
+    ) -> Optional[Task]:
+        """Assign a task to a user.
+
+        Args:
+            task_id: ID of the task to assign
+            assignee_id: ID of the user to assign the task to (or None to unassign)
+            agency_id: Agency ID for multi-tenant isolation
+            session: Database session
+
+        Returns:
+            The updated task, or None if task not found
+
+        Raises:
+            ValueError: If assignee doesn't exist or doesn't belong to the agency
+        """
+        task = self.get_task(task_id, agency_id, session)
+        if not task:
+            return None
+
+        # If assignee_id is None, unassign the task
+        if assignee_id is None:
+            task.assignee_id = None
+            session.add(task)
+            session.commit()
+            session.refresh(task)
+            return task
+
+        # Verify assignee exists and belongs to the same agency
+        assignee = session.get(User, assignee_id)
+        if not assignee:
+            raise ValueError("Assignee not found")
+        if assignee.agency_id != agency_id:
+            raise ValueError("Assignee does not belong to the same agency")
+
+        # Update the task's assignee
+        task.assignee_id = assignee_id
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+        return task
+
+    def archive_task(
+        self,
+        task_id: UUID,
+        agency_id: UUID,
+        session: Session,
+    ) -> Optional[Task]:
+        """Archive a task by setting status to ARCHIVED.
+
+        Args:
+            task_id: ID of the task to archive
+            agency_id: Agency ID for multi-tenant isolation
+            session: Database session
+
+        Returns:
+            The archived task, or None if task not found
+        """
+        task = self.get_task(task_id, agency_id, session)
+        if not task:
+            return None
+
+        task.status = TaskStatus.ARCHIVED
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+        return task
+
+    def restore_task(
+        self,
+        task_id: UUID,
+        agency_id: UUID,
+        session: Session,
+        restore_status: TaskStatus = TaskStatus.DONE,
+    ) -> Optional[Task]:
+        """Restore an archived task to a specified status.
+
+        Args:
+            task_id: ID of the task to restore
+            agency_id: Agency ID for multi-tenant isolation
+            session: Database session
+            restore_status: Status to restore the task to (default: DONE)
+
+        Returns:
+            The restored task, or None if task not found
+        """
+        task = self.get_task(task_id, agency_id, session)
+        if not task:
+            return None
+
+        # Only allow restoring archived tasks
+        if task.status != TaskStatus.ARCHIVED:
+            raise ValueError("Task is not archived")
+
+        task.status = restore_status
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+        return task

@@ -20,15 +20,17 @@ interface TaskColumnProps {
 }
 
 const statusColors: Record<TaskStatus, string> = {
-  todo: "bg-primary",
-  in_progress: "bg-accent",
-  done: "bg-secondary",
+  todo: "bg-blue-500",
+  doing: "bg-yellow-500",
+  review: "bg-purple-500",
+  done: "bg-green-500",
 };
 
 const statusBgColors: Record<TaskStatus, string> = {
-  todo: "bg-primary/5",
-  in_progress: "bg-accent/5",
-  done: "bg-secondary/5",
+  todo: "bg-blue-500/10",
+  doing: "bg-yellow-500/10",
+  review: "bg-purple-500/10",
+  done: "bg-green-500/10",
 };
 
 export function TaskColumn({

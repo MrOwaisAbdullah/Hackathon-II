@@ -1,6 +1,8 @@
 # Agent Context: TeamFlow Web (Phase 2)
 
-**Branch**: `002-fullstack-web-crm` | **Date**: 2025-01-29 | **Plan**: [plan.md](./plan.md)
+**Branch**: `002-fullstack-web-crm` | **Date**: 2026-01-03 | **Plan**: [plan.md](./plan.md)
+
+> **Phase 9 Complete**: All core features implemented plus polish (command palette, rate limiting, structured logging, accessibility improvements). See "Phase 9 Lessons" section below for implementation insights.
 
 ## Purpose
 
@@ -37,13 +39,16 @@ This file provides context for AI agents working on TeamFlow Phase 2. Use this t
 | Plan | Data Model | ✅ Complete | `data-model.md` |
 | Plan | API Contracts | ✅ Complete | `contracts/openapi.yaml` |
 | Plan | Quickstart | ✅ Complete | `quickstart.md` |
+| Implementation | Phases 1-8 (Core Features) | ✅ Complete | `teamflow-web/` |
+| Implementation | Phase 9 (Polish) | ✅ Complete | See tasks.md T150-T163 |
 
-### In Progress
+### Pending
 
 | Phase | Task | Status |
 |-------|------|--------|
-| Plan | Architecture sections in plan.md | 🔄 In progress |
-| Tasks | Generate tasks.md | ⏳ Pending |
+| Validation | Lighthouse/WCAG audits (T160-T161) | ⏳ Requires dev server |
+| Validation | Test suite execution (T166-T170) | ⏳ Requires dev server |
+| Documentation | Task count update (T171-T172) | ⏳ Pending |
 
 ---
 
@@ -107,6 +112,156 @@ def get_tasks(current_user: CurrentUser):
 - Simplest approach for hackathon scope
 - No distributed locking complexity
 - Optimistic updates with rollback on error
+
+---
+
+## Phase 9 Implementation Lessons
+
+### Project Structure Adjustments
+
+**Backend: `src/` → `app/`**
+- Original plan used `src/` directory structure
+- Actual implementation uses `app/` for consistency with FastAPI best practices
+- Core utilities organized under `app/core/` (security, rate_limit, logging)
+
+**Frontend: App Router with Route Groups**
+- `(auth)` - Public pages (login, register)
+- `(main)` - Protected pages (dashboard, tasks, projects, etc.)
+- Components organized by domain: `board/`, `dashboard/`, `task/`, `ui/`
+
+### Theme Management
+
+**Custom ThemeContext (not next-themes)**
+- App uses `@/contexts/ThemeContext` with custom implementation
+- Supports three modes: `'light'`, `'dark'`, `'system'`
+- Theme stored in localStorage with system preference detection
+- **Key Lesson**: Always verify existing context usage before assuming packages
+
+```typescript
+// Resolving 'system' theme for icon display
+const resolvedTheme = useMemo(() => {
+  if (theme === 'system') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark' : 'light';
+  }
+  return theme;
+}, [theme]);
+```
+
+### Command Pattern
+
+**Command Palette Implementation (T157)**
+- CMD+K / Ctrl+K global shortcut
+- Searchable commands grouped by category (Navigation, Actions, Settings)
+- Framer Motion animations for open/close
+- Keyboard navigation with circular selection
+
+**Key Pattern: Keyboard Shortcuts**
+```typescript
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      setIsOpen(prev => !prev);
+    }
+  };
+  document.addEventListener('keydown', handleKeyDown);
+  return () => document.removeEventListener('keydown', handleKeyDown);
+}, [isOpen]);
+```
+
+### Performance Optimizations
+
+**1. Code Splitting (T159)**
+- Dynamic imports for heavy components (charts, task board)
+- `ssr: false` for dnd-kit components (client-only)
+- Loading skeletons during component load
+
+**2. GZip Compression (T162)**
+- Starlette middleware for responses > 1KB
+- Middleware order: GZip → Logging → CORS → Routers
+
+**3. Structured Logging (T155)**
+- JSON-formatted logs in production
+- Request logging middleware with timing
+- `log_api_call()` helper for consistent API logging
+
+### Security Enhancements
+
+**Rate Limiting (T163)**
+- In-memory sliding window algorithm
+- Per-endpoint limits (auth_register: 3/hour, auth_login: 5/minute)
+- Client identification via X-Forwarded-For header
+
+**Pattern**:
+```python
+from app.core.rate_limit import check_rate_limit
+
+@router.post("/login")
+def login(credentials: UserLogin, request: Request):
+    check_rate_limit(request, "auth_login")
+    # ... endpoint logic
+```
+
+### Accessibility Improvements
+
+**ARIA Labels (T156)**
+- Task cards: `role="button"`, `draggable="true"`, dynamic `aria-label`
+- Task columns: `role="region"`, `aria-dropeffect="move"`
+- Focus management: `focus-within:ring` for keyboard users
+
+**Error Boundaries (T154)**
+- Root error boundary at `app/error.tsx`
+- Main app boundary at `app/(main)/error.tsx`
+- Retry functionality with `reset()` action
+
+**Skeleton Loading (T153)**
+- `ChartSkeleton`, `ListSkeleton`, `WorkflowSkeleton` components
+- Displayed during `isLoading` states
+- Falls back to mock data when API unavailable
+
+### API Endpoint Organization
+
+**New Endpoints Added During Implementation**:
+- `/v1/analytics` - Dashboard metrics
+- `/v1/users` - Team member management
+- `/v1/tasks/{id}/assign` - Task assignment
+- `/v1/tasks/{id}/time-entries` - Time tracking
+
+**Middleware Stack** (order matters):
+```python
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("FRONTEND_URL")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+### Testing Patterns
+
+**Contract Tests**
+- OpenAPI validation with `openapi-spec-validator`
+- Test both request/response schemas
+- Located in `tests/contract/`
+
+**Integration Tests**
+- Full endpoint testing with test database
+- Coverage for analytics, tasks, time entries
+- Located in `tests/integration/`
+
+### Common Pitfalls Encountered
+
+| Issue | Solution |
+|-------|----------|
+| dnd-kit SSR errors | Use `ssr: false` in dynamic import |
+| Theme context mismatch | Check `contexts/` for existing implementations |
+| Rate limiting on multi-worker | Use Redis instead of in-memory for production |
+| CORS preflight failures | Ensure OPTIONS method included in CORS config |
+| JWT agency_id missing | Verify `agency_id` claim in token creation |
 
 ---
 
@@ -333,15 +488,16 @@ All implementation MUST follow:
 
 ## Security Checklist
 
-- [ ] JWT verified on all protected endpoints
-- [ ] All queries scoped to agency_id
-- [ ] Input validation via Pydantic schemas
-- [ ] Passwords hashed with bcrypt
-- [ ] httpOnly cookies for JWT storage
-- [ ] CORS configured for frontend origin
-- [ ] SQL injection prevented (SQLModel)
-- [ ] XSS prevented (React escaping)
-- [ ] Rate limiting on auth endpoints
+- [X] JWT verified on all protected endpoints
+- [X] All queries scoped to agency_id
+- [X] Input validation via Pydantic schemas
+- [X] Passwords hashed with bcrypt
+- [X] httpOnly cookies for JWT storage
+- [X] CORS configured for frontend origin
+- [X] SQL injection prevented (SQLModel)
+- [X] XSS prevented (React escaping)
+- [X] Rate limiting on auth endpoints (T163)
+- [X] GZip compression on API responses (T162)
 
 ---
 

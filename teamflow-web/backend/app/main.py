@@ -6,19 +6,14 @@ from typing import Any
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 
-from app.api.endpoints import auth, projects, tasks
+from app.api.endpoints import auth, analytics, projects, tasks, time_entries, users
 from app.core.config import settings
+from app.core.logging import get_logger, RequestLoggingMiddleware
 
-# Configure structured logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-    ]
-)
-logger = logging.getLogger(__name__)
+# T155: Use structured logger
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -36,6 +31,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# T162: GZip compression middleware (compresses responses > 1000 bytes)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# T155: Request logging middleware
+app.add_middleware(RequestLoggingMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -49,6 +50,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(tasks.router, prefix=settings.api_v1_prefix)
 app.include_router(projects.router, prefix=settings.api_v1_prefix)
+app.include_router(users.router, prefix=settings.api_v1_prefix)
+app.include_router(time_entries.router, prefix=settings.api_v1_prefix)
+app.include_router(analytics.router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/health")
@@ -81,19 +85,17 @@ async def jwt_middleware(request: Request, call_next):
     return await call_next(request)
 
 
-# Error handling middleware with structured logging
+# T155: Error handling middleware with structured logging
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler for unhandled errors."""
     logger.error(
         f"Unhandled exception on {request.url.path}: {str(exc)}",
-        exc_info=True,
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-            "user_id": getattr(request.state, "user_id", None),
-            "agency_id": getattr(request.state, "agency_id", None),
-        }
+        method=request.method,
+        path=str(request.url.path),
+        error_type=type(exc).__name__,
+        user_id=getattr(request.state, "user_id", None),
+        agency_id=getattr(request.state, "agency_id", None),
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -110,10 +112,8 @@ async def not_found_exception_handler(request: Request, exc: Exception):
     """Handle 404 errors."""
     logger.warning(
         f"404 error on {request.url.path}: {str(exc)}",
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-        }
+        method=request.method,
+        path=str(request.url.path),
     )
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -126,10 +126,8 @@ async def validation_exception_handler(request: Request, exc: Exception):
     """Handle validation errors."""
     logger.warning(
         f"Validation error on {request.url.path}: {str(exc)}",
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-        }
+        method=request.method,
+        path=str(request.url.path),
     )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

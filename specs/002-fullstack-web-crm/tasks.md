@@ -129,13 +129,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T056 [P] [US2] Contract test for GET /tasks in backend/tests/contract/test_tasks_contract.py
-- [ ] T057 [P] [US2] Contract test for POST /tasks in backend/tests/contract/test_tasks_contract.py
-- [ ] T058 [P] [US2] Contract test for PATCH /tasks/{id} in backend/tests/contract/test_tasks_contract.py
-- [ ] T059 [P] [US2] Contract test for DELETE /tasks/{id} in backend/tests/contract/test_tasks_contract.py
-- [ ] T060 [P] [US2] Integration test for task CRUD operations in backend/tests/integration/test_tasks_api.py
-- [ ] T061 [P] [US2] Integration test for task status updates in backend/tests/integration/test_tasks_api.py
-- [ ] T062 [P] [US2] E2E test for drag-and-drop task board in frontend/tests/e2e/task-board.spec.ts
+- [X] T056 [P] [US2] Contract test for GET /tasks in backend/tests/contract/test_tasks_contract.py
+- [X] T057 [P] [US2] Contract test for POST /tasks in backend/tests/contract/test_tasks_contract.py
+- [X] T058 [P] [US2] Contract test for PATCH /tasks/{id} in backend/tests/contract/test_tasks_contract.py
+- [X] T059 [P] [US2] Contract test for DELETE /tasks/{id} in backend/tests/contract/test_tasks_contract.py
+- [X] T060 [P] [US2] Integration test for task CRUD operations in backend/tests/integration/test_tasks_api.py
+- [X] T061 [P] [US2] Integration test for task status updates in backend/tests/integration/test_tasks_api.py
+- [X] T062 [P] [US2] E2E test for drag-and-drop task board in frontend/tests/e2e/task-board.spec.ts
 
 ### Backend Implementation for User Story 2
 
@@ -156,20 +156,20 @@
 
 ### Frontend Implementation for User Story 2
 
-- [ ] T077 [P] [US2] Create TypeScript types for Task and Project in frontend/src/types/task.ts
-- [ ] T078 [P] [US2] Create React Query hooks for tasks in frontend/src/lib/query.ts
-- [ ] T079 [P] [US2] Create React Query hooks for projects in frontend/src/lib/query.ts
-- [ ] T080 [P] [US2] Create TaskBoard component with dnd-kit in frontend/src/components/board/TaskBoard.tsx
-- [ ] T081 [P] [US2] Create TaskColumn droppable component in frontend/src/components/board/TaskColumn.tsx
-- [ ] T082 [P] [US2] Create TaskCard draggable component with Motion animations in frontend/src/components/board/TaskCard.tsx
-- [ ] T083 [P] [US2] Create DragOverlay for dragged items in frontend/src/components/board/DragOverlay.tsx
-- [ ] T084 [P] [US2] Create TaskForm component for quick-add in frontend/src/components/task/TaskForm.tsx
-- [ ] T085 [P] [US2] Create useTaskBoard hook with dnd-kit state management in frontend/src/hooks/useTaskBoard.ts
-- [ ] T086 [US2] Implement task board page in frontend/src/app/tasks/page.tsx
-- [ ] T087 [US2] Add celebration animation (confetti/ripple) when task moves to Done in frontend/src/components/board/TaskBoard.tsx
-- [ ] T088 [US2] Add column stagger animations on page load in frontend/src/components/board/TaskBoard.tsx
-- [ ] T089 [US2] Add card tilt animation during drag in frontend/src/components/board/TaskCard.tsx
-- [ ] T090 [US2] Add drop zone pulse glow effect in frontend/src/components/board/TaskColumn.tsx
+- [X] T077 [P] [US2] Create TypeScript types for Task and Project in frontend/src/types/index.ts
+- [X] T078 [P] [US2] Create React Query hooks for tasks in frontend/src/lib/query.ts
+- [X] T079 [P] [US2] Create React Query hooks for projects in frontend/src/lib/query.ts
+- [X] T080 [P] [US2] Create TaskBoard component with dnd-kit in frontend/src/components/board/TaskBoard.tsx
+- [X] T081 [P] [US2] Create TaskColumn droppable component in frontend/src/components/board/TaskColumn.tsx
+- [X] T082 [P] [US2] Create TaskCard draggable component with Motion animations in frontend/src/components/board/TaskCard.tsx
+- [X] T083 [P] [US2] Create DragOverlay for dragged items (embedded in TaskBoard)
+- [X] T084 [P] [US2] Create TaskForm component for quick-add in frontend/src/components/task/TaskForm.tsx
+- [X] T085 [P] [US2] Create useTaskBoard hook with dnd-kit state management (state inline in TaskBoard - simpler approach)
+- [X] T086 [US2] Implement task board page in frontend/src/app/(dashboard)/tasks/page.tsx
+- [X] T087 [US2] Add celebration animation (confetti/ripple) when task moves to Done in frontend/src/components/board/TaskBoard.tsx
+- [X] T088 [US2] Add column stagger animations on page load in frontend/src/components/board/TaskBoard.tsx
+- [X] T089 [US2] Add card tilt animation during drag in frontend/src/components/board/TaskBoard.tsx
+- [X] T090 [US2] Add drop zone pulse glow effect in frontend/src/components/board/TaskColumn.tsx
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - full task board with drag-and-drop
 
@@ -183,26 +183,28 @@
 
 ### Tests for User Story 3
 
-- [ ] T091 [P] [US3] Contract test for POST /tasks/{id}/assign in backend/tests/contract/test_assign_contract.py
-- [ ] T092 [P] [US3] Integration test for task assignment in backend/tests/integration/test_tasks_api.py
-- [ ] T093 [P] [US3] E2E test for task assignment flow in frontend/tests/e2e/task-assignment.spec.ts
+> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+
+- [X] T091 [P] [US3] Contract test for POST /tasks/{id}/assign in backend/tests/contract/test_assign_contract.py
+- [X] T092 [P] [US3] Integration test for task assignment in backend/tests/integration/test_tasks_api.py
+- [X] T093 [P] [US3] E2E test for task assignment flow in frontend/tests/e2e/task-assignment.spec.ts
 
 ### Backend Implementation for User Story 3
 
-- [ ] T094 [P] [US3] Add assignee_id foreign key to Task model in backend/src/models/task.py
-- [ ] T095 [P] [US3] Implement POST /tasks/{id}/assign endpoint in backend/src/api/tasks.py
-- [ ] T096 [US3] Add GET /users endpoint for team listing in backend/src/api/users.py
-- [ ] T097 [US3] Implement assign task method in TaskService in backend/src/services/task_service.py
-- [ ] T098 [US3] Update Task schema to include assignee filtering in backend/src/schemas/task.py
+- [X] T094 [P] [US3] Add assignee_id foreign key to Task model in backend/src/models/task.py
+- [X] T095 [P] [US3] Implement POST /tasks/{id}/assign endpoint in backend/src/api/tasks.py
+- [X] T096 [US3] Add GET /users endpoint for team listing in backend/src/api/users.py
+- [X] T097 [US3] Implement assign task method in TaskService in backend/src/services/task_service.py
+- [X] T098 [US3] Update Task schema to include assignee filtering in backend/src/schemas/task.py
 
 ### Frontend Implementation for User Story 3
 
-- [ ] T099 [P] [US3] Create AssigneeAvatar component in frontend/src/components/task/AssigneeAvatar.tsx
-- [ ] T100 [P] [US3] Add assignee display to TaskCard in frontend/src/components/board/TaskCard.tsx
-- [ ] T101 [P] [US3] Create user filter dropdown component in frontend/src/components/board/UserFilter.tsx
-- [ ] T101a [P] [US3] Create TeamMemberList component with draggable avatars in frontend/src/components/board/TeamMemberList.tsx
-- [ ] T102 [US3] Add drag-to-assign functionality with avatar drop zone in frontend/src/components/board/TaskCard.tsx
-- [ ] T103 [US3] Update TaskDrawer to show assignee dropdown in frontend/src/components/task/TaskDrawer.tsx
+- [X] T099 [P] [US3] Create AssigneeAvatar component in frontend/src/components/task/AssigneeAvatar.tsx
+- [X] T100 [P] [US3] Add assignee display to TaskCard in frontend/src/components/board/TaskCard.tsx
+- [X] T101 [P] [US3] Create user filter dropdown component in frontend/src/components/board/UserFilter.tsx
+- [X] T101a [P] [US3] Create TeamMemberList component with draggable avatars in frontend/src/components/board/TeamMemberList.tsx
+- [X] T102 [US3] Add drag-to-assign functionality with avatar drop zone in frontend/src/components/board/TaskCard.tsx
+- [X] T103 [US3] Update TaskDrawer to show assignee dropdown in frontend/src/components/task/TaskDrawer.tsx
 
 **Checkpoint**: All user stories 1-3 should now be independently functional - team assignment complete
 
@@ -216,24 +218,24 @@
 
 ### Tests for User Story 4
 
-- [ ] T104 [P] [US4] Contract test for GET /analytics/stats in backend/tests/contract/test_analytics_contract.py
-- [ ] T105 [P] [US4] Integration test for dashboard statistics in backend/tests/integration/test_analytics_api.py
-- [ ] T106 [P] [US4] E2E test for dashboard load with animations in frontend/tests/e2e/dashboard.spec.ts
+- [X] T104 [P] [US4] Contract test for GET /analytics/stats in backend/tests/contract/test_analytics_contract.py
+- [X] T105 [P] [US4] Integration test for dashboard statistics in backend/tests/integration/test_analytics_api.py
+- [X] T106 [P] [US4] E2E test for dashboard load with animations in frontend/tests/e2e/dashboard.spec.ts
 
 ### Backend Implementation for User Story 4
 
-- [ ] T107 [P] [US4] Implement AnalyticsService with stat calculations in backend/src/services/analytics_service.py
-- [ ] T108 [P] [US4] Implement GET /analytics/stats endpoint in backend/src/api/analytics.py
-- [ ] T109 [P] [US4] Implement GET /analytics/tasks-by-status endpoint in backend/src/api/analytics.py
-- [ ] T110 [US4] Add team utilization calculation in backend/src/services/analytics_service.py
+- [X] T107 [P] [US4] Implement AnalyticsService with stat calculations in backend/app/services/analytics_service.py
+- [X] T108 [P] [US4] Implement GET /analytics/stats endpoint in backend/app/api/endpoints/analytics.py
+- [X] T109 [P] [US4] Implement GET /analytics/tasks-by-status endpoint in backend/app/api/endpoints/analytics.py
+- [X] T110 [US4] Add team utilization calculation in backend/app/services/analytics_service.py
 
 ### Frontend Implementation for User Story 4
 
 - [X] T111 [P] [US4] Create dashboard layout with sidebar in frontend/src/app/dashboard/layout.tsx
 - [X] T112 [P] [US4] Create dashboard home page in frontend/src/app/dashboard/page.tsx
 - [X] T113 [P] [US4] Create StatCard component with hover animation in frontend/src/components/dashboard/StatCard.tsx
-- [ ] T114 [P] [US4] Create ProjectList grid component in frontend/src/components/dashboard/ProjectList.tsx
-- [ ] T115 [US4] Add React Query hooks for analytics in frontend/src/lib/query.ts
+- [X] T114 [P] [US4] Create ProjectList grid component in frontend/src/components/dashboard/ProjectList.tsx
+- [X] T115 [US4] Add React Query hooks for analytics in frontend/src/lib/query.ts
 - [X] T116 [US4] Implement stagger animation for stat cards on load in frontend/src/app/dashboard/page.tsx
 - [X] T117 [US4] Add hover lift effect on stat cards in frontend/src/components/dashboard/StatCard.tsx
 - [X] T111a [US4] Implement collapsible sidebar with smooth transition animation in frontend/src/components/dashboard/Sidebar.tsx
@@ -257,30 +259,30 @@
 
 ### Tests for User Story 5
 
-- [ ] T118 [P] [US5] Contract test for POST /time-entries in backend/tests/contract/test_time_contract.py
-- [ ] T119 [P] [US5] Contract test for GET /analytics/profitability in backend/tests/contract/test_profitability_contract.py
-- [ ] T120 [P] [US5] Integration test for time logging in backend/tests/integration/test_time_api.py
-- [ ] T121 [P] [US5] Integration test for profitability calculations in backend/tests/integration/test_analytics_api.py
+- [X] T118 [P] [US5] Contract test for POST /time-entries in backend/tests/contract/test_time_contract.py
+- [X] T119 [P] [US5] Contract test for GET /analytics/profitability in backend/tests/contract/test_profitability_contract.py
+- [X] T120 [P] [US5] Integration test for time logging in backend/tests/integration/test_time_api.py
+- [X] T121 [P] [US5] Integration test for profitability calculations in backend/tests/integration/test_analytics_api.py
 
 ### Backend Implementation for User Story 5
 
-- [ ] T122 [P] [US5] Create TimeEntry SQLModel in backend/src/models/time_entry.py
-- [ ] T123 [P] [US5] Create TimeEntryCreate, TimeEntryRead Pydantic schemas in backend/src/schemas/time_entry.py
-- [ ] T124 [P] [US5] Add hourly_rate field to Project model in backend/src/models/project.py
-- [ ] T125 [US5] Implement TimeEntryService in backend/src/services/time_entry_service.py
-- [ ] T126 [US5] Implement POST /time-entries endpoint in backend/src/api/time_entries.py
-- [ ] T127 [US5] Implement GET /time-entries endpoint with date filtering in backend/src/api/time_entries.py
-- [ ] T128 [US5] Implement GET /analytics/profitability endpoint in backend/src/api/analytics.py
-- [ ] T129 [US5] Add profitability calculation logic in backend/src/services/analytics_service.py
-- [ ] T130 [US5] Add database migration for TimeEntry table and Project.hourly_rate in backend/alembic/versions/004_add_time_entries.py
+- [X] T122 [P] [US5] Create TimeEntry SQLModel in backend/app/models/time_entry.py
+- [X] T123 [P] [US5] Create TimeEntryCreate, TimeEntryRead Pydantic schemas in backend/app/models/time_entry.py
+- [X] T124 [P] [US5] Add hourly_rate field to Project model in backend/app/models/project.py (already exists)
+- [X] T125 [US5] Implement TimeEntryService in backend/app/services/time_entry_service.py
+- [X] T126 [US5] Implement POST /time-entries endpoint in backend/app/api/endpoints/time_entries.py
+- [X] T127 [US5] Implement GET /time-entries endpoint with date filtering in backend/app/api/endpoints/time_entries.py
+- [X] T128 [US5] Implement GET /analytics/profitability endpoint in backend/app/api/endpoints/analytics.py
+- [X] T129 [US5] Add profitability calculation logic in backend/app/services/analytics_service.py
+- [X] T130 [US5] Add database migration for TimeEntry table in backend/alembic/versions/006_add_time_entries.py
 
 ### Frontend Implementation for User Story 5
 
-- [ ] T131 [P] [US5] Create TimeEntry types in frontend/src/types/task.ts
-- [ ] T132 [P] [US5] Create useTimeTracking hook for timer state in frontend/src/hooks/useTimeTracking.ts
-- [ ] T133 [P] [US5] Create TimeLoggingForm component in frontend/src/components/task/TimeLoggingForm.tsx
-- [ ] T134 [P] [US5] Add time entries section to TaskDrawer in frontend/src/components/task/TaskDrawer.tsx
-- [ ] T135 [US5] Create ProfitabilityReport component in frontend/src/components/dashboard/ProfitabilityReport.tsx
+- [X] T131 [P] [US5] Create TimeEntry types in frontend/src/types/task.ts
+- [X] T132 [P] [US5] Create useTimeTracking hook for timer state in frontend/src/hooks/useTimeTracking.ts
+- [X] T133 [P] [US5] Create TimeLoggingForm component in frontend/src/components/task/TimeLoggingForm.tsx
+- [X] T134 [P] [US5] Add time entries section to TaskDrawer in frontend/src/components/task/TaskDrawer.tsx
+- [X] T135 [US5] Create ProfitabilityReport component in frontend/src/components/dashboard/ProfitabilityReport.tsx
 
 **Checkpoint**: User Stories 1-5 should now be independently functional - time tracking complete
 
@@ -294,26 +296,26 @@
 
 ### Tests for User Story 6
 
-- [ ] T136 [P] [US6] Integration test for task updates in backend/tests/integration/test_tasks_api.py
-- [ ] T137 [P] [US6] Integration test for archive/restore in backend/tests/integration/test_tasks_api.py
-- [ ] T138 [P] [US6] E2E test for task editing and archiving in frontend/tests/e2e/task-edit.spec.ts
+- [X] T136 [P] [US6] Integration test for task updates in backend/tests/integration/test_tasks_api.py
+- [X] T137 [P] [US6] Integration test for archive/restore in backend/tests/integration/test_tasks_api.py
+- [X] T138 [P] [US6] E2E test for task editing and archiving in frontend/tests/e2e/task-edit.spec.ts
 
 ### Backend Implementation for User Story 6
 
-- [ ] T139 [P] [US6] Implement soft delete for tasks (status=archived) in backend/src/api/tasks.py
-- [ ] T140 [P] [US6] Implement GET /tasks?include=archived endpoint in backend/src/api/tasks.py
-- [ ] T141 [P] [US6] Implement POST /tasks/{id}/restore endpoint in backend/src/api/tasks.py
-- [ ] T142 [US6] Add rich text description field to Task model in backend/src/models/task.py
+- [X] T139 [P] [US6] Implement soft delete for tasks (status=archived) in backend/src/api/tasks.py
+- [X] T140 [P] [US6] Implement GET /tasks?include=archived endpoint in backend/src/api/tasks.py
+- [X] T141 [P] [US6] Implement POST /tasks/{id}/restore endpoint in backend/src/api/tasks.py
+- [X] T142 [US6] Add rich text description field to Task model in backend/src/models/task.py
 
 ### Frontend Implementation for User Story 6
 
-- [ ] T143 [US6] Enhance TaskDrawer with rich text editor, priority selector, date picker, and archive button in frontend/src/components/task/TaskDrawer.tsx
-- [ ] T144 [P] [US6] Create rich text editor component in frontend/src/components/task/RichTextEditor.tsx
-- [ ] T145 [P] [US6] Add priority selector component in frontend/src/components/task/PrioritySelector.tsx
-- [ ] T146 [P] [US6] Add due date picker component in frontend/src/components/task/DatePicker.tsx
-- [ ] T147 [US6] Implement archive button with confirmation modal in frontend/src/components/task/TaskDrawer.tsx
-- [ ] T148 [US6] Add archive page with restore functionality in frontend/src/app/archive/page.tsx
-- [ ] T149 [US6] Add card scale-out animation for archive in frontend/src/components/board/TaskBoard.tsx
+- [X] T143 [US6] Enhance TaskDrawer with rich text editor, priority selector, date picker, and archive button in frontend/src/components/task/TaskDrawer.tsx
+- [X] T144 [P] [US6] Create rich text editor component in frontend/src/components/task/RichTextEditor.tsx
+- [X] T145 [P] [US6] Add priority selector component in frontend/src/components/task/PrioritySelector.tsx
+- [X] T146 [P] [US6] Add due date picker component in frontend/src/components/task/DatePicker.tsx
+- [X] T147 [US6] Implement archive button with confirmation modal in frontend/src/components/task/TaskDrawer.tsx
+- [X] T148 [US6] Add archive page with restore functionality in frontend/src/app/(main)/archive/page.tsx
+- [X] T149 [US6] Add card scale-out animation for archive in frontend/src/components/board/TaskCard.tsx
 
 **Checkpoint**: All user stories should now be independently functional - complete task management
 
@@ -323,28 +325,28 @@
 
 **Purpose**: Improvements that affect multiple user stories and final validation
 
-- [ ] T150 [P] Add 10-second polling for real-time updates in frontend/src/lib/query.ts (refetchInterval: 10000)
-- [ ] T151 [P] Add manual refresh button to task board in frontend/src/components/board/TaskBoard.tsx
+- [X] T150 [P] Add 10-second polling for real-time updates in frontend/src/lib/query.ts (refetchInterval: 10000)
+- [X] T151 [P] Add manual refresh button to task board in frontend/src/components/board/TaskBoard.tsx
 - [ ] T152 [P] Implement network loss detection and snap-back animation for drag operations in frontend/src/hooks/useTaskBoard.ts
-- [ ] T153 [P] Add skeleton screens for loading states in frontend/src/components/ui/Skeleton.tsx
-- [ ] T154 [P] Add error boundary for React components in frontend/src/app/error.tsx
-- [ ] T155 [P] Add structured logging to all backend endpoints in backend/src/api/
-- [ ] T156 [P] Add accessibility labels and ARIA attributes to all interactive components in frontend/src/components/
-- [ ] T157 [P] Add keyboard shortcut (CMD+K) for command palette in frontend/src/components/CommandPalette.tsx
-- [ ] T158 [P] Optimize images with next/image in frontend/src/app/
-- [ ] T159 [P] Add code splitting with dynamic imports in frontend/src/app/
+- [X] T153 [P] Add skeleton screens for loading states in frontend/src/components/ui/Skeleton.tsx
+- [X] T154 [P] Add error boundary for React components in frontend/src/app/error.tsx
+- [X] T155 [P] Add structured logging to all backend endpoints in backend/src/api/
+- [X] T156 [P] Add accessibility labels and ARIA attributes to all interactive components in frontend/src/components/
+- [X] T157 [P] Add keyboard shortcut (CMD+K) for command palette in frontend/src/components/CommandPalette.tsx
+- [X] T158 [P] Optimize images with next/image in frontend/src/app/ (N/A: No images in project)
+- [X] T159 [P] Add code splitting with dynamic imports in frontend/src/app/
 - [ ] T160 [P] Run Lighthouse audit and fix performance issues
 - [ ] T161 [P] Verify WCAG AA compliance with axe-core in frontend/tests/
-- [ ] T162 [P] Add GZip compression middleware to backend in backend/src/main.py
-- [ ] T163 [P] Add rate limiting to auth endpoints in backend/src/api/auth.py
-- [ ] T164 Update quickstart.md with any setup changes discovered during implementation
-- [ ] T165 Update AGENT_CONTEXT.md with any implementation lessons learned
+- [X] T162 [P] Add GZip compression middleware to backend in backend/src/main.py
+- [X] T163 [P] Add rate limiting to auth endpoints in backend/src/api/auth.py
+- [X] T164 [D] Update quickstart.md with any setup changes discovered during implementation
+- [X] T165 [D] Update AGENT_CONTEXT.md with any implementation lessons learned
 - [ ] T166 Run all E2E tests and verify critical user journeys pass
 - [ ] T167 Run backend test suite and verify 80%+ coverage target met
 - [ ] T168 Run frontend test suite and verify critical paths covered
 - [ ] T169 Verify OpenAPI spec matches implementation with openapi-spec-validator
 - [ ] T170 Verify data isolation between agencies with multi-tenant test suite
-- [ ] T171 Update task count in tasks.md (now 172 tasks after remediation)
+- [X] T171 [D] Update task count in tasks.md (actual count: 182 tasks)
 - [ ] T172 Update analysis report with remediation applied
 
 ---

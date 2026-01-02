@@ -38,30 +38,30 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-card rounded-lg shadow-md p-8 border border-border">
-          <div className="mb-8">
-            <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center mb-4">
-              <span className="text-primary-foreground font-bold text-xl">T</span>
+        <div className="bg-zinc-900 rounded-2xl shadow-xl p-8 border border-zinc-800">
+          <div className="mb-8 text-center">
+            <div className="w-12 h-12 rounded-xl bg-lime-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-lime-900/20">
+              <span className="text-black font-bold text-xl">T</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
-            <p className="text-muted-foreground">Sign in to your agency workspace</p>
+            <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-zinc-400">Sign in to your TeamFlow workspace</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 text-destructive rounded">
+            <div className="mb-4 p-3 bg-red-900/20 border border-red-900/50 text-red-400 rounded-lg text-sm font-medium">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-1.5">
                 Email
               </label>
               <input
@@ -69,21 +69,26 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 required
-                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
-                placeholder="you@agency.com"
+                className="w-full px-4 py-2.5 border border-zinc-700 bg-zinc-950/50 rounded-lg focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400 text-white placeholder:text-zinc-600 transition-all outline-none"
+                placeholder="you@company.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="password" className="block text-sm font-medium text-zinc-300">
+                  Password
+                </label>
+                <Link href="#" className="text-xs text-lime-400 hover:text-lime-300 transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 type="password"
                 id="password"
                 name="password"
                 required
-                className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
+                className="w-full px-4 py-2.5 border border-zinc-700 bg-zinc-950/50 rounded-lg focus:ring-2 focus:ring-lime-400/50 focus:border-lime-400 text-white placeholder:text-zinc-600 transition-all outline-none"
                 placeholder="••••••••"
               />
             </div>
@@ -93,22 +98,22 @@ export default function LoginPage() {
               disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-primary text-primary-foreground py-2 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity font-medium"
+              className="w-full bg-lime-400 text-black py-2.5 rounded-lg hover:bg-lime-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-bold shadow-lg shadow-lime-900/20"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Signing in..." : "Sign In"}
             </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an agency?{" "}
-            <Link href="/signup" className="text-primary hover:underline font-medium">
+          <p className="mt-8 text-center text-sm text-zinc-500">
+            Don't have an account?{" "}
+            <Link href="/signup" className="text-lime-400 hover:text-lime-300 font-medium transition-colors">
               Create one
             </Link>
           </p>
         </div>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Test credentials: admin@test.com / password123
+        <p className="mt-6 text-center text-xs text-zinc-600">
+          Secure enterprise-grade task management
         </p>
       </motion.div>
     </div>

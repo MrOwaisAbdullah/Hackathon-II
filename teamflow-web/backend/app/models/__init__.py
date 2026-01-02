@@ -23,6 +23,13 @@ from app.models.task import (
     TaskPriority,
     TaskStatus,
 )
+from app.models.time_entry import (
+    TimeEntry,
+    TimeEntryCreate,
+    TimeEntryUpdate,
+    TimeEntryRead,
+    TimeEntryBase,
+)
 from app.models.user import (
     User,
     UserCreate,
@@ -59,4 +66,10 @@ __all__ = [
     "ProjectUpdate",
     "ProjectRead",
     "ProjectBase",
+    # Time Entry models
+    "TimeEntry",
+    "TimeEntryCreate",
+    "TimeEntryUpdate",
+    "TimeEntryRead",
+    "TimeEntryBase",
 ]

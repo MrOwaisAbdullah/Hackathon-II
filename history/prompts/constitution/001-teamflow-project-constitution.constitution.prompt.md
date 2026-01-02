@@ -25,8 +25,6 @@ tests:
 
 ## Prompt
 
-User ran `/sp.constitution` with comprehensive TeamFlow Project Constitution content including:
-
 ### Core Principles (11 total):
 I. Specialized Agents & Skills First (NON-NEGOTIABLE)
 II. SOLID Principles (NON-NEGOTIABLE)

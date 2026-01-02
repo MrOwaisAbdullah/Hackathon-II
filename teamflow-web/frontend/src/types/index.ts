@@ -10,18 +10,19 @@ export enum UserRole {
   VIEWER = "viewer",
 }
 
-/** Task status */
+/** Task status - matches backend TaskStatus enum */
 export enum TaskStatus {
-  TODO = "todo",
-  IN_PROGRESS = "in_progress",
-  DONE = "done",
+  TODO = "TODO",
+  DOING = "DOING",
+  REVIEW = "REVIEW",
+  DONE = "DONE",
 }
 
 /** Task priority */
 export enum TaskPriority {
-  LOW = "low",
-  MEDIUM = "medium",
-  HIGH = "high",
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
 }
 
 /** Project status */

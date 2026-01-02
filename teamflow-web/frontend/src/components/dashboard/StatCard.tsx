@@ -1,5 +1,7 @@
+
 'use client';
 
+import * as React from 'react';
 import { motion } from 'framer-motion';
 import { LucideIcon, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
@@ -12,7 +14,8 @@ interface StatCardProps {
     isPositive: boolean;
   };
   description?: string;
-  color?: string; // Tailwind color class for icon background (e.g., 'bg-orange-500')
+  color?: string; 
+  bgColor?: string;
   delay?: number;
 }
 
@@ -22,48 +25,51 @@ export function StatCard({
   icon: Icon, 
   trend, 
   description,
-  color = "bg-primary",
-  delay = 0
+  delay = 0 
 }: StatCardProps) {
+  
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: delay * 0.1, ease: "easeOut" }}
-      whileHover={{ y: -4, boxShadow: "0 12px 24px -10px rgba(0,0,0,0.15)" }}
-      className="bg-card border border-border p-6 rounded-xl shadow-sm relative overflow-hidden group glass"
+      transition={{ duration: 0.4, delay: delay * 0.05, ease: [0.16, 1, 0.3, 1] }}
+      className="card-float hover-lift p-5 rounded-lg group relative overflow-hidden bg-card border border-border"
     >
       <div className="flex items-start justify-between z-10 relative">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h3 className="text-3xl font-bold tracking-tight text-foreground">{value}</h3>
+        <div className="space-y-1.5">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{title}</p>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-black tracking-tight text-foreground tabular-nums">{value}</h3>
+          </div>
           
           {(trend || description) && (
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 pt-1">
               {trend && (
-                <div className={`flex items-center text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                <div className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   trend.isPositive 
-                    ? 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-400' 
-                    : 'text-rose-600 bg-rose-500/10 dark:text-rose-400'
+                    ? 'text-lime-700 bg-lime-100 dark:text-lime-400 dark:bg-lime-900/30' 
+                    : 'text-rose-700 bg-rose-100 dark:text-rose-400 dark:bg-rose-900/30'
                 }`}>
-                  {trend.isPositive ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
+                  {trend.isPositive ? <ArrowUpRight size={10} className="mr-0.5" /> : <ArrowDownRight size={10} className="mr-0.5" />}
                   {Math.abs(trend.value)}%
                 </div>
               )}
               {description && (
-                <span className="text-xs text-muted-foreground">{description}</span>
+                <span className="text-[10px] text-muted-foreground">{description}</span>
               )}
             </div>
           )}
         </div>
         
-        <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-opacity-100 ring-1 ring-inset ring-white/10`}>
-          <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
+        {/* 
+          Icon Container - Refined for "DoQuanta" look
+          Light mode: Black background with Lime icon (High contrast, modern)
+          Dark mode: Lime background with Black icon (Glowing, premium)
+        */}
+        <div className="p-2.5 rounded-xl bg-zinc-950 dark:bg-lime-400 text-lime-400 dark:text-zinc-950 shadow-sm ring-1 ring-white/10">
+          <Icon className="w-5 h-5" />
         </div>
       </div>
-      
-      {/* Decorative background element */}
-      <div className={`absolute -right-6 -bottom-6 w-32 h-32 rounded-full ${color} opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 blur-2xl`} />
     </motion.div>
   );
 }

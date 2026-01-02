@@ -5,80 +5,86 @@
 @layer base {
   :root {
     /* 
-      Theme: "Modern Industrial" (Light Mode)
-      Refined for crispness and contrast.
+      Theme: "Eco-Modern" (DoQuanta Inspired)
+      Concept: High-contrast Black & White with vibrant Lime Green accents.
     */
-    /* Background: Very light slate gray, not pure white, to make white cards pop */
-    --background: 210 40% 98%;     /* #f8fafc (slate-50) */
-    --foreground: 222 47% 11%;     /* #0f172a (slate-900) */
     
-    /* Cards: Pure white with subtle borders */
-    --card: 0 0% 100%;             /* #ffffff */
-    --card-foreground: 222 47% 11%;
+    /* Brand Core */
+    --brand-primary: 84 100% 59%;      /* Lime Green (#a3e635 - Lime 400) */
+    --brand-secondary: 240 5.9% 10%;   /* Deep Black (#18181b - Zinc 900) */
+    
+    /* Backgrounds */
+    --background: 0 0% 100%;           /* White */
+    --foreground: 240 10% 3.9%;        /* Zinc 950 */
+    
+    /* Surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 240 10% 3.9%;
     
-    /* Primary: Deep Orange - Bold interaction points */
-    --primary: 24.7 96.5% 53.3%;      /* #f97316 */
-    --primary-foreground: 0 0% 100%;
+    /* Primary Action (Black Buttons) */
+    --primary: 240 5.9% 10%;           /* Zinc 900 */
+    --primary-foreground: 0 0% 98%;    /* Zinc 50 */
     
-    /* Secondary: White/Gray for buttons that shouldn't compete with primary */
-    --secondary: 240 4.8% 95.9%;      /* #f4f4f5 (zinc-100) */
+    /* Secondary Action (Gray/Outline) */
+    --secondary: 240 4.8% 95.9%;       /* Zinc 100 */
     --secondary-foreground: 240 5.9% 10%;
     
-    /* Muted: Subdued text/backgrounds */
-    --muted: 210 40% 96.1%;           /* #f1f5f9 (slate-100) */
-    --muted-foreground: 215.4 16.3% 46.9%; /* #64748b (slate-500) */
+    /* Muted */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
     
-    /* Accent: Electric Blue */
-    --accent: 217.2 91.2% 59.8%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent (Lime Green Highlight) */
+    --accent: 84 100% 59%;             /* Lime 400 */
+    --accent-foreground: 240 5.9% 10%;
     
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Borders: Distinct enough to separate areas */
-    --border: 214.3 31.8% 91.4%;      /* #e2e8f0 (slate-200) */
-    --input: 214.3 31.8% 91.4%;
-    --ring: 24.7 96.5% 53.3%;
+    --border: 240 5.9% 90%;            /* Zinc 200 */
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;              /* Focus ring matches primary black */
     
-    --radius: 0.5rem;
+    --radius: 0.5rem;                  /* 8px - Modern, friendly */
   }
 
   .dark {
     /* 
-      Theme: "Black Shirt" (Dark Mode)
-      Rich, deep, and elegant.
+      Theme: "Dark Mode"
+      Inverted logic but keeping the Lime accent.
     */
-    --background: 222 47% 4%;       /* #020617 (slate-950) */
-    --foreground: 210 40% 98%;      /* #f8fafc */
+    --background: 240 10% 3.9%;        /* Zinc 950 */
+    --foreground: 0 0% 98%;            /* Zinc 50 */
     
-    /* Cards: Slightly lighter than background */
-    --card: 222 47% 6%;             /* #0f172a (slate-900) */
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
     
-    --popover: 222 47% 6%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
     
-    --primary: 24.7 96.5% 53.3%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary: White in dark mode */
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
     
-    --secondary: 217.2 32.6% 17.5%; /* #1e293b (slate-800) */
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary: Dark Zinc */
+    --secondary: 240 3.7% 15.9%;       /* Zinc 800 */
+    --secondary-foreground: 0 0% 98%;
     
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
     
-    --accent: 217.2 91.2% 59.8%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Lime Green (still pops) */
+    --accent: 84 100% 59%;
+    --accent-foreground: 240 5.9% 10%;
     
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 24.7 96.5% 53.3%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
   }
 }
 
@@ -88,39 +94,44 @@
   }
   body {
     @apply bg-background text-foreground;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Glassmorphism Utilities - Refined */
-.glass {
-  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-sm;
+/* 
+  Custom Sidebar Class
+  Force dark mode styles regardless of system theme
+*/
+.sidebar-dark {
+  @apply bg-zinc-950 text-zinc-50 border-zinc-800;
+}
+.sidebar-dark .text-muted-foreground {
+  @apply text-zinc-400;
+}
+.sidebar-dark .hover\:bg-secondary\/20:hover {
+  @apply bg-zinc-800/50;
 }
 
-.glass-hover {
-  @apply hover:bg-white/90 dark:hover:bg-slate-800/90 transition-colors duration-200;
+/* 
+  Floating Card Utility
+*/
+.card-float {
+  @apply bg-card border border-border/50 shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+.hover-lift {
+  @apply hover:-translate-y-1 hover:shadow-lg transition-all duration-300 ease-out;
 }
 
 /* Animation utilities */
 @keyframes slide-in-right {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slide-in-right {
@@ -128,19 +139,5 @@
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.5s ease-out forwards;
-}
-
-/* Drag and drop styles */
-.draggable {
-  cursor: grab;
-  touch-action: none;
-}
-
-.draggable:active {
-  cursor: grabbing;
-}
-
-.drop-zone-active {
-  @apply ring-2 ring-primary/50 bg-primary/5 transition-all duration-200;
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

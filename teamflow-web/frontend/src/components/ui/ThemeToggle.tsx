@@ -1,5 +1,7 @@
+
 'use client';
 
+import * as React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { motion } from 'framer-motion';
@@ -12,10 +14,11 @@ export function ThemeToggle() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      className="relative p-2 rounded-full bg-secondary/10 hover:bg-secondary/20 transition-colors border border-border"
+      // Updated: Slightly lighter background for visibility in dark sidebar
+      className="relative p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 transition-colors border border-zinc-700 ring-1 ring-white/5"
       aria-label="Toggle theme"
     >
-      <div className="relative w-5 h-5">
+      <div className="relative w-4 h-4">
         <motion.div
           initial={false}
           animate={{
@@ -26,7 +29,8 @@ export function ThemeToggle() {
           transition={{ duration: 0.2 }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <Sun className="w-4 h-4 text-orange-500" />
+          {/* Sun icon for Light Mode - Visible against dark sidebar */}
+          <Sun className="w-4 h-4 text-yellow-400" />
         </motion.div>
         
         <motion.div
@@ -39,7 +43,8 @@ export function ThemeToggle() {
           transition={{ duration: 0.2 }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <Moon className="w-4 h-4 text-blue-400" />
+          {/* Moon icon for Dark Mode - Visible against dark sidebar */}
+          <Moon className="w-4 h-4 text-lime-400" />
         </motion.div>
       </div>
     </motion.button>

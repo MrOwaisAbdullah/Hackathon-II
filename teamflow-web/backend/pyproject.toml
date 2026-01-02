@@ -21,6 +21,7 @@ dependencies = [
     "pytest-asyncio>=0.24.0",
     "httpx>=0.28.0",
     "email-validator>=2.3.0",
+    "python-json-logger>=2.0.7",  # T155: Structured logging
 ]
 
 [project.optional-dependencies]

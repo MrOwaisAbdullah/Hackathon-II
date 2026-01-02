@@ -104,6 +104,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
@@ -151,3 +153,25 @@ Thumbs.db
 *.tmp
 *.bak
 .pytest_cache/
+
+# Frontend (Node.js/TypeScript/Next.js)
+teamflow-web/frontend/node_modules/
+teamflow-web/frontend/.next/
+teamflow-web/frontend/out/
+teamflow-web/frontend/dist/
+teamflow-web/frontend/build/
+teamflow-web/frontend/*.log
+teamflow-web/frontend/.turbo/
+teamflow-web/frontend/.env*.local
+teamflow-web/frontend/coverage/
+teamflow-web/frontend/nyc_output/
+
+# Backend Python specific
+teamflow-web/backend/.venv/
+teamflow-web/backend/__pycache__/
+teamflow-web/backend/*.pyc
+teamflow-web/backend/.pytest_cache/
+teamflow-web/backend/.coverage
+teamflow-web/backend/htmlcov/
+teamflow-web/backend/alembic/versions/*.pyc
+

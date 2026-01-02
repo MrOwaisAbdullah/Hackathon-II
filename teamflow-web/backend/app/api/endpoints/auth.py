@@ -13,6 +13,7 @@ from app.models.user import (
     UserRole,
 )
 from app.services.auth_service import AuthService
+from app.core.rate_limit import check_rate_limit
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -25,12 +26,16 @@ def register(
     agency_data: AgencyCreate,
     user_data: UserCreate,
     session: SessionDep,
+    request: Request,
 ) -> dict:
     """
     Register a new agency with admin user.
 
     This endpoint creates both an agency and the first admin user for that agency.
     """
+    # T163: Rate limiting check (3 registrations per hour per IP)
+    check_rate_limit(request, "auth_register")
+
     # Create agency
     agency = auth_service.register_agency(agency_data, session)
 
@@ -66,8 +71,12 @@ def register(
 def login(
     credentials: UserLogin,
     session: SessionDep,
+    request: Request,
 ) -> dict:
     """Authenticate user and return JWT token."""
+    # T163: Rate limiting check (5 login attempts per minute per IP)
+    check_rate_limit(request, "auth_login")
+
     try:
         user, token = auth_service.login(credentials, session)
         return {

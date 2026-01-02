@@ -1,6 +1,8 @@
 # Quickstart Guide: TeamFlow Web (Phase 2)
 
-**Branch**: `002-fullstack-web-crm` | **Date**: 2025-01-29 | **Plan**: [plan.md](./plan.md)
+**Branch**: `002-fullstack-web-crm` | **Date**: 2026-01-03 | **Plan**: [plan.md](./plan.md)
+
+> **Updated for Phase 9 Polish**: Includes keyboard shortcuts (CMD+K command palette), performance optimizations (GZip, rate limiting, structured logging), and accessibility improvements (ARIA labels, error boundaries, skeleton loading).
 
 ## Prerequisites
 
@@ -189,7 +191,61 @@ curl -X POST http://localhost:8000/v1/tasks/{task_id}/assign \
 
 ---
 
-## 6. Testing
+## 6. Keyboard Shortcuts
+
+The application includes a **Command Palette** for quick navigation and actions.
+
+### Command Palette
+
+Press **`CMD+K`** (Mac) or **`Ctrl+K`** (Windows) to open the command palette from anywhere in the app.
+
+**Available Commands:**
+
+| Category | Command | Description |
+|----------|---------|-------------|
+| Navigation | Go to Dashboard | View your agency overview and metrics |
+| Navigation | Go to Tasks | View and manage your task board |
+| Navigation | Go to Projects | View all your projects |
+| Navigation | Go to Team | Manage your team members |
+| Navigation | Go to Time Entries | View your logged time entries |
+| Navigation | Go to Archive | View archived tasks |
+| Navigation | Go to Settings | Manage your account settings |
+| Actions | Create New Task | Quickly create a new task (`N` shortcut) |
+| Actions | Logout | Sign out of your account |
+| Settings | Toggle Theme | Switch between dark and light mode |
+
+**Keyboard Navigation:**
+- `Arrow Down/Up` - Navigate through commands
+- `Enter` - Execute selected command
+- `ESC` - Close palette
+
+---
+
+## 7. New Features (Phase 9 Polish)
+
+### Performance & Security
+
+- **GZip Compression**: All API responses > 1KB are compressed automatically
+- **Rate Limiting**: Auth endpoints protected (register: 3/hour, login: 5/minute per IP)
+- **Structured Logging**: JSON-formatted logs in production with request timing
+- **Code Splitting**: Dashboard and task board components loaded dynamically
+
+### Accessibility & UX
+
+- **Skeleton Loading**: Loading states shown with animated placeholders
+- **Error Boundaries**: Graceful error handling with retry options
+- **ARIA Labels**: Screen reader support for task cards and columns
+- **Manual Refresh**: Refresh button on task board for manual data reload
+
+### Command Palette
+
+- Global keyboard shortcut (`CMD+K` / `Ctrl+K`)
+- Searchable command interface
+- Theme-aware with smooth animations
+
+---
+
+## 8. Testing
 
 ### Backend Tests
 
@@ -223,7 +279,7 @@ npm run type-check
 
 ---
 
-## 7. Key Development Commands
+## 9. Key Development Commands
 
 ### Backend
 
@@ -248,43 +304,52 @@ npm run type-check
 
 ---
 
-## 8. Project Structure Reference
+## 10. Project Structure Reference
 
 ```
 teamflow/
 ├── backend/                 # FastAPI + SQLModel
-│   ├── src/
-│   │   ├── api/            # Route handlers
-│   │   ├── models/         # SQLModel entities
-│   │   ├── schemas/        # Pydantic schemas
-│   │   ├── services/       # Business logic
-│   │   └── main.py         # FastAPI app
+│   ├── app/
+│   │   ├── api/            # API endpoints (tasks, auth, analytics, users)
+│   │   ├── models/         # SQLModel entities (User, Task, Project, etc.)
+│   │   ├── services/       # Business logic (auth_service, task_service, etc.)
+│   │   ├── core/           # Core utilities (security, rate_limit, logging)
+│   │   ├── db/             # Database session management
+│   │   └── main.py         # FastAPI app with middleware stack
 │   ├── tests/
 │   │   ├── unit/           # Service tests
 │   │   ├── integration/    # API tests
-│   │   └── contract/       # OpenAPI tests
-│   └── migrations/         # Alembic migrations
+│   │   └── contract/       # OpenAPI contract tests
+│   └── alembic/            # Alembic migrations
+│       └── versions/
 │
-├── frontend/               # Next.js 16
+├── frontend/               # Next.js 16 with App Router
 │   ├── src/
-│   │   ├── app/           # App Router
+│   │   ├── app/           # App Router with route groups
+│   │   │   ├── (auth)/    # Public auth pages (login, register)
+│   │   │   └── (main)/    # Protected pages (dashboard, tasks, etc.)
 │   │   ├── components/    # React components
-│   │   ├── lib/           # Utilities
-│   │   └── hooks/         # Custom hooks
+│   │   │   ├── board/     # Kanban board components
+│   │   │   ├── dashboard/ # Dashboard components
+│   │   │   ├── task/      # Task-related components
+│   │   │   └── ui/        # Reusable UI components
+│   │   ├── contexts/      # React contexts (ThemeContext, AuthContext)
+│   │   ├── hooks/         # Custom React hooks
+│   │   └── lib/           # Utilities and API client
 │   └── tests/
-│       ├── unit/          # Vitest tests
-│       └── e2e/           # Playwright tests
+│       ├── e2e/           # Playwright E2E tests
 │
 └── specs/                 # Architecture docs
     └── 002-fullstack-web-crm/
         ├── spec.md
         ├── plan.md
+        ├── tasks.md
         └── contracts/
 ```
 
 ---
 
-## 9. Common Issues
+## 11. Common Issues
 
 ### Issue: "Module not found"
 
@@ -320,7 +385,7 @@ cd frontend && npm install
 
 ---
 
-## 10. Production Deployment
+## 12. Production Deployment
 
 ### Backend Deployment (Vercel/Railway)
 
@@ -347,7 +412,7 @@ vercel deploy
 
 ---
 
-## 11. Useful Links
+## 13. Useful Links
 
 - **Backend API Docs**: http://localhost:8000/docs
 - **OpenAPI Spec**: `specs/002-fullstack-web-crm/contracts/openapi.yaml`
@@ -360,7 +425,7 @@ vercel deploy
 
 ---
 
-## 12. Getting Help
+## 14. Getting Help
 
 - **Spec Questions**: Check `spec.md`
 - **Architecture Questions**: Check `plan.md`

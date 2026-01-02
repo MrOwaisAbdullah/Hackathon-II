@@ -33,6 +33,7 @@ class User(SQLModel, table=True):
 
     # Relationships
     assigned_tasks: List["Task"] = Relationship(back_populates="assignee")
+    time_entries: List["TimeEntry"] = Relationship(back_populates="user")
 
 
 # Pydantic schemas for API operations

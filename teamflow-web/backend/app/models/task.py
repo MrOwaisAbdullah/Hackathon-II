@@ -11,18 +11,19 @@ from sqlmodel import Field, Relationship, SQLModel
 class TaskStatus(str, Enum):
     """Task status values."""
 
-    TODO = "todo"
-    DOING = "doing"
-    REVIEW = "review"
-    DONE = "done"
+    TODO = "TODO"
+    DOING = "DOING"
+    REVIEW = "REVIEW"
+    DONE = "DONE"
+    ARCHIVED = "ARCHIVED"
 
 
 class TaskPriority(str, Enum):
     """Task priority values."""
 
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
 
 
 class Task(SQLModel, table=True):
@@ -45,6 +46,7 @@ class Task(SQLModel, table=True):
     # Relationships
     project: Optional["Project"] = Relationship(back_populates="tasks")
     assignee: Optional["User"] = Relationship(back_populates="assigned_tasks")
+    time_entries: list["TimeEntry"] = Relationship(back_populates="task")
 
 
 # Pydantic schemas for API operations
@@ -84,6 +86,12 @@ class TaskRead(TaskBase):
     id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+
+class TaskAssign(SQLModel):
+    """Task assignment schema."""
+
+    assignee_id: UUID = PDField(..., description="ID of the user to assign the task to")
 
 
 # Import User and Project for relationships

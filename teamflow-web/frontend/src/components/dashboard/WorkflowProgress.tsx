@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
 
@@ -23,61 +24,61 @@ export function WorkflowProgress({
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-      className="bg-card border border-border p-6 rounded-xl shadow-sm glass h-full"
+      transition={{ duration: 0.4, delay: 0.15, ease: "easeOut" }}
+      className="card-float p-6 rounded-lg h-full"
     >
-      <div className="mb-6">
-        <h3 className="font-semibold text-lg">{title}</h3>
+      <div className="mb-6 border-b border-border pb-4">
+        <h3 className="font-bold text-base text-foreground tracking-tight uppercase">{title}</h3>
       </div>
 
-      <div className="relative">
-        {/* Vertical line connecting steps */}
-        <div className="absolute left-3.5 top-2 bottom-4 w-0.5 bg-border/50 -z-10" />
+      <div className="relative pl-1">
+        {/* Vertical Connector Line */}
+        <div className="absolute left-[1.15rem] top-3 bottom-4 w-px bg-border -z-10" />
 
         <div className="space-y-6">
           {steps.map((step, index) => (
             <motion.div 
               key={step.id}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -5 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.5 + (index * 0.1) }}
+              transition={{ duration: 0.3, delay: 0.2 + (index * 0.05) }}
               className="flex items-start gap-4"
             >
-              <div className="relative z-10 bg-card rounded-full">
+              <div className="relative z-10 bg-card rounded-full ring-4 ring-card">
                 {step.status === 'completed' && (
-                  <CheckCircle2 className="w-7 h-7 text-emerald-500 fill-emerald-500/10" />
+                  <CheckCircle2 className="w-6 h-6 text-lime-500 fill-lime-100 dark:fill-lime-900/20" />
                 )}
                 {step.status === 'current' && (
                   <div className="relative">
-                    <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
-                    <Clock className="w-7 h-7 text-primary fill-primary/10 relative z-10" />
+                    <div className="absolute inset-0 bg-lime-400/30 rounded-full animate-ping" />
+                    <Clock className="w-6 h-6 text-lime-600 dark:text-lime-400 relative z-10" />
                   </div>
                 )}
                 {step.status === 'pending' && (
-                  <Circle className="w-7 h-7 text-muted-foreground/40" />
+                  <Circle className="w-6 h-6 text-muted-foreground/30" />
                 )}
                 {step.status === 'error' && (
-                  <AlertCircle className="w-7 h-7 text-destructive fill-destructive/10" />
+                  <AlertCircle className="w-6 h-6 text-destructive" />
                 )}
               </div>
 
               <div className="flex-1 pt-0.5">
                 <div className="flex justify-between items-start">
-                  <h4 className={`text-sm font-medium ${step.status === 'current' ? 'text-primary' : 'text-foreground'}`}>
+                  <h4 className={`text-sm font-bold leading-none ${step.status === 'current' ? 'text-lime-600 dark:text-lime-400' : 'text-foreground'}`}>
                     {step.label}
                   </h4>
                   {step.date && (
-                    <span className="text-xs text-muted-foreground">{step.date}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded-sm">{step.date}</span>
                   )}
                 </div>
                 {step.status === 'current' && (
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: "60%" }}
-                    className="h-1 bg-primary/20 rounded-full mt-2 overflow-hidden"
+                    animate={{ width: "40%" }}
+                    className="h-1 bg-lime-100 dark:bg-lime-900/30 rounded-full mt-2 overflow-hidden"
                   >
                     <motion.div 
-                      className="h-full bg-primary"
+                      className="h-full bg-lime-500"
                       animate={{ x: ["-100%", "100%"] }}
                       transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
                     />

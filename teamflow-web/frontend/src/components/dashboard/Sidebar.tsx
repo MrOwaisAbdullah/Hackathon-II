@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -51,18 +52,19 @@ export function Sidebar() {
       initial={false}
       animate={{ width: isCollapsed ? 80 : 280 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="h-screen bg-card border-r border-border z-20 flex flex-col relative"
+      className="h-screen sidebar-dark z-20 flex flex-col relative border-r"
     >
       {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+      <div className={`h-16 flex items-center border-b border-zinc-800 px-4 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         <AnimatePresence mode="wait">
           {!isCollapsed && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent truncate"
+              className="font-bold text-xl text-white tracking-tight flex items-center gap-2"
             >
+              <div className="w-2 h-2 rounded-full bg-lime-400" />
               TeamFlow
             </motion.div>
           )}
@@ -70,16 +72,16 @@ export function Sidebar() {
         
         <button
           onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-secondary/20 transition-colors"
+          className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
         >
           {isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
         </button>
       </div>
 
       {/* User Profile (Mini) */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+      <div className="p-4 border-b border-zinc-800">
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <div className="w-10 h-10 rounded-full bg-lime-400 flex items-center justify-center text-black font-bold shrink-0">
             {user?.name?.[0] || 'U'}
           </div>
           <AnimatePresence>
@@ -90,8 +92,8 @@ export function Sidebar() {
                 exit={{ opacity: 0, width: 0 }}
                 className="overflow-hidden"
               >
-                <p className="font-medium text-sm truncate">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <p className="font-medium text-sm truncate text-white">{user?.name}</p>
+                <p className="text-xs text-zinc-400 truncate">{user?.email}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -105,15 +107,17 @@ export function Sidebar() {
           return (
             <Link key={item.href} href={item.href}>
               <motion.div
-                className={`flex items-center gap-3 px-3 py-3 rounded-lg transition-colors relative ${
+                className={`flex items-center py-3 rounded-lg transition-colors relative ${
+                  isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+                } ${
                   isActive 
-                    ? 'text-primary-foreground bg-primary shadow-md shadow-primary/20' 
-                    : 'text-muted-foreground hover:bg-secondary/20 hover:text-foreground'
+                    ? 'text-black bg-lime-400 font-medium' 
+                    : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
                 }`}
-                whileHover={{ x: 4 }}
+                whileHover={{ x: isCollapsed ? 0 : 4 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <item.icon size={20} />
+                <item.icon size={20} className="shrink-0" />
                 <AnimatePresence>
                   {!isCollapsed && (
                     <motion.span
@@ -126,15 +130,6 @@ export function Sidebar() {
                     </motion.span>
                   )}
                 </AnimatePresence>
-                
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 rounded-lg bg-primary -z-10"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  />
-                )}
               </motion.div>
             </Link>
           );
@@ -142,17 +137,22 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border flex flex-col gap-2">
+      <div className="p-4 border-t border-zinc-800 flex flex-col gap-2">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-          {!isCollapsed && <span className="text-sm font-medium">Theme</span>}
-          <ThemeToggle />
+          {!isCollapsed && <span className="text-sm font-medium text-zinc-400">Theme</span>}
+          {/* Note: ThemeToggle needs adjustment for dark sidebar context */}
+          <div className="opacity-50 hover:opacity-100 transition-opacity">
+             <ThemeToggle />
+          </div>
         </div>
         
         <button 
           onClick={() => logout()}
-          className="flex items-center gap-3 px-3 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors w-full mt-2"
+          className={`flex items-center py-3 rounded-lg text-rose-400 hover:bg-rose-900/20 transition-colors w-full mt-2 ${
+            isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+          }`}
         >
-          <LogOut size={20} />
+          <LogOut size={20} className="shrink-0" />
           {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
