@@ -16,10 +16,31 @@ interface WorkflowProgressProps {
   steps: Step[];
 }
 
-export function WorkflowProgress({ 
-  title = "Project Workflow", 
-  steps 
+export function WorkflowProgress({
+  title = "Project Workflow",
+  steps
 }: WorkflowProgressProps) {
+  const [isDark, setIsDark] = React.useState(false);
+
+  // Detect dark mode
+  React.useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // Date badge style - theme aware
+  const dateBadgeStyle = {
+    light: { backgroundColor: '#f3f4f6', color: '#6b7280' },
+    dark: { backgroundColor: 'rgba(55, 65, 81, 0.5)', color: '#9ca3af' },
+  };
+
+  const finalDateStyle = isDark ? dateBadgeStyle.dark : dateBadgeStyle.light;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -68,7 +89,7 @@ export function WorkflowProgress({
                     {step.label}
                   </h4>
                   {step.date && (
-                    <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded-sm">{step.date}</span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-sm" style={finalDateStyle}>{step.date}</span>
                   )}
                 </div>
                 {step.status === 'current' && (

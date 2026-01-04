@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { MobileNav } from '@/components/dashboard/MobileNav';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { CommandPalette } from '@/components/CommandPalette';
 import { motion } from 'framer-motion';
@@ -14,9 +15,20 @@ export default function DashboardLayout({
   return (
     <ProtectedRoute>
       <div className="flex h-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
-        <Sidebar />
+        {/* Desktop Sidebar - hidden on mobile */}
+        <div className="hidden lg:block">
+          <Sidebar />
+        </div>
 
+        {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto relative scroll-smooth">
+          {/* Mobile Header */}
+          <div className="lg:hidden sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+            <MobileNav />
+            <h1 className="font-bold text-lg text-foreground">TeamFlow</h1>
+          </div>
+
+          {/* Page Content */}
           <div className="p-8 max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

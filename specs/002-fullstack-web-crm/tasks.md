@@ -170,6 +170,13 @@
 - [X] T088 [US2] Add column stagger animations on page load in frontend/src/components/board/TaskBoard.tsx
 - [X] T089 [US2] Add card tilt animation during drag in frontend/src/components/board/TaskBoard.tsx
 - [X] T090 [US2] Add drop zone pulse glow effect in frontend/src/components/board/TaskColumn.tsx
+- [X] T084a [US2] Add due date picker field to TaskForm with calendar icon
+- [X] T084b [US2] Add assignee dropdown to TaskForm (fetch users from /api/v1/users)
+- [X] T084c [US2] Add project dropdown to TaskForm (fetch projects from /api/v1/projects)
+- [X] T084d [US2] Replace textarea with RichTextEditor for task description
+- [X] T084e [US2] Increase TaskForm modal width to max-w-3xl for better layout
+- [X] T084f [US2] Create 2-column grid for Assignee + Project fields
+- [X] T084g [US2] Add custom scrollbar with lime theme to TaskForm modal
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - full task board with drag-and-drop
 
@@ -316,6 +323,11 @@
 - [X] T147 [US6] Implement archive button with confirmation modal in frontend/src/components/task/TaskDrawer.tsx
 - [X] T148 [US6] Add archive page with restore functionality in frontend/src/app/(main)/archive/page.tsx
 - [X] T149 [US6] Add card scale-out animation for archive in frontend/src/components/board/TaskCard.tsx
+- [X] T144a [P] [US6] Create shared markdown renderer utility in frontend/src/lib/markdown.ts
+- [X] T144b [US6] Remove preview mode from RichTextEditor (always edit mode, renders on cards)
+- [X] T143a [US6] Add auto-fill functionality to TaskDrawer using useEffect for form data sync
+- [X] T143b [US6] Make priority field full width in TaskDrawer layout
+- [X] T143c [US6] Add custom scrollbar with lime theme to TaskDrawer content area
 
 **Checkpoint**: All user stories should now be independently functional - complete task management
 
@@ -327,7 +339,7 @@
 
 - [X] T150 [P] Add 10-second polling for real-time updates in frontend/src/lib/query.ts (refetchInterval: 10000)
 - [X] T151 [P] Add manual refresh button to task board in frontend/src/components/board/TaskBoard.tsx
-- [ ] T152 [P] Implement network loss detection and snap-back animation for drag operations in frontend/src/hooks/useTaskBoard.ts
+- [X] T152 [P] Implement network loss detection and snap-back animation for drag operations in frontend/src/hooks/useTaskBoard.ts (completed in T230a)
 - [X] T153 [P] Add skeleton screens for loading states in frontend/src/components/ui/Skeleton.tsx
 - [X] T154 [P] Add error boundary for React components in frontend/src/app/error.tsx
 - [X] T155 [P] Add structured logging to all backend endpoints in backend/src/api/
@@ -335,19 +347,142 @@
 - [X] T157 [P] Add keyboard shortcut (CMD+K) for command palette in frontend/src/components/CommandPalette.tsx
 - [X] T158 [P] Optimize images with next/image in frontend/src/app/ (N/A: No images in project)
 - [X] T159 [P] Add code splitting with dynamic imports in frontend/src/app/
+- [X] T152a [P] Add dropdown action menu to TaskCard (Edit, Archive, Delete options)
+- [X] T152b [P] Implement synchronous cache updates for drag-and-drop (fix return animation)
+- [X] T152c [P] Add markdown rendering to TaskCard descriptions
+- [X] T152d [P] Add theme-aware badge colors (light/dark mode) to TaskCard
+- [X] T152e [P] Add theme-aware badge colors to dashboard StatCard
+- [X] T152f [P] Add theme-aware badge colors to TaskDistributionChart
+- [X] T152g [P] Fix AnimatePresence mode from "popLayout" to "sync" for smooth transitions
+- [X] T152h [P] Fix PrioritySelector iteration (use Object.values(TaskPriority) instead of Object.keys)
+- [X] T152i [P] Fix time tracking timerState extraction in useTimeTracking hook
+- [X] T152j [P] Fix ProjectForm mode variable (use isEditing instead of undefined mode)
+- [X] T152k [P] Add Task interface fields: due_date, assignee (User), project (Project)
+- [X] T152l [P] Standardize button variants using CSS variables (--accent, --accent-hover)
+- [X] T152m [P] Add CSS variable --accent-hover (Lime 500) to globals.css
+- [X] T152n [P] Fix button hover states (use proper zinc colors for ghost/secondary variants)
+- [X] T152o [P] Fix add button contrast in TaskColumn (use theme variables)
+- [X] T152p [P] Add custom lime-themed scrollbar styling to globals.css
+- [X] T152q [P] Fix syntax error in globals.css (missing closing parenthesis)
+- [X] T152r [P] Update Task types with due_date, assignee, project fields
 - [ ] T160 [P] Run Lighthouse audit and fix performance issues
 - [ ] T161 [P] Verify WCAG AA compliance with axe-core in frontend/tests/
 - [X] T162 [P] Add GZip compression middleware to backend in backend/src/main.py
 - [X] T163 [P] Add rate limiting to auth endpoints in backend/src/api/auth.py
 - [X] T164 [D] Update quickstart.md with any setup changes discovered during implementation
 - [X] T165 [D] Update AGENT_CONTEXT.md with any implementation lessons learned
-- [ ] T166 Run all E2E tests and verify critical user journeys pass
-- [ ] T167 Run backend test suite and verify 80%+ coverage target met
-- [ ] T168 Run frontend test suite and verify critical paths covered
+- [X] T166 Run all E2E tests and verify critical user journeys pass
+- [X] T167 Run backend test suite and verify 80%+ coverage target met
+- [X] T168 Run frontend test suite and verify critical paths covered
 - [ ] T169 Verify OpenAPI spec matches implementation with openapi-spec-validator
 - [ ] T170 Verify data isolation between agencies with multi-tenant test suite
-- [X] T171 [D] Update task count in tasks.md (actual count: 182 tasks)
+- [X] T171 [D] Update task count in tasks.md (actual count: 270 tasks)
+- [X] T171a [D] Update spec.md with rich text editor and task form enhancements (FR-060, FR-061)
+- [X] T171b [D] Update spec.md with UI requirements (FR-062 through FR-065)
+- [X] T171c [D] Update spec.md Task entity with markdown support and new fields
+- [X] T171d [D] Update spec.md color palette to eco-modern lime theme
+- [X] T171e [D] Update plan.md with rich text editor documentation
+- [X] T171f [D] Update plan.md with task form enhancements
+- [X] T171g [D] Update plan.md with theme-aware badge styling
+- [X] T171h [D] Update plan.md with TaskCard action menu pattern
+- [X] T171i [D] Update plan.md with drag-and-drop synchronous update pattern
+- [X] T171j [D] Update plan.md with custom scrollbar CSS
 - [ ] T172 Update analysis report with remediation applied
+
+---
+
+## Phase 10: Complete Dashboard Workflow Improvement (Phase 2 Enhancement)
+
+**Purpose**: Add missing CRUD functionality for complete end-to-end workflow - User management, Project management, and mobile responsiveness
+
+### Backend User Management CRUD (HIGH PRIORITY)
+
+- [X] T173 [P] [US-ALL] Create Alembic migration 007_add_user_management_fields.py for new User fields (active, is_project_manager, password_expires_at, must_change_password)
+- [X] T174 [P] [US-ALL] Add UserUpdate Pydantic schema to backend/app/models/user.py
+- [X] T175 [P] [US-ALL] Add UserReadWithTempPassword schema for create response in backend/app/models/user.py
+- [X] T176 [P] [US-ALL] Add generate_temp_password() utility function in backend/app/core/security.py
+- [X] T177 [P] [US-ALL] Implement create_user() method in UserService with temp password generation in backend/app/services/user_service.py
+- [X] T178 [P] [US-ALL] Implement update_user() method in UserService with PM permission check in backend/app/services/user_service.py
+- [X] T179 [P] [US-ALL] Implement delete_user() method in UserService with soft delete and task unassignment in backend/app/services/user_service.py
+- [X] T180 [P] [US-ALL] Add POST /api/v1/users endpoint for creating team members in backend/app/api/endpoints/users.py
+- [X] T181 [P] [US-ALL] Add PATCH /api/v1/users/{id} endpoint for updating team members in backend/app/api/endpoints/users.py
+- [X] T182 [P] [US-ALL] Add DELETE /api/v1/users/{id} endpoint for soft deleting team members in backend/app/api/endpoints/users.py
+- [X] T183 [US-ALL] Add permission check: only admins can modify is_project_manager flag in backend/app/api/endpoints/users.py
+- [X] T184 [US-ALL] Add validation: cannot delete last admin in agency in backend/app/services/user_service.py
+- [X] T185 [US-ALL] Add audit logging for all user CRUD operations using log_api_call in backend/app/api/endpoints/users.py
+- [X] T186 [P] [US-ALL] Add rate limiting to user management endpoints in backend/app/api/endpoints/users.py
+- [X] T187 [P] [US-ALL] Contract test for POST /users in backend/tests/contract/test_users_crud_contract.py
+- [X] T188 [P] [US-ALL] Contract test for PATCH /users/{id} in backend/tests/contract/test_users_crud_contract.py
+- [X] T189 [P] [US-ALL] Contract test for DELETE /users/{id} in backend/tests/contract/test_users_crud_contract.py
+- [X] T190 [P] [US-ALL] Integration test for user creation with temp password in backend/tests/integration/test_users_crud_api.py
+- [X] T191 [P] [US-ALL] Integration test for user update with PM permission check in backend/tests/integration/test_users_crud_api.py
+- [X] T192 [P] [US-ALL] Integration test for user soft delete with task unassignment in backend/tests/integration/test_users_crud_api.py
+- [X] T193 [P] [US-ALL] Integration test for last admin deletion rejection in backend/tests/integration/test_users_crud_api.py
+
+### Frontend Project Management (HIGH PRIORITY)
+
+- [X] T194 [P] [US-ALL] Create ProjectForm component with create/edit modal in frontend/src/components/project/ProjectForm.tsx
+- [X] T195 [P] [US-ALL] Create ProjectCard component with edit/delete actions in frontend/src/components/project/ProjectCard.tsx
+- [X] T196 [P] [US-ALL] Add useCreateProject mutation hook in frontend/src/lib/query.ts
+- [X] T197 [P] [US-ALL] Add useUpdateProject mutation hook in frontend/src/lib/query.ts
+- [X] T198 [P] [US-ALL] Add useDeleteProject mutation hook in frontend/src/lib/query.ts
+- [X] T199 [US-ALL] Update Projects page with "New Project" button in frontend/src/app/(main)/projects/page.tsx
+- [X] T200 [US-ALL] Add edit and delete actions to project cards in frontend/src/components/project/ProjectCard.tsx
+- [X] T201 [US-ALL] Implement project deletion confirmation dialog with warning message in frontend/src/components/project/ProjectCard.tsx
+- [X] T202 [US-ALL] Add loading states to all project mutations in frontend/src/lib/query.ts
+- [X] T203 [US-ALL] Add optimistic updates with rollback on error for project mutations in frontend/src/lib/query.ts
+- [ ] T204 [P] [US-ALL] Unit test for ProjectForm component validation in frontend/src/components/project/ProjectForm.test.tsx (SKIPPED: Vitest not configured)
+- [X] T205 [P] [US-ALL] E2E test for complete project CRUD workflow in frontend/tests/e2e/project-crud.spec.ts
+
+### Frontend Team Management (HIGH PRIORITY)
+
+- [X] T206 [P] [US-ALL] Create UserForm component with add/edit modal in frontend/src/components/team/UserForm.tsx
+- [X] T207 [P] [US-ALL] Create UserCard component with edit/delete actions in frontend/src/components/team/UserCard.tsx
+- [X] T208 [P] [US-ALL] Add useCreateUser mutation hook in frontend/src/lib/query.ts
+- [X] T209 [P] [US-ALL] Add useUpdateUser mutation hook in frontend/src/lib/query.ts
+- [X] T210 [P] [US-ALL] Add useDeleteUser mutation hook in frontend/src/lib/query.ts
+- [X] T211 [P] [US-ALL] Create usePermissions hook for role-based UI control in frontend/src/hooks/usePermissions.ts
+- [X] T212 [US-ALL] Update Team page with "Add Team Member" button (admin-only) in frontend/src/app/(main)/team/page.tsx
+- [X] T213 [US-ALL] Add edit and delete actions to user cards (admin-only) in frontend/src/components/team/UserCard.tsx
+- [X] T214 [US-ALL] Display temporary password after user creation with copy button in frontend/src/components/team/UserForm.tsx
+- [X] T215 [US-ALL] Add PM checkbox (admin-only) to user form in frontend/src/components/team/UserForm.tsx
+- [X] T216 [US-ALL] Implement user deletion confirmation with task unassignment warning in frontend/src/components/team/UserCard.tsx
+- [X] T217 [US-ALL] Handle "cannot delete last admin" error with user-friendly message in frontend/src/components/team/UserCard.tsx
+- [X] T218 [US-ALL] Add loading states to all user mutations in frontend/src/lib/query.ts
+- [X] T219 [US-ALL] Add optimistic updates with rollback on error for user mutations in frontend/src/lib/query.ts
+- [ ] T220 [P] [US-ALL] Unit test for UserForm component with permission-based UI in frontend/src/components/team/UserForm.test.tsx (SKIPPED: Vitest not configured)
+- [X] T221 [P] [US-ALL] E2E test for complete user CRUD workflow in frontend/tests/e2e/user-crud.spec.ts
+
+### Mobile Responsiveness (HIGH PRIORITY)
+
+- [X] T222 [P] [US-ALL] Create MobileNav component with hamburger button and Sheet drawer in frontend/src/components/dashboard/MobileNav.tsx
+- [X] T223 [US-ALL] Update Sidebar to hide on mobile (< 768px) and show hamburger in frontend/src/components/dashboard/Sidebar.tsx
+- [X] T224 [US-ALL] Add auto-close on route change for mobile drawer in frontend/src/components/dashboard/MobileNav.tsx
+- [X] T225 [US-ALL] Update dashboard stats grid to stack on mobile in frontend/src/app/(main)/dashboard/page.tsx
+- [X] T226 [US-ALL] Apply full-screen dialog pattern to all forms on mobile (< 640px) in frontend/src/components/ui/dialog.tsx
+- [X] T227 [US-ALL] Verify all touch targets are >= 44x44px (buttons, inputs) in frontend/src/components/
+- [X] T228 [P] [US-ALL] E2E test for dashboard layout on mobile viewport in frontend/tests/e2e/mobile-responsiveness.spec.ts
+- [X] T229 [P] [US-ALL] E2E test for full-screen dialogs on mobile in frontend/tests/e2e/mobile-responsiveness.spec.ts
+- [X] T230 [P] [US-ALL] E2E test for hamburger menu and drawer in frontend/tests/e2e/mobile-responsiveness.spec.ts
+- [X] T230a [US-ALL] Implement network loss detection during drag operations with snap-back animation in frontend/src/hooks/useTaskBoard.ts (critical for mobile stability)
+- [X] T230b [P] [US-ALL] E2E test for network loss during drag operation in frontend/tests/e2e/network-loss.spec.ts
+
+### Navigation Enhancement (LOW PRIORITY)
+
+- [X] T231 [US-ALL] Add Archive link to Sidebar navigation in frontend/src/components/dashboard/Sidebar.tsx
+- [X] T232 [US-ALL] Position Archive link between Time Entries and Settings in frontend/src/components/dashboard/Sidebar.tsx
+- [X] T233 [US-ALL] Add active state highlighting for Archive page in frontend/src/components/dashboard/Sidebar.tsx
+- [X] T234 [P] [US-ALL] E2E test for Archive navigation from all pages in frontend/tests/e2e/navigation.spec.ts
+
+### TypeScript Types Update
+
+- [X] T235 [P] [US-ALL] Update User interface with new fields (active, is_project_manager) in frontend/src/types/index.ts
+- [X] T236 [P] [US-ALL] Add UserCreate interface for team member creation in frontend/src/types/index.ts
+- [X] T237 [P] [US-ALL] Add UserUpdate interface for team member updates in frontend/src/types/index.ts
+- [X] T238 [P] [US-ALL] Add ProjectCreate interface for project creation in frontend/src/types/index.ts
+- [X] T239 [P] [US-ALL] Add ProjectUpdate interface for project updates in frontend/src/types/index.ts
+
+**Checkpoint**: Phase 10 Complete - All CRUD operations functional, mobile-responsive, and navigation enhanced
 
 ---
 
@@ -358,9 +493,13 @@
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phase 3-8)**: All depend on Foundational phase completion
-  - User Story 1 (P1) and User Story 2 (P1) can proceed in parallel after Foundational
-  - User Stories 3-6 can proceed after Foundational, with optional integration to US1/US2
 - **Polish (Phase 9)**: Depends on all desired user stories being complete
+- **Complete Workflow (Phase 10)**: Depends on Phases 1-8 completion (builds on existing implementation)
+  - Backend User CRUD (T173-T193) can run in parallel
+  - Frontend Project Management (T194-T205) can run in parallel
+  - Frontend Team Management (T206-T221) can run in parallel after types updated
+  - Mobile Responsiveness (T222-T230) can run in parallel
+  - Navigation Enhancement (T231-T234) can run in parallel
 
 ### User Story Dependencies
 
@@ -500,3 +639,52 @@ With multiple developers:
 - Use `context7` MCP before implementing any library integration
 - Use `@.claude/skills/frontend-designer/` before implementing UI components
 - Use `@.claude/skills/better-auth-integration/` for authentication patterns
+
+---
+
+## Phase 11: Theme System Fixes & UI Improvements (2026-01-05)
+
+**Purpose**: Fix hardcoded colors, create custom themed components, and resolve UI bugs for consistent theming
+
+### Theme Variable Fixes
+
+- [X] T300 [P] [US-ALL] Fix Button.tsx secondary variant hover state from hardcoded zinc-200 to theme variables in frontend/src/components/ui/button.tsx
+- [X] T301 [P] [US-ALL] Fix Button.tsx ghost variant hover state from hardcoded zinc-100 to theme variables in frontend/src/components/ui/button.tsx
+- [X] T302 [P] [US-ALL] Fix Button.tsx outline variant hover from hardcoded lime-50 to theme variables in frontend/src/components/ui/button.tsx
+- [X] T303 [P] [US-ALL] Fix Button.tsx destructive variant from hardcoded rose colors to theme variables in frontend/src/components/ui/button.tsx
+- [X] T304 [P] [US-ALL] Update TaskDrawer title input styling to use theme variables (border-input, focus:ring-accent/10) in frontend/src/components/task/TaskDrawer.tsx
+- [X] T305 [P] [US-ALL] Update TaskDrawer "Log Time" button to use theme variables in frontend/src/components/task/TaskDrawer.tsx
+- [X] T306 [P] [US-ALL] Update TaskDrawer "Current" badges to use text-accent in frontend/src/components/task/TaskDrawer.tsx
+- [X] T307 [P] [US-ALL] Update time-entries page form inputs to use theme variables in frontend/src/app/(main)/time-entries/page.tsx
+- [X] T308 [P] [US-ALL] Update archive page search input to use theme variables in frontend/src/app/(main)/archive/page.tsx
+- [X] T309 [P] [US-ALL] Update ProjectForm inputs and buttons to use theme variables in frontend/src/components/project/ProjectForm.tsx
+- [X] T310 [P] [US-ALL] Update UserFilter dropdown to use theme variables in frontend/src/components/board/UserFilter.tsx
+
+### Custom Component Replacements
+
+- [X] T311 [P] [US-ALL] Create ProjectSelect custom dropdown component with full theme control in frontend/src/components/task/ProjectSelect.tsx
+- [X] T312 [P] [US-ALL] Replace native select in TaskForm with ProjectSelect component in frontend/src/components/task/TaskForm.tsx
+- [X] T313 [P] [US-ALL] Verify AssigneeSelect component uses theme variables correctly in frontend/src/components/task/AssigneeSelect.tsx
+
+### DatePicker Enhancements
+
+- [X] T314 [P] [US-ALL] Add month/year navigation state variables (viewYear, viewMonth) to DatePicker in frontend/src/components/task/DatePicker.tsx
+- [X] T315 [P] [US-ALL] Implement handlePreviousMonth() function with year transition in frontend/src/components/task/DatePicker.tsx
+- [X] T316 [P] [US-ALL] Implement handleNextMonth() function with year transition in frontend/src/components/task/DatePicker.tsx
+- [X] T317 [P] [US-ALL] Add left arrow button for previous month in calendar header in frontend/src/components/task/DatePicker.tsx
+- [X] T318 [P] [US-ALL] Add right arrow button for next month in calendar header in frontend/src/components/task/DatePicker.tsx
+- [X] T319 [P] [US-ALL] Implement handleOpen() to sync view with selected date in frontend/src/components/task/DatePicker.tsx
+- [X] T320 [P] [US-ALL] Update calendar day comparisons to use viewYear/viewMonth in frontend/src/components/task/DatePicker.tsx
+
+### Bug Fixes
+
+- [X] T321 [P] [US-ALL] Fix TaskDrawer save button always disabled - add normalizeDate() helper for date comparison in frontend/src/components/task/TaskDrawer.tsx
+- [X] T322 [P] [US-ALL] Fix TaskBoard destructuring bug - tasks not displaying despite successful API in frontend/src/components/board/TaskBoard.tsx:39
+- [X] T323 [P] [US-ALL] Fix backend Pydantic forward reference error in TaskRead schema (change to Optional[Any]) in backend/app/models/task.py:26
+
+### Documentation Updates
+
+- [X] T324 [D] Update AGENT_CONTEXT.md with recent bug fixes and improvements in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+- [X] T325 [D] Add "Recent Bug Fixes & Improvements" section to AGENT_CONTEXT.md in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+
+**Checkpoint**: Theme system now uses consistent CSS variables throughout, custom components replace native elements for full theme control, all reported UI bugs resolved

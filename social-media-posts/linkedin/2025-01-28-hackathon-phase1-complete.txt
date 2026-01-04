@@ -1,4 +1,4 @@
-Hackathon 2 — Phase 1 complete.
+Hackathon 2, Phase 1 complete.
 
 The task was simple on paper.
 Build a todo CLI.

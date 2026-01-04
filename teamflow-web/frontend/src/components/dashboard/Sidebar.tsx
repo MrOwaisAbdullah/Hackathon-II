@@ -3,20 +3,22 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  CheckSquare, 
-  Users, 
-  Clock, 
-  Settings, 
-  ChevronLeft, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  CheckSquare,
+  Users,
+  Clock,
+  Settings,
+  ChevronLeft,
   LogOut,
-  Menu
+  Menu,
+  Archive
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import { useAuth } from '@/hooks/useAuth';
 
 const menuItems = [
@@ -25,6 +27,7 @@ const menuItems = [
   { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
   { icon: Users, label: 'Team', href: '/team' },
   { icon: Clock, label: 'Time', href: '/time-entries' },
+  { icon: Archive, label: 'Archive', href: '/archive' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 
@@ -81,9 +84,12 @@ export function Sidebar() {
       {/* User Profile (Mini) */}
       <div className="p-4 border-b border-zinc-800">
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-          <div className="w-10 h-10 rounded-full bg-lime-400 flex items-center justify-center text-black font-bold shrink-0">
-            {user?.name?.[0] || 'U'}
-          </div>
+          <UserAvatar
+            name={user?.name}
+            email={user?.email}
+            size="lg"
+            className="shrink-0"
+          />
           <AnimatePresence>
             {!isCollapsed && (
               <motion.div

@@ -124,13 +124,15 @@ class AnalyticsService:
             session: Database session
 
         Returns:
-            List of dicts with label, value, and color for each status
+            List of dicts with label, value, and color (Tailwind class) for each status
         """
+        # Eco-Modern Theme: Lime-based colors with proper contrast
         status_colors = {
-            TaskStatus.TODO: "#6366f1",     # Indigo
-            TaskStatus.DOING: "#f59e0b",    # Amber
-            TaskStatus.REVIEW: "#8b5cf6",   # Violet
-            TaskStatus.DONE: "#10b981",     # Emerald
+            TaskStatus.TODO: "bg-slate-400",      # Neutral gray for TODO
+            TaskStatus.DOING: "bg-lime-400",      # Lime accent for active
+            TaskStatus.REVIEW: "bg-amber-400",     # Amber for review needed
+            TaskStatus.DONE: "bg-emerald-500",     # Emerald for completed
+            TaskStatus.ARCHIVED: "bg-zinc-500",   # Dark zinc for archived
         }
 
         status_labels = {
@@ -138,6 +140,7 @@ class AnalyticsService:
             TaskStatus.DOING: "In Progress",
             TaskStatus.REVIEW: "In Review",
             TaskStatus.DONE: "Done",
+            TaskStatus.ARCHIVED: "Archived",
         }
 
         result = []

@@ -2,7 +2,7 @@
 
 **Branch**: `002-fullstack-web-crm` | **Date**: 2026-01-03 | **Plan**: [plan.md](./plan.md)
 
-> **Phase 9 Complete**: All core features implemented plus polish (command palette, rate limiting, structured logging, accessibility improvements). See "Phase 9 Lessons" section below for implementation insights.
+> **Phase 10 (Complete Workflow Improvement)**: Planning phase for adding missing User/Project CRUD operations, mobile responsiveness, and navigation enhancements. See "Phase 10 Planning" section below for new requirements.
 
 ## Purpose
 
@@ -41,11 +41,17 @@ This file provides context for AI agents working on TeamFlow Phase 2. Use this t
 | Plan | Quickstart | ✅ Complete | `quickstart.md` |
 | Implementation | Phases 1-8 (Core Features) | ✅ Complete | `teamflow-web/` |
 | Implementation | Phase 9 (Polish) | ✅ Complete | See tasks.md T150-T163 |
+| Planning | Phase 10 (Complete Workflow) | ✅ Complete | See below |
 
 ### Pending
 
 | Phase | Task | Status |
 |-------|------|--------|
+| Implementation | Phase 10 User CRUD (Backend) | ⏳ Pending - Backend endpoints |
+| Implementation | Phase 10 Project Forms (Frontend) | ⏳ Pending - Create/edit/delete UI |
+| Implementation | Phase 10 Team Forms (Frontend) | ⏳ Pending - Add/edit/remove UI |
+| Implementation | Phase 10 Mobile Navigation | ⏳ Pending - Hamburger menu |
+| Implementation | Phase 10 Archive Link | ⏳ Pending - Sidebar navigation |
 | Validation | Lighthouse/WCAG audits (T160-T161) | ⏳ Requires dev server |
 | Validation | Test suite execution (T166-T170) | ⏳ Requires dev server |
 | Documentation | Task count update (T171-T172) | ⏳ Pending |
@@ -115,6 +121,63 @@ def get_tasks(current_user: CurrentUser):
 
 ---
 
+## Recent Bug Fixes & Improvements (2026-01-05)
+
+### Theme System Fixes
+**Issue**: Hardcoded colors throughout the app causing inconsistent theming
+**Solution**: Systematically replaced hardcoded colors with theme variables
+
+| Component | Fixed |
+|-----------|-------|
+| `Button.tsx` (secondary) | `hover:bg-zinc-200` → `hover:bg-secondary/80` |
+| `Button.tsx` (ghost) | `hover:bg-zinc-100` → `hover:bg-muted` |
+| `Button.tsx` (outline) | `hover:bg-lime-50` → `hover:bg-accent/10` |
+| `Button.tsx` (destructive) | Hardcoded rose → `bg-destructive/10` |
+| TaskDrawer inputs | `focus:ring-primary` → `focus:ring-accent/10` |
+| Time entries page | Updated all form inputs to use `border-input`, `border-accent` |
+| Archive page | Search input uses theme variables |
+| ProjectForm | All inputs and buttons themed |
+| UserFilter | Dropdown uses `border-input`, `text-accent` |
+
+### Custom Component Replacements
+**Issue**: Native HTML elements (`<select>`, `<input type="date">`) can't be fully themed
+**Solution**: Created custom components with full theme control
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `ProjectSelect` | `components/task/ProjectSelect.tsx` | Custom dropdown for project selection with folder icon, project descriptions, check icons |
+| `AssigneeSelect` | `components/task/AssigneeSelect.tsx` | Custom dropdown for assignee selection with avatars |
+| `DatePicker` | `components/task/DatePicker.tsx` | Custom date picker with calendar popover, month/year navigation |
+
+### TaskDrawer Bug Fixes
+**Issue**: Save button always disabled despite making changes
+**Root Cause**: Date comparison using different formats (ISO datetime vs YYYY-MM-DD)
+**Solution**: Added `normalizeDate()` helper function to extract date part before comparison
+**File**: `teamflow-web/frontend/src/components/task/TaskDrawer.tsx:112-124`
+
+### DatePicker Navigation Enhancement
+**Issue**: No way to navigate to different months or years
+**Solution**: Added previous/next month buttons with year transitions
+**Features**:
+- Left/right arrow buttons for month navigation
+- Automatic year transition (Dec → Jan, Jan → Dec of previous year)
+- Sync view with selected date when opening
+**File**: `teamflow-web/frontend/src/components/task/DatePicker.tsx:44-98`
+
+### TaskBoard Destructuring Fix
+**Issue**: Tasks not displaying despite successful API responses
+**Root Cause**: Hook returns `{ tasks }` but component was looking for `{ data: tasks }`
+**Solution**: Fixed destructuring in TaskBoard component
+**File**: `teamflow-web/frontend/src/components/board/TaskBoard.tsx:39`
+
+### Backend Pydantic Forward Reference Fix
+**Issue**: 500 error when creating/listing tasks due to Pydantic v2 forward reference
+**Root Cause**: `TaskRead.assignee: Optional["UserRead"]` causes issues
+**Solution**: Changed to `assignee: Optional[Any]` to avoid forward reference problems
+**File**: `teamflow-web/backend/app/models/task.py:26`
+
+---
+
 ## Phase 9 Implementation Lessons
 
 ### Project Structure Adjustments
@@ -131,22 +194,19 @@ def get_tasks(current_user: CurrentUser):
 
 ### Theme Management
 
+**"Eco-Modern" Visual Identity (DoQuanta Inspired)**
+- **Foundation**: High-contrast Black & White foundation (`zinc-950` / `zinc-50`).
+- **Primary Accent**: Vibrant **Lime Green** (`lime-400`) used for active states, indicators, and brand markers.
+- **Sidebar**: Permanent **Dark Sidebar** (`zinc-950`) regardless of system theme for strong visual anchoring.
+- **Typography**: High-impact headers using `font-black tracking-tighter uppercase`.
+- **Elevation**: floating cards using `.card-float` with refined shadows (`shadow-slate-200/50`).
+
 **Custom ThemeContext (not next-themes)**
 - App uses `@/contexts/ThemeContext` with custom implementation
 - Supports three modes: `'light'`, `'dark'`, `'system'`
 - Theme stored in localStorage with system preference detection
-- **Key Lesson**: Always verify existing context usage before assuming packages
+- **Permanent Dark UI Components**: Sidebar and specific modals are forced to dark mode using the `.sidebar-dark` utility class to maintain brand consistency.
 
-```typescript
-// Resolving 'system' theme for icon display
-const resolvedTheme = useMemo(() => {
-  if (theme === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark' : 'light';
-  }
-  return theme;
-}, [theme]);
-```
 
 ### Command Pattern
 
@@ -498,6 +558,75 @@ All implementation MUST follow:
 - [X] XSS prevented (React escaping)
 - [X] Rate limiting on auth endpoints (T163)
 - [X] GZip compression on API responses (T162)
+
+---
+
+## Phase 10 Planning: Complete Dashboard Workflow
+
+**Date**: 2026-01-03
+**Plan**: See [plan.md](./plan.md) for detailed implementation plan
+
+### Overview
+Phase 10 adds missing CRUD functionality for Users and Projects, plus mobile responsiveness improvements. This completes the end-to-end workflow for agency teams.
+
+### New User Model Fields (Phase 2)
+
+The User model has been extended with four new fields for team management:
+
+| Field | Type | Default | Purpose |
+|-------|------|---------|---------|
+| `active` | bool | True | Soft delete flag - queries filter `active=True` |
+| `is_project_manager` | bool | False | Permission to create/edit projects |
+| `password_expires_at` | datetime? | None | Temporary password expiration (7 days default) |
+| `must_change_password` | bool | False | Force password change on first login |
+
+**Migration**: `005_add_user_management_fields.py` (pending implementation)
+
+### New API Endpoints (Planned)
+
+**User Management** (`/api/v1/users`):
+- `POST /users` - Create team member with auto-generated temp password
+- `PATCH /users/{id}` - Update user fields (admin-only for role/permissions)
+- `DELETE /users/{id}` - Soft delete (set active=False, unassign tasks)
+
+**Permission Rules**:
+- Only admins can create/update/delete users
+- Only admins can modify `role` and `is_project_manager`
+- Users can update their own name/email
+- Cannot delete the last admin in an agency
+
+### Mobile Responsiveness Patterns
+
+**Navigation**:
+- Hamburger menu on mobile (< 768px)
+- Shadcn Sheet component with backdrop
+- Auto-close on route change
+
+**Dialogs**:
+- Full-screen on mobile (< 640px): `fixed inset-0 m-0 h-full w-full`
+- Centered modal on desktop: `sm:max-w-md sm:h-auto sm:rounded-lg`
+
+**Touch Targets**:
+- Minimum 44x44px per Apple HIG
+- Proper padding on buttons and interactive elements
+
+### Frontend Components to Create
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `UserForm.tsx` | `src/components/team/UserForm.tsx` | Add/edit team member modal |
+| `UserCard.tsx` | `src/components/team/UserCard.tsx` | Enhanced user card with actions |
+| `ProjectForm.tsx` | `src/components/project/ProjectForm.tsx` | Create/edit project modal |
+| `ProjectCard.tsx` | `src/components/project/ProjectCard.tsx` | Enhanced project card with actions |
+| `MobileNav.tsx` | `src/components/dashboard/MobileNav.tsx` | Hamburger menu for mobile |
+
+### Implementation Phases
+
+1. **Backend User CRUD** (P0) - Add POST, PATCH, DELETE endpoints to `users.py`
+2. **Frontend Project Forms** (P0) - Create ProjectForm, ProjectCard components
+3. **Frontend Team Forms** (P0) - Create UserForm, UserCard components
+4. **Mobile Navigation** (P1) - Add hamburger menu with Sheet
+5. **Archive Link** (P2) - Add navigation link to Archive page in Sidebar
 
 ---
 

@@ -92,8 +92,13 @@ The User entity represents team members within an agency. Users can be assigned 
 | `id` | UUID | PK, default=uuid4 | Unique user identifier |
 | `email` | VARCHAR(255) | NOT NULL, UNIQUE | User email (login) |
 | `name` | VARCHAR(255) | NOT NULL | Display name |
-| `password_hash` | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
+| `hashed_password` | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
+| `role` | VARCHAR(50) | NOT NULL, default='member' | Role: admin/member/client |
 | `agency_id` | UUID | FK, NOT NULL | Agency (tenant) |
+| `active` | BOOLEAN | NOT NULL, default=TRUE, **INDEX** | Soft delete flag (Phase 2) |
+| `is_project_manager` | BOOLEAN | NOT NULL, default=FALSE | Project management permission (Phase 2) |
+| `password_expires_at` | TIMESTAMP | NULLABLE | Temporary password expiration (Phase 2) |
+| `must_change_password` | BOOLEAN | NOT NULL, default=FALSE | Force password change on login (Phase 2) |
 | `created_at` | TIMESTAMP | default=now() | Creation timestamp |
 | `updated_at` | TIMESTAMP | onupdate=now() | Last update timestamp |
 
@@ -101,6 +106,7 @@ The User entity represents team members within an agency. Users can be assigned 
 - `idx_users_id` on `id`
 - `idx_users_agency_id` on `agency_id`
 - `idx_users_email` on `email` (UNIQUE)
+- `idx_users_active` on `active` (Phase 2)
 
 **Foreign Keys**:
 - `agency_id` → `agencies.id` (CASCADE DELETE)
@@ -108,16 +114,80 @@ The User entity represents team members within an agency. Users can be assigned 
 **SQLModel Definition**:
 
 ```python
+from enum import Enum
+from datetime import datetime
+from typing import Optional
+from sqlmodel import Field, SQLModel
+from uuid import uuid4
+import secrets
+import string
+
+class UserRole(str, Enum):
+    admin = "admin"
+    member = "member"
+    client = "client"
+
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
     id: Optional[str] = Field(default_factory=lambda: str(uuid4()), primary_key=True)
     email: str = Field(unique=True, index=True, max_length=255)
     name: str = Field(max_length=255)
-    password_hash: str = Field(max_length=255)
+    hashed_password: str = Field(max_length=255)
+    role: UserRole = Field(default=UserRole.member)
     agency_id: str = Field(foreign_key="agencies.id", index=True)
+
+    # Phase 2: Soft delete and project management fields
+    active: bool = Field(default=True, index=True)
+    is_project_manager: bool = Field(default=False)
+    password_expires_at: Optional[datetime] = Field(default=None)
+    must_change_password: bool = Field(default=False)
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+```
+
+**Pydantic Schemas (Phase 2)**:
+
+```python
+from pydantic import EmailStr, Field as PDField
+from typing import Optional
+
+class UserBase(SQLModel):
+    email: EmailStr
+    name: str = PDField(..., min_length=1, max_length=100)
+
+class UserCreate(UserBase):
+    password: Optional[str] = PDField(None, min_length=8)  # Auto-generated if None
+    role: UserRole = PDField(default=UserRole.member)
+    is_project_manager: bool = PDField(default=False)
+
+class UserUpdate(SQLModel):
+    name: Optional[str] = PDField(None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None
+    is_project_manager: Optional[bool] = None  # Admin-only
+
+class UserRead(UserBase):
+    id: str
+    role: UserRole
+    agency_id: str
+    active: bool
+    is_project_manager: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class UserReadWithTempPassword(UserRead):
+    temporary_password: str  # Only shown on creation
+```
+
+**Password Generation Utility (Phase 2)**:
+
+```python
+def generate_temp_password(length: int = 16) -> str:
+    """Generate a secure temporary password."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 ```
 
 ---
@@ -202,6 +272,7 @@ The Task entity represents work items on the Kanban board. Tasks have status, as
 ```python
 from enum import Enum
 from datetime import date
+from typing import Optional, Any  # Added Any for Pydantic v2 forward reference fix
 
 class TaskStatus(str, Enum):
     TODO = "todo"
@@ -229,6 +300,27 @@ class Task(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 ```
+
+**Pydantic Schema (TaskRead)**:
+
+```python
+class TaskRead(TaskBase):
+    """Task read/response schema."""
+    id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    # NOTE: Using Any to avoid Pydantic v2 forward reference issues
+    # Previous: assignee: Optional["UserRead"] = None
+    # Fixed: assignee: Optional[Any] = None
+    assignee: Optional[Any] = None
+
+    class Config:
+        from_attributes = True
+```
+
+**Implementation Note (2026-01-05)**:
+The `assignee` field in `TaskRead` schema uses `Optional[Any]` instead of `Optional["UserRead"]` to avoid Pydantic v2 forward reference errors. The actual serialization works correctly due to `from_attributes = True` configuration.
 
 ---
 

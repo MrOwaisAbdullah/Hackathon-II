@@ -507,3 +507,160 @@ All research verified via `context7` MCP tool:
 2. Generate data model with entities and relationships
 3. Define API contracts (OpenAPI spec)
 4. Create quickstart guide for developers
+
+---
+
+# Phase 2 Improvement Research (Complete Dashboard Workflow)
+
+**Date**: 2026-01-03
+**Improvement Spec**: [spec-phase2-complete-workflow.md](./spec-phase2-complete-workflow.md)
+
+## Overview
+
+This section documents additional research for the Phase 2 improvement that adds complete CRUD functionality for User and Project management, mobile responsiveness, and navigation enhancements.
+
+---
+
+## User Management CRUD Research
+
+### User Model Extensions
+
+**Decision**: Add four new fields to User model:
+- `active: bool` (default=True) for soft delete
+- `is_project_manager: bool` (default=False) for project permissions
+- `password_expires_at: Optional[datetime]` for temporary password expiration
+- `must_change_password: bool` (default=False) for first-login enforcement
+
+**Rationale**:
+- Soft delete preserves data integrity (tasks keep assignee reference)
+- PM flag enables granular permissions without complex RBAC
+- Password expiration addresses security requirement from clarifications (7-day expiration)
+- must_change_password enforces password change on first login
+
+### Permission Model
+
+**Decision**: Boolean flag `is_project_manager` with admin-only control
+
+**Backend Pattern**:
+```python
+if update_data.get('is_project_manager'):
+    if current_user.role != UserRole.admin:
+        raise HTTPException(403, "Only admins can modify project manager status")
+```
+
+**Frontend Pattern**:
+```tsx
+{current_user.role === 'admin' && (
+  <Checkbox name="is_project_manager" />
+)}
+```
+
+---
+
+## Mobile Responsiveness Research
+
+### Mobile Navigation
+
+**Decision**: Hamburger menu + Sheet component (Shadcn) with backdrop
+
+**Pattern**:
+```tsx
+<Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)}>
+  <Menu className="h-6 w-6" />
+</Button>
+
+<Sheet open={open} onOpenChange={setOpen}>
+  <SheetContent side="left" className="w-64 sidebar-dark">
+    <nav>{/* Navigation links */}</nav>
+  </SheetContent>
+</Sheet>
+```
+
+**Rationale**:
+- Shadcn Sheet provides consistent UX
+- `.sidebar-dark` utility ensures permanent dark sidebar (brand consistency)
+- Auto-close on route change prevents confusion
+- Touch targets >= 44x44px (Apple HIG)
+
+### Dialog Mobile Patterns
+
+**Decision**: Full-screen modals on mobile (< 640px), centered modals on desktop
+
+**Pattern**:
+```tsx
+<DialogContent className="
+  fixed inset-0 m-0 h-full w-full rounded-none
+  sm:max-w-md sm:h-auto sm:rounded-lg sm:p-6
+">
+  {/* Form content */}
+</DialogContent>
+```
+
+**Rationale**:
+- Full-screen on mobile maximizes usable space
+- Responsive Tailwind classes handle breakpoint automatically
+- No need for separate mobile components
+
+---
+
+## Audit Logging & Rate Limiting
+
+### Audit Logging
+
+**Decision**: Use existing `log_api_call` pattern from `app.core.logging`
+
+**Pattern**:
+```python
+from app.core.logging import log_api_call, get_logger
+
+logger = get_logger(__name__)
+log_api_call(
+    logger,
+    "POST /api/v1/users",
+    "user_created",
+    user_id=str(current_user.id),
+    target_user_id=str(new_user.id),
+    agency_id=str(current_user.agency_id)
+)
+```
+
+### Rate Limiting
+
+**Decision**: Use existing `check_rate_limit` with in-memory sliding window
+
+**Limits**:
+- POST /users: 10/hour per agency
+- PATCH /users/{id}: 30/hour per agency
+- DELETE /users/{id}: 10/hour per agency
+
+---
+
+## Migration Strategy
+
+**Alembic Migration**: `005_add_user_management_fields.py`
+
+```python
+def upgrade():
+    op.add_column('users', sa.Column('active', sa.Boolean(), nullable=False, server_default='true'))
+    op.add_column('users', sa.Column('is_project_manager', sa.Boolean(), nullable=False, server_default='false'))
+    op.add_column('users', sa.Column('password_expires_at', sa.DateTime(), nullable=True))
+    op.add_column('users', sa.Column('must_change_password', sa.Boolean(), nullable=False, server_default='false'))
+    op.create_index('ix_users_active', 'users', ['active'])
+
+def downgrade():
+    op.drop_index('ix_users_active', 'users')
+    op.drop_column('users', 'must_change_password')
+    op.drop_column('users', 'password_expires_at')
+    op.drop_column('users', 'is_project_manager')
+    op.drop_column('users', 'active')
+```
+
+---
+
+## Key Learnings for Phase 2 Improvement
+
+1. **Leverage existing infrastructure**: Reuse logging, rate limiting, security patterns
+2. **Simple permission model**: Boolean flag sufficient for 2-50 person agencies
+3. **Mobile-first with Tailwind**: Responsive classes (sm:, md:, lg:) for mobile UI
+4. **Soft delete for data integrity**: Always use soft delete for entities with relationships
+5. **Full-screen dialogs on mobile**: Use `fixed inset-0 m-0 h-full w-full` pattern

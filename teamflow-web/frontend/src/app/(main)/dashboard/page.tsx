@@ -1,4 +1,3 @@
-
 'use client';
 
 import { motion } from 'framer-motion';
@@ -11,7 +10,7 @@ import {
 // T159: Code splitting - Dashboard components loaded dynamically
 import dynamic from 'next/dynamic';
 import { StatCardSkeleton, ChartSkeleton, ListSkeleton } from '@/components/ui/Skeleton';
-import { useDashboardStats, useTasksByStatus, useProjects } from '@/lib/query';
+import { useDashboardStats, useTasksByStatus, useProjects, useTasks } from '@/lib/query';
 
 // Dynamic imports for heavy dashboard components
 const TaskDistributionChart = dynamic(
@@ -35,64 +34,69 @@ export default function DashboardPage() {
   const { data: statsData, isLoading: statsLoading } = useDashboardStats();
   const { data: chartData, isLoading: chartLoading } = useTasksByStatus();
   const { data: projectsData, isLoading: projectsLoading } = useProjects();
+  const { data: tasksData } = useTasks();
 
-  // Mock data for fallbacks/initial implementation
-  const fallbackStats = [
-    {
-      title: "Active Projects",
-      value: "12",
-      icon: Briefcase,
-      trend: { value: 8, isPositive: true },
-      color: "bg-primary",
-      delay: 0
-    },
-    {
-      title: "Tasks Completed",
-      value: "148",
-      icon: CheckCircle,
-      trend: { value: 12, isPositive: true },
-      color: "bg-emerald-500",
-      delay: 1
-    },
-    {
-      title: "Team Utilization",
-      value: "87%",
-      icon: Users,
-      trend: { value: 2, isPositive: false },
-      color: "bg-blue-500", // Fallback color
-      delay: 2
-    },
-    {
-      title: "Revenue (YTD)",
-      value: "$42.5k",
-      icon: DollarSign,
-      trend: { value: 15, isPositive: true },
-      color: "bg-purple-500",
-      delay: 3
-    }
-  ];
+  // Calculate total tasks for chart
+  const totalTasks = chartData?.reduce((sum, item) => sum + item.value, 0) || 0;
 
-  const fallbackChartData = [
-    { label: "Todo", value: 24, color: "bg-slate-400" },
-    { label: "In Progress", value: 18, color: "bg-blue-500" },
-    { label: "Review", value: 8, color: "bg-yellow-400" },
-    { label: "Done", value: 45, color: "bg-emerald-500" }
-  ];
+  // Filter out archived tasks and calculate workflow progress based on real data
+  const activeTasks = tasksData?.filter(t => t.status !== 'ARCHIVED') || [];
+  const totalActiveTasks = activeTasks.length;
 
-  const mockProjects = [
-    { id: '1', name: 'Website Redesign', client: 'Acme Corp', status: 'active' as const, dueDate: 'Mar 15', progress: 75 },
-    { id: '2', name: 'Mobile App', client: 'TechStart', status: 'active' as const, dueDate: 'Apr 02', progress: 45 },
-    { id: '3', name: 'Brand Identity', client: 'Studio One', status: 'on-hold' as const, dueDate: 'Feb 20', progress: 90 },
-    { id: '4', name: 'Marketing Campaign', client: 'Global Systems', status: 'active' as const, dueDate: 'Mar 30', progress: 20 },
-  ];
+  // Calculate workflow percentages
+  const todoCount = activeTasks.filter(t => t.status === 'TODO').length;
+  const doingCount = activeTasks.filter(t => t.status === 'DOING').length;
+  const reviewCount = activeTasks.filter(t => t.status === 'REVIEW').length;
+  const doneCount = activeTasks.filter(t => t.status === 'DONE').length;
 
+  // Create workflow steps based on real data
   const workflowSteps = [
-    { id: '1', label: 'Project Kickoff', status: 'completed' as const, date: 'Jan 15' },
-    { id: '2', label: 'Design Phase', status: 'completed' as const, date: 'Jan 28' },
-    { id: '3', label: 'Development', status: 'current' as const, date: 'In Progress' },
-    { id: '4', label: 'QA Testing', status: 'pending' as const },
-    { id: '5', label: 'Deployment', status: 'pending' as const }
+    {
+      id: '1',
+      label: 'Backlog',
+      status: todoCount > 0 ? 'current' as const : 'completed' as const,
+      date: `${todoCount} tasks`
+    },
+    {
+      id: '2',
+      label: 'In Progress',
+      status: 'current' as const,
+      date: `${doingCount} tasks`
+    },
+    {
+      id: '3',
+      label: 'In Review',
+      status: reviewCount > 0 ? 'current' as const : 'pending' as const,
+      date: `${reviewCount} tasks`
+    },
+    {
+      id: '4',
+      label: 'Completed',
+      status: doneCount > 0 ? 'completed' as const : 'pending' as const,
+      date: `${doneCount} tasks`
+    },
   ];
+
+  // Prepare projects data with correct progress calculation
+  const projectsList = projectsData && projectsData.length > 0
+    ? projectsData.map((project: any) => {
+        // Calculate actual progress based on tasks
+        const projectTasks = activeTasks.filter(t => t.project_id === project.id);
+        const completedTasks = projectTasks.filter(t => t.status === 'DONE').length;
+        const progress = projectTasks.length > 0
+          ? Math.round((completedTasks / projectTasks.length) * 100)
+          : 0;
+
+        return {
+          id: project.id,
+          name: project.name,
+          client: project.description || 'No description',
+          status: project.status === 'active' ? 'active' as const : 'on-hold' as const,
+          dueDate: project.created_at ? new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBD',
+          progress
+        };
+      })
+    : [];
 
   return (
     <div className="space-y-8 pb-8">
@@ -154,17 +158,7 @@ export default function DashboardPage() {
             delay={3}
           />
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {fallbackStats.map((stat, i) => (
-            <StatCard
-              key={stat.title}
-              {...stat}
-              delay={i}
-            />
-          ))}
-        </div>
-      )}
+      ) : null}
 
       {/* Visualizations Grid with skeleton loading */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -174,22 +168,15 @@ export default function DashboardPage() {
             <ChartSkeleton />
           ) : (
             <TaskDistributionChart
-              data={chartData || fallbackChartData}
-              totalTasks={95}
+              data={chartData || []}
+              totalTasks={totalTasks}
             />
           )}
           {/* T153: Projects skeleton */}
           {projectsLoading ? (
             <ListSkeleton count={4} />
           ) : (
-            <ProjectList projects={projectsData && projectsData.length > 0 ? projectsData.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              client: p.description || 'N/A',
-              status: 'active' as const,
-              dueDate: 'TBD',
-              progress: 0
-            })) : mockProjects} />
+            <ProjectList projects={projectsList} />
           )}
         </div>
         <div className="lg:col-span-1">

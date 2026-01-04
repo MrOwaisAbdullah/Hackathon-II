@@ -3,6 +3,7 @@ from typing import Optional
 from uuid import UUID
 
 from sqlmodel import Session, col, select
+from sqlalchemy.orm import selectinload
 
 from app.models.project import Project
 from app.models.task import Task, TaskCreate, TaskUpdate, TaskStatus
@@ -38,7 +39,13 @@ class TaskService:
         session.add(task)
         session.commit()
         session.refresh(task)
-        return task
+        # Load assignee relationship for response
+        task_with_assignee = session.exec(
+            select(Task)
+            .options(selectinload(Task.assignee))
+            .where(Task.id == task.id)
+        ).first()
+        return task_with_assignee or task
 
     def get_task(
         self,
@@ -48,7 +55,9 @@ class TaskService:
     ) -> Optional[Task]:
         """Get a task by ID (scoped to agency)."""
         return session.exec(
-            select(Task).where(
+            select(Task)
+            .options(selectinload(Task.assignee))
+            .where(
                 Task.id == task_id,
                 Task.agency_id == agency_id,
             )
@@ -64,7 +73,7 @@ class TaskService:
         include_archived: bool = False,
     ) -> list[Task]:
         """List tasks for an agency with optional filters."""
-        query = select(Task).where(Task.agency_id == agency_id)
+        query = select(Task).options(selectinload(Task.assignee)).where(Task.agency_id == agency_id)
 
         if status:
             query = query.where(Task.status == status)
@@ -113,7 +122,8 @@ class TaskService:
         session.add(task)
         session.commit()
         session.refresh(task)
-        return task
+        # Return task with assignee relationship loaded
+        return self.get_task(task_id, agency_id, session)
 
     def delete_task(
         self,
@@ -163,7 +173,8 @@ class TaskService:
             session.add(task)
             session.commit()
             session.refresh(task)
-            return task
+            # Load with assignee relationship (will be None)
+            return self.get_task(task_id, agency_id, session)
 
         # Verify assignee exists and belongs to the same agency
         assignee = session.get(User, assignee_id)
@@ -177,7 +188,8 @@ class TaskService:
         session.add(task)
         session.commit()
         session.refresh(task)
-        return task
+        # Return task with assignee relationship loaded
+        return self.get_task(task_id, agency_id, session)
 
     def archive_task(
         self,
@@ -203,7 +215,8 @@ class TaskService:
         session.add(task)
         session.commit()
         session.refresh(task)
-        return task
+        # Return task with assignee relationship loaded
+        return self.get_task(task_id, agency_id, session)
 
     def restore_task(
         self,
@@ -235,4 +248,5 @@ class TaskService:
         session.add(task)
         session.commit()
         session.refresh(task)
-        return task
+        # Return task with assignee relationship loaded
+        return self.get_task(task_id, agency_id, session)

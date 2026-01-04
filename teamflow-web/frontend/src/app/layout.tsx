@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Providers } from "@/components/providers/Providers";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "TeamFlow - Agency Task Management",
@@ -24,6 +25,7 @@ export default function RootLayout({
             </AuthProvider>
           </ThemeProvider>
         </Providers>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

@@ -37,9 +37,10 @@
     --muted-foreground: 240 3.8% 46.1%;
     
     /* Accent (Lime Green Highlight) */
-    --accent: 84 100% 59%;             /* Lime 400 */
+    --accent: 83, 78%, 56%;             /* Lime 400 - Primary accent color */
     --accent-foreground: 240 5.9% 10%;
-    
+    --accent-hover: 83, 78%, 45%;       /* Lime 500 - Darker lime for hover */
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
@@ -75,10 +76,11 @@
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
     
-    /* Accent: Lime Green (still pops) */
-    --accent: 84 100% 59%;
+    /* Accent: Lime Green (slightly darker in dark mode for contrast) */
+    --accent: 83, 78%, 56%;             /* Lime 400 - Dark mode primary */
     --accent-foreground: 240 5.9% 10%;
-    
+    --accent-hover: 83, 78%, 45%;       /* Lime 500 - Darker lime for hover */
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     
@@ -140,4 +142,51 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/*
+  Custom Scrollbar Styling
+  Lime-themed scrollbars for drawers and panels
+*/
+.scrollbar-lime {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--accent)) hsl(var(--muted));
+}
+
+.scrollbar-lime::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-lime::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.scrollbar-lime::-webkit-scrollbar-thumb {
+  background: hsl(var(--accent));
+  border-radius: 4px;
+}
+
+.scrollbar-lime::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent-hover));
+}
+
+/* Global scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
 }

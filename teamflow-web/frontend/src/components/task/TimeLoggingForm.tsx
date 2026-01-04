@@ -76,7 +76,11 @@ export function TimeLoggingForm({
 
   // Handle timer toggle
   const handleTimerToggle = () => {
-    if (timer.timer.isRunning) {
+    if (!timer) return;
+    const timerState = timer.timer;
+    if (!timerState) return;
+
+    if (timerState.isRunning) {
       timer.stop();
     } else {
       timer.start(taskId);
@@ -93,6 +97,9 @@ export function TimeLoggingForm({
     }
   };
 
+  // Safely get timer state
+  const timerState = timer?.timer;
+
   return (
     <div className="space-y-4">
       {/* Timer Section */}
@@ -103,7 +110,7 @@ export function TimeLoggingForm({
             Timer
           </h3>
           <div className="text-2xl font-mono font-semibold">
-            {formatTimer(timer.timer.elapsedSeconds)}
+            {formatTimer(timerState?.elapsedSeconds || 0)}
           </div>
         </div>
 
@@ -115,13 +122,13 @@ export function TimeLoggingForm({
             className={`
               flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
               ${
-                timer.timer.isRunning
-                  ? "bg-amber-500 text-white hover:bg-amber-600"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                timerState?.isRunning
+                  ? "bg-muted text-foreground hover:bg-muted/80"
+                  : "bg-accent text-accent-foreground hover:bg-accent-hover"
               }
             `}
           >
-            {timer.timer.isRunning ? (
+            {timerState?.isRunning ? (
               <>
                 <Pause className="w-4 h-4" />
                 Pause
@@ -134,25 +141,25 @@ export function TimeLoggingForm({
             )}
           </motion.button>
 
-          {timer.timer.elapsedSeconds > 0 && (
+          {(timerState?.elapsedSeconds || 0) > 0 && (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleTimerSubmit}
               disabled={isCreating}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+              className="px-4 py-2 bg-accent text-accent-foreground hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               Save
             </motion.button>
           )}
 
-          {timer.timer.elapsedSeconds > 0 && (
+          {(timerState?.elapsedSeconds || 0) > 0 && timer && (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={timer.reset}
-              className="px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              className="px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
             >
               <X className="w-4 h-4" />
             </motion.button>
@@ -179,8 +186,8 @@ export function TimeLoggingForm({
                   px-2 py-2 text-sm rounded-lg border transition-colors
                   ${
                     manualMinutes === duration
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card border-border hover:bg-muted"
+                      ? "bg-accent text-accent-foreground border-accent"
+                      : "bg-card border-border hover:bg-muted text-foreground"
                   }
                 `}
               >
@@ -201,7 +208,7 @@ export function TimeLoggingForm({
               min="1"
               value={manualMinutes || ""}
               onChange={(e) => handleDurationChange(e.target.value)}
-              className="flex-1 px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-3 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent text-foreground"
               placeholder="Enter minutes"
             />
             <span className="text-sm text-muted-foreground">minutes</span>
@@ -217,7 +224,7 @@ export function TimeLoggingForm({
             type="date"
             value={entryDate}
             onChange={(e) => setEntryDate(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent text-foreground"
           />
         </div>
 
@@ -229,7 +236,7 @@ export function TimeLoggingForm({
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            className="w-full px-3 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-accent resize-none text-foreground"
             placeholder="What did you work on?"
             rows={2}
           />
@@ -246,7 +253,7 @@ export function TimeLoggingForm({
               flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
               ${
                 manualMinutes > 0
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  ? "bg-accent text-accent-foreground hover:bg-accent-hover"
                   : "bg-muted text-muted-foreground cursor-not-allowed"
               }
             `}
@@ -261,7 +268,7 @@ export function TimeLoggingForm({
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={onCancel}
-              className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
             >
               Cancel
             </motion.button>

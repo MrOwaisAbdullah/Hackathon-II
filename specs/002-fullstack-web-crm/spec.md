@@ -426,11 +426,13 @@ This section documents the complete user journey from first visit to active usag
 - **FR-005**: System MUST allow users to log out and terminate their session
 
 #### Task Management (Core Hackathon Requirements)
-- **FR-006**: Users MUST be able to create new tasks with at least a title
+- **FR-006**: Users MUST be able to create new tasks with at least a title, description (rich text with markdown support), priority, due date, assignee, and project association
 - **FR-007**: Users MUST be able to view all tasks organized by status (Todo, Doing, Review, Done)
-- **FR-008**: Users MUST be able to update task details (title, description, priority, due date, assignee)
-- **FR-009**: Users MUST be able to delete/archive tasks
-- **FR-010**: Users MUST be able to mark tasks as complete (move to Done status)
+- **FR-008**: Users MUST be able to update task details (title, description with rich text editor, priority, due date, assignee, project)
+- **FR-009**: Users MUST be able to delete/archive tasks via dropdown menu or detail drawer
+- **FR-010**: Users MUST be able to mark tasks as complete (move to Done status) with celebration animation
+- **FR-060**: Task cards MUST display action menu (three-dot menu) with Edit, Archive, and Delete options
+- **FR-061**: Task creation and editing forms MUST include rich text markdown editor with toolbar (bold, italic, headings, lists, links)
 
 #### Task Board & Drag-and-Drop
 - **FR-011**: System MUST display tasks in a Kanban-style board with columns
@@ -469,6 +471,10 @@ This section documents the complete user journey from first visit to active usag
 - **FR-033**: Task cards MUST stagger in when displayed in a list
 - **FR-034**: Layout changes MUST animate smoothly (using layout-aware transitions)
 - **FR-035**: System MUST support keyboard shortcuts (CMD+K for quick actions)
+- **FR-062**: All buttons MUST use standardized CSS variables for consistent theming (--accent, --accent-hover for primary actions)
+- **FR-063**: Dropdown menus and drawer panels MUST display custom lime-themed scrollbars when content overflows
+- **FR-064**: Priority and status badges MUST use theme-aware colors (light/dark mode compatible) with proper contrast
+- **FR-065**: Drag-and-drop operations MUST use synchronous cache updates for immediate visual feedback before API completion
 
 #### Theme Support
 - **FR-050**: System MUST support light and dark color themes
@@ -505,7 +511,7 @@ This section documents the complete user journey from first visit to active usag
 
 - **User**: Represents an individual person with login credentials. Key attributes: email, password (hashed), name, role (admin, member), agency_id.
 
-- **Task**: Represents a unit of work or deliverable. Key attributes: title, description (rich text), status (Todo, Doing, Review, Done), priority (Low, Medium, High), due_date, created_at, updated_at, agency_id, assignee_id (references User).
+- **Task**: Represents a unit of work or deliverable. Key attributes: title, description (rich text with markdown support), status (Todo, Doing, Review, Done), priority (Low, Medium, High), due_date (optional), created_at, updated_at, agency_id, assignee_id (references User, optional), project_id (references Project, optional). Task descriptions support markdown rendering on cards with rich text editing in forms.
 
 - **TimeEntry**: Represents time logged against a task. Key attributes: duration (hours), description, date, task_id, user_id, billable (boolean), hourly_rate.
 
@@ -597,15 +603,28 @@ This specification mandates **Animation-First Design**. Implementers MUST follow
 - High contrast for readability (WCAG AA compliant)
 
 **Color Palette** (BANNED: Generic Purple #8b5cf6, #7c3aed, #a78bfa):
-- **Primary**: Deep Orange (`#f97316`) - Creative energy, industrial warmth, stands out from AI tools
-- **Secondary**: Teal (`#14b8a6`) - Professional balance, complements orange
-- **Accent**: Electric Blue (`#3b82f6`) - Trustworthy tech feel
+- **Primary (Brand)**: Lime Green (`#a3e635` - Lime 400) - Eco-modern theme, vibrant energy, distinctive from AI tools
+- **Secondary**: Deep Black (`#18181b` - Zinc 900) - High contrast, professional
+- **Accent**: Lime Green (`#a3e635` - Lime 400) with hover variant (`#84cc16` - Lime 500)
+- **Backgrounds**: Pure White (light), Zinc 950 (dark)
 - **Success**: Emerald (`#10b981`)
 - **Warning**: Amber (`#f59e0b`)
 - **Error**: Rose (`#f43f5e`)
-- **Neutral Scale**: Slate 50-900 (light mode), Slate 950-50 (dark mode)
+- **Neutral Scale**: Zinc 50-900 (light mode), Zinc 950-50 (dark mode)
 
-**Rationale**: Deep orange evokes creativity and industrial warmth while distinguishing from the overused purple in AI tools. Teal provides professional balance. Electric blue adds trustworthiness for a tech product.
+**CSS Custom Properties**:
+```css
+:root {
+  --brand-primary: 84 100% 59%;      /* Lime Green #a3e635 */
+  --brand-secondary: 240 5.9% 10%;   /* Deep Black #18181b */
+  --accent: 83, 78%, 56%;             /* Lime 400 */
+  --accent-hover: 83, 78%, 45%;       /* Lime 500 - for hover states */
+  --background: 0 0% 100%;           /* White */
+  --foreground: 240 10% 3.9%;        /* Zinc 950 */
+}
+```
+
+**Rationale**: Lime green provides an eco-modern aesthetic that stands out from traditional corporate tools while maintaining professionalism. The high-contrast black & white foundation ensures excellent readability and WCAG AA compliance. The lime accent color is used sparingly for CTAs and interactive elements to create visual hierarchy.
 
 ### Phase 3: Implementation Rules
 

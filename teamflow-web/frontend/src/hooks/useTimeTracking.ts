@@ -226,14 +226,15 @@ export function useTimeTracking(taskId?: string) {
   // Submit timer as time entry
   const submitTimerEntry = useCallback(
     async (note?: string) => {
-      if (!timer.timer.taskId || timer.timer.elapsedSeconds === 0) {
+      const timerState = timer.timer;
+      if (!timerState.taskId || timerState.elapsedSeconds === 0) {
         throw new Error("No timer running or elapsed time is zero");
       }
 
-      const durationMinutes = Math.ceil(timer.timer.elapsedSeconds / 60);
+      const durationMinutes = Math.ceil(timerState.elapsedSeconds / 60);
 
       await timeEntries.createTimeEntry({
-        task_id: timer.timer.taskId,
+        task_id: timerState.taskId,
         duration_minutes: durationMinutes,
         note,
       });

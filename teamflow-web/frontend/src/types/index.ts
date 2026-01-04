@@ -28,6 +28,8 @@ export enum TaskPriority {
 /** Project status */
 export enum ProjectStatus {
   ACTIVE = "active",
+  ON_HOLD = "on_hold",
+  COMPLETED = "completed",
   ARCHIVED = "archived",
 }
 
@@ -49,6 +51,12 @@ export interface User {
   agency_id: UUID;
   created_at: string;
   updated_at: string | null;
+  // Phase 10: User management fields
+  active: boolean;
+  is_project_manager: boolean;
+  password_expires_at: string | null;
+  must_change_password: boolean;
+  temp_password?: string; // Only shown on create for admins
 }
 
 /** Project entity */
@@ -72,9 +80,13 @@ export interface Task {
   project_id: UUID;
   agency_id: UUID;
   assignee_id: UUID | null;
+  due_date?: string;
   created_at: string;
   updated_at: string | null;
   archived_at: string | null;
+  // Populated relations (from API includes)
+  assignee?: User;
+  project?: Project;
 }
 
 /** Time entry entity */
@@ -117,3 +129,43 @@ export interface DashboardStats {
   total_projects: number;
   total_members: number;
 }
+
+// ============ PHASE 10: USER CRUD TYPES (T235-T237) ============
+
+/** User creation request */
+export interface UserCreate {
+  name: string;
+  email: string;
+  role: UserRole;
+  is_project_manager?: boolean; // Optional: admin-only checkbox
+}
+
+/** User update request */
+export interface UserUpdate {
+  name?: string;
+  email?: string;
+  role?: UserRole;
+  is_project_manager?: boolean;
+}
+
+/** User read response with temp password (shown only on create) */
+export interface UserReadWithTempPassword extends User {
+  temp_password?: string; // Only populated on create
+}
+
+// ============ PHASE 10: PROJECT CRUD TYPES (T238-T239) ============
+
+/** Project creation request */
+export interface ProjectCreate {
+  name: string;
+  description?: string;
+  status?: ProjectStatus;
+}
+
+/** Project update request */
+export interface ProjectUpdate {
+  name?: string;
+  description?: string;
+  status?: ProjectStatus;
+}
+

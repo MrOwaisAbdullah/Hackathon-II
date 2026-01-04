@@ -1,782 +1,1440 @@
-# Implementation Plan: TeamFlow Web (Phase 2 - Full-Stack Agency CRM)
+# Implementation Plan: TeamFlow Complete Dashboard Workflow (Phase 2 Improvement)
 
-**Branch**: `002-fullstack-web-crm` | **Date**: 2025-01-29 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/002-fullstack-web-crm/spec.md`
-
-**Note**: This template is filled in by the `/sp.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `002-fullstack-web-crm` | **Date**: 2026-01-03 | **Spec**: [spec-phase2-complete-workflow.md](./spec-phase2-complete-workflow.md)
+**Input**: Feature specification for complete dashboard workflow - add projects, teams, settings, full CRUD functionality.
 
 ## Summary
 
-TeamFlow Phase 2 transforms the CLI-based task management tool into a **full-stack web application** designed for creative agencies (10-50 team members). The application provides a Kanban-style task board with drag-and-drop, real-time collaboration (10s polling), team assignment, time tracking, and profitability reporting.
+This plan implements **missing CRUD functionality** for the Phase 2 web application to complete the end-to-end agency workflow. The foundation exists (authentication, task board, dashboard analytics), but critical user-facing workflows are incomplete:
+- **Backend**: User management endpoints missing (POST, PATCH, DELETE for `/api/v1/users`)
+- **Frontend**: Project CRUD forms missing
+- **Frontend**: Team CRUD forms missing
+- **Navigation**: Archive link missing from sidebar
+- **Mobile**: Dashboard and board views need mobile optimization
 
-**Technical Approach**: Next.js 16 (App Router) frontend with Motion.dev animations, FastAPI backend with SQLModel/Neon PostgreSQL, Better Auth for JWT authentication with multi-tenant agency isolation.
-
----
+This improvement adds full Create, Read, Update, Delete operations for **Team Management** and **Project Management**, enabling the complete agency workflow from onboarding team members to organizing projects and tracking deliverables.
 
 ## Technical Context
 
-**Language/Version**:
-- Frontend: TypeScript 5.8+ (Next.js 16)
-- Backend: Python 3.13+ (FastAPI 0.115+)
-
+**Language/Version**: Python 3.13+ (backend), TypeScript 5.8+ (frontend)
 **Primary Dependencies**:
-- Frontend: Next.js 16, React Query, Zustand, Motion.dev (Framer Motion), @dnd-kit, Shadcn UI, Tailwind CSS
-- Backend: FastAPI, SQLModel, Better Auth, uvicorn
-- Database: Neon PostgreSQL (Serverless)
-
-**Storage**:
-- Neon PostgreSQL (Serverless PostgreSQL)
-- Table structure: Agency, User, Project, Task, TimeEntry
-- Multi-tenant isolation via agency_id foreign key
-
-**Testing**:
-- Backend: pytest, pytest-cov, httpx (for FastAPI testing)
-- Frontend: vitest, @testing-library/react, @testing-library/user-event
-- E2E: Playwright (for critical user journeys)
-
-**Target Platform**:
-- Frontend: Modern browsers (Chrome, Firefox, Safari, Edge) - last 2 versions
-- Backend: Linux server (container-ready for K8s deployment)
-- Mobile responsive: 320px minimum width
-
-**Project Type**: web (full-stack with separate frontend/backend)
-
-**Performance Goals**:
-- API endpoints: < 200ms p95
-- Dashboard load: < 2s LCP
-- Task board animations: 60fps
-- Drag-and-drop latency: < 500ms end-to-end
-- Polling for updates: every 10 seconds
-
+  - Backend: FastAPI 0.115+, SQLModel 0.15+, Neon PostgreSQL, python-jose, bcrypt
+  - Frontend: Next.js 16 (App Router), Motion.dev (Framer Motion v11+), @dnd-kit/core, React Query, Shadcn UI
+**Storage**: Neon Serverless PostgreSQL (multi-tenant via agency_id scoping)
+**Testing**: pytest (backend), vitest + @testing-library/react (frontend), Playwright (E2E)
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge last 2 versions) + Mobile (320px+)
+**Project Type**: Full-stack web application (backend + frontend)
+**Performance Goals**: API < 200ms p95, Dashboard LCP < 1.5s, Drag-and-drop < 500ms
 **Constraints**:
-- LCP must be under 1.5 seconds
-- Must support 50 concurrent users without degradation
-- Task board renders smoothly with 100+ tasks per column
-- All animations must complete within 400ms
-- WCAG AA accessibility compliance required
-
-**Scale/Scope**:
-- 2-50 team members per agency
-- Support 10+ concurrent agencies
-- 100+ tasks per column on task board
-- 47 functional requirements across 6 feature areas
-
----
+  - Multi-tenancy required (agency_id isolation)
+  - Mobile-responsive (320px minimum width)
+  - Touch targets >= 44x44px
+  - SSR-safe patterns (Next.js 16 App Router)
+**Scale/Scope**: 2-50 person agencies, 10-500 tasks, 5-50 projects per agency
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-### Principle Compliance Check
+*GATE: Must pass before Phase 0 research. Re-checked after Phase 1 design.*
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| **I. Specialized Agents & Skills First** | ✅ PASS | Will use `better-auth-specialist` for auth, `frontend-designer` for UI components |
-| **II. SOLID Principles** | ✅ PASS | Service layer separation, repository pattern, protocol-based interfaces |
-| **III. DRY** | ✅ PASS | Shared utilities in `/backend/shared/` and `/frontend/lib/` |
-| **IV. TDD** | ✅ PASS | Unit tests (80%+ coverage), integration tests, E2E tests required |
-| **V. Spec-Driven Development** | ✅ PASS | Spec already created via `/sp.specify` |
-| **VI. Type Safety** | ✅ PASS | Python: Pydantic + type hints; TypeScript: strict mode |
-| **VII. Security** | ✅ PASS | JWT auth, agency_id scoping, input validation on all endpoints |
-| **VIII. Performance** | ✅ PASS | Targets defined (200ms API, 2s LCP, 60fps animations) |
-| **IX. Code Style** | ✅ PASS | Black/isort/pylint (Python), ESLint/Prettier (TS) |
-| **X. MCP Integration** | ✅ PASS | context7 for docs, github for repo, chrome-devtools for testing |
-| **XI. Skill Refinement** | ✅ PASS | Errors documented in skills as encountered |
-| **XII. Documentation Lookup** | ✅ PASS | context7 MCP used before implementation |
+| I. Specialized Agents & Skills First | ✅ PASS | Will use `nextjs-frontend-architect` agent for ALL frontend tasks. Backend agents checked: none applicable for basic CRUD. |
+| II. SOLID Principles | ✅ PASS | Service layer pattern (`UserService`, `ProjectService`) enforces SRP. Dependency injection via FastAPI `Depends`. |
+| III. DRY | ✅ PASS | Shared utilities in `/lib/` (frontend), `/core/` (backend). Shadcn components reused. |
+| IV. TDD | ✅ PASS | Tests will be written before implementation: contract tests for API, integration tests for workflows. |
+| V. Spec-Driven Development | ✅ PASS | This plan follows `/sp.specify` → `/sp.plan` → `/sp.tasks` workflow. |
+| VI. Type Safety | ✅ PASS | Python type hints enforced, TypeScript strict mode enabled. Pydantic for all API models. |
+| VII. Security | ✅ PASS | JWT authentication, agency_id scoping, rate limiting on auth endpoints, bcrypt password hashing. |
+| VIII. Performance | ✅ PASS | Code splitting (dynamic imports), GZip middleware, 10s polling (not WebSockets), pagination for lists. |
+| IX. Code Style | ✅ PASS | Black/isort (Python), ESLint/Prettier (TypeScript). |
+| X. MCP Integration | ✅ PASS | context7 will be used for docs: `/fastapi/fastapi`, `/vercel/next.js`, `/websites/dndkit`, `/websites/motion-dev-docs`. |
+| XI. Skill Refinement | ✅ PASS | Errors and solutions will be documented in relevant skills. |
+| XII. Documentation Lookup | ✅ PASS | All library docs will be fetched via context7 before implementation. |
 
-### Phase II Constraints (Constitution)
-
-| Requirement | Status | Notes |
-|-------------|--------|-------|
-| Better Auth + JWT required | ✅ PLANNED | Using `better-auth-specialist` agent |
-| Neon PostgreSQL required | ✅ PLANNED | SQLModel with Neon Serverless |
-| RESTful API documentation | ✅ PLANNED | OpenAPI spec generated via FastAPI |
-
----
-
-**GATE STATUS**: ✅ PASS - All constitution requirements satisfied. Proceeding to Phase 0.
+**All gates passed.** Proceeding with Phase 0 research.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/sp.plan command output)
-├── research.md          # Phase 0 output (/sp.plan command)
-├── data-model.md        # Phase 1 output (/sp.plan command)
-├── quickstart.md        # Phase 1 output (/sp.plan command)
-├── contracts/           # Phase 1 output (/sp.plan command)
-└── tasks.md             # Phase 2 output (/sp.tasks command - NOT created by /sp.plan)
+specs/002-fullstack-web-crm/
+├── spec.md                      # Original Phase 2 spec
+├── spec-phase2-complete-workflow.md  # Phase 2 improvement spec (this plan's input)
+├── plan.md                      # This file (/sp.plan command output)
+├── research.md                  # Phase 0 output (research findings)
+├── data-model.md                # Phase 1 output (entity definitions)
+├── quickstart.md                # Phase 1 output (developer setup)
+├── contracts/                   # Phase 1 output (OpenAPI specs)
+│   └── openapi.yaml             # Complete API contract
+├── AGENT_CONTEXT.md             # Agent-specific context (updated after Phase 1)
+└── tasks.md                     # Phase 2 output (/sp.tasks - not in scope for this command)
 ```
 
 ### Source Code (repository root)
 
 ```text
-# TeamFlow Phase 2: Full-Stack Web Application Structure
-backend/                          # FastAPI + SQLModel + Neon PostgreSQL
-├── src/
-│   ├── api/                      # FastAPI route handlers
-│   │   ├── __init__.py
-│   │   ├── auth.py              # JWT verification, agency scoping
-│   │   ├── tasks.py             # Task CRUD endpoints
-│   │   ├── projects.py          # Project management
-│   │   ├── users.py             # Team member management
-│   │   ├── time_entries.py      # Time tracking endpoints
-│   │   └── agencies.py          # Agency administration
-│   ├── core/                     # Core application logic
-│   │   ├── __init__.py
-│   │   ├── config.py            # Environment variables, settings
-│   │   ├── security.py          # JWT verification, password hashing
-│   │   └── middleware.py        # Agency scoping middleware
-│   ├── models/                   # SQLModel database models
-│   │   ├── __init__.py
-│   │   ├── agency.py            # Agency (tenant) entity
-│   │   ├── user.py              # User (team member) entity
-│   │   ├── project.py           # Project entity
-│   │   ├── task.py              # Task entity with status
-│   │   └── time_entry.py        # Time tracking entity
-│   ├── schemas/                  # Pydantic schemas for API
-│   │   ├── __init__.py
-│   │   ├── auth.py              # Login, register response models
-│   │   ├── task.py              # Task request/response models
-│   │   ├── project.py           # Project request/response models
-│   │   └── time_entry.py        # Time entry models
-│   ├── services/                 # Business logic layer
-│   │   ├── __init__.py
-│   │   ├── auth_service.py      # Authentication, agency creation
-│   │   ├── task_service.py      # Task CRUD, assignment logic
-│   │   ├── project_service.py   # Project management
-│   │   └── analytics_service.py # Profitability calculations
-│   ├── db/                       # Database session management
-│   │   ├── __init__.py
-│   │   ├── session.py           # Neon PostgreSQL connection
-│   │   └── init_db.py           # Database initialization
-│   └── main.py                   # FastAPI application entry point
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py              # Pytest fixtures
-│   ├── unit/                    # Unit tests for services
-│   │   ├── test_auth_service.py
-│   │   ├── test_task_service.py
-│   │   └── test_analytics.py
-│   ├── integration/             # API endpoint tests
-│   │   ├── test_tasks_api.py
-│   │   ├── test_auth_api.py
-│   │   └── test_projects_api.py
-│   └── contract/                # Contract tests for API spec
-│       └── test_openapi_spec.py
-├── pyproject.toml               # Python project config
-├── .env.example                 # Environment variables template
-└── README.md
-
-frontend/                         # Next.js 16 + Motion.dev + Shadcn UI
-├── src/
-│   ├── app/                     # Next.js App Router
-│   │   ├── layout.tsx           # Root layout with providers
-│   │   ├── page.tsx             # Landing page
-│   │   ├── dashboard/           # Dashboard pages
-│   │   │   ├── layout.tsx       # Dashboard layout
-│   │   │   └── page.tsx         # Dashboard home
-│   │   ├── projects/            # Project routes
-│   │   │   └── [id]/            # Dynamic project pages
-│   │   │       └── page.tsx
-│   │   ├── auth/                # Authentication routes
-│   │   │   ├── login/
-│   │   │   │   └── page.tsx
-│   │   │   └── register/
-│   │   │       └── page.tsx
-│   │   └── api/                 # Next.js API routes (proxy)
-│   │       └── [...].tsx        # Catch-all proxy to backend
-│   ├── components/              # React components
-│   │   ├── ui/                  # Shadcn UI components
-│   │   ├── board/               # Kanban board components
-│   │   │   ├── TaskBoard.tsx    # Main board with dnd-kit
-│   │   │   ├── TaskColumn.tsx   # Column component
-│   │   │   ├── TaskCard.tsx     # Draggable task card
-│   │   │   └── DropZone.tsx     # Drop target
-│   │   ├── dashboard/           # Dashboard components
-│   │   │   ├── StatCard.tsx     # Animated stat cards
-│   │   │   └── ProjectList.tsx  # Project grid
-│   │   ├── task/                # Task-related components
-│   │   │   ├── TaskDrawer.tsx   # Side drawer for task details
-│   │   │   ├── TaskForm.tsx     # Create/edit task form
-│   │   │   └── AssigneeAvatar.tsx # User assignment chips
-│   │   └── auth/                # Auth components
-│   │       ├── LoginForm.tsx
-│   │       └── RegisterForm.tsx
-│   ├── lib/                     # Shared utilities
-│   │   ├── api.ts               # API client (fetch wrapper)
-│   │   ├── query.ts             # React Query hooks
-│   │   ├── store.ts             # Zustand client state
-│   │   └── utils.ts             # Common utilities
-│   ├── hooks/                   # Custom React hooks
-│   │   ├── useTaskBoard.ts      # Task board state + dnd-kit
-│   │   ├── useTimeTracking.ts   # Timer state
-│   │   └── useAuth.ts           # Auth state
-│   ├── types/                   # TypeScript types
-│   │   ├── task.ts
-│   │   ├── project.ts
-│   │   └── user.ts
-│   └── styles/                  # Global styles
-│       └── globals.css          # Tailwind directives
-├── tests/
-│   ├── unit/                   # Vitest unit tests
-│   │   ├── TaskCard.test.tsx
-│   │   └── useTaskBoard.test.ts
-│   ├── integration/            # Component integration tests
-│   │   └── TaskBoard.test.tsx
-│   └── e2e/                    # Playwright E2E tests
-│       ├── auth.spec.ts
-│       ├── task-board.spec.ts
-│       └── drag-drop.spec.ts
-├── public/                      # Static assets
-├── next.config.js              # Next.js configuration
-├── tailwind.config.ts          # Tailwind CSS + custom theme
-├── tsconfig.json               # TypeScript config (strict mode)
-├── package.json                # Dependencies
-└── README.md
+teamflow-web/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── endpoints/
+│   │   │       ├── users.py      # TO MODIFY: Add POST, PATCH, DELETE
+│   │   │       ├── projects.py   # EXISTS: GET already, verify CRUD
+│   │   │       └── auth.py       # EXISTS: Login, register
+│   │   ├── core/
+│   │   │   ├── config.py         # EXISTS: Settings, environment
+│   │   │   ├── security.py       # EXISTS: JWT, password hashing
+│   │   │   ├── deps.py           # EXISTS: CurrentUser, SessionDep
+│   │   │   ├── logging.py        # EXISTS: Structured logging
+│   │   │   └── rate_limit.py     # EXISTS: Rate limiting middleware
+│   │   ├── models/
+│   │   │   ├── user.py           # TO MODIFY: Add UserUpdate, PM fields
+│   │   │   ├── task.py           # EXISTS: Task model
+│   │   │   └── project.py        # EXISTS: Project model
+│   │   ├── services/
+│   │   │   ├── user_service.py   # TO MODIFY: Add create, update, delete
+│   │   │   └── auth_service.py   # EXISTS: Authentication logic
+│   │   └── main.py               # EXISTS: FastAPI app setup
+│   ├── alembic/
+│   │   └── versions/
+│   │       └── 005_add_user_management_fields.py  # TO CREATE: Migration for new User fields
+│   └── tests/
+│       ├── contract/
+│       │   └── test_users_contract.py  # TO CREATE: OpenAPI validation
+│       └── integration/
+│           └── test_users_api.py        # TO CREATE: User CRUD tests
+│
+└── frontend/
+    └── src/
+        ├── app/
+        │   ├── (auth)/            # Public pages (exists)
+        │   │   ├── login/
+        │   │   └── register/
+        │   ├── (main)/            # Protected pages
+        │   │   ├── dashboard/
+        │   │   │   └── page.tsx   # TO MODIFY: Responsive grid
+        │   │   ├── projects/
+        │   │   │   └── page.tsx   # TO MODIFY: Add CRUD UI
+        │   │   ├── team/
+        │   │   │   └── page.tsx   # TO MODIFY: Add CRUD UI
+        │   │   ├── archive/
+        │   │   │   └── page.tsx   # EXISTS: Archive page
+        │   │   └── layout.tsx     # TO MODIFY: Add mobile nav
+        │   ├── globals.css        # EXISTS: Theme CSS variables
+        │   └── api/               # API proxy routes
+        ├── components/
+        │   ├── dashboard/
+        │   │   ├── Sidebar.tsx    # TO MODIFY: Mobile drawer, Archive link
+        │   │   ├── StatCard.tsx   # EXISTS: Stats display
+        │   │   └── MobileNav.tsx  # TO CREATE: Hamburger + drawer
+        │   ├── project/
+        │   │   ├── ProjectForm.tsx  # TO CREATE: Create/edit modal
+        │   │   └── ProjectCard.tsx  # TO CREATE: Project card with actions
+        │   ├── team/
+        │   │   ├── UserForm.tsx     # TO CREATE: Add/edit user modal
+        │   │   └── UserCard.tsx     # TO CREATE: User card with actions
+        │   ├── ui/                 # Shadcn components (exist)
+        │   └── board/              # Task board components (exist)
+        ├── lib/
+        │   ├── api.ts              # EXISTS: API client
+        │   ├── query.ts            # TO MODIFY: Add user/project mutations
+        │   ├── permissions.ts      # TO CREATE: Permission hooks
+        │   └── utils.ts            # EXISTS: Utility functions
+        ├── hooks/
+        │   ├── useTasks.ts         # EXISTS: Task hooks
+        │   ├── useProjects.ts      # TO MODIFY: Add mutations
+        │   └── useUsers.ts         # TO CREATE: User CRUD hooks
+        └── types/
+            └── index.ts            # TO MODIFY: Add UserUpdate, Project types
 ```
 
-**Structure Decision**: This is a **full-stack web application** with clear separation between backend (FastAPI) and frontend (Next.js). The backend follows a layered architecture (API → Services → Models) with SOLID principles. The frontend uses Next.js 16 App Router with component colocation and feature-based organization (board/, dashboard/, task/). Both backend and frontend have their own test suites with unit/integration/e2e levels.
+**Structure Decision**: Web application (Option 2) with separate backend/frontend directories. Backend follows FastAPI best practices with `/app/` structure (not `/src/`). Frontend uses Next.js 16 App Router with route groups `(auth)` and `(main)` for public/protected pages.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| N/A | No constitution violations | All principles satisfied |
+> **No constitution violations requiring justification.** All complexity is justified by spec requirements:
+> - User CRUD is required for team management (FR-001 through FR-008-A)
+> - Project CRUD is required for project organization (FR-009 through FR-015)
+> - Mobile responsiveness is required for SC-009 and FR-009
+> - Permission model (is_project_manager) is required by clarifications
 
 ---
 
-## Architecture Design
+## Phase 0: Research & Technical Decisions
+
+This section documents research findings and technical decisions for all unknowns identified in the Technical Context.
+
+### Research Topics
+
+The following technical areas required investigation:
+
+1. **User Model Extensions**: Password expiration, temporary password handling, soft delete patterns
+2. **Permission Model**: is_project_manager flag access control
+3. **Mobile Navigation Patterns**: Hamburger menu, slide-in drawer, backdrop handling
+4. **Dialog Mobile Patterns**: Full-screen modals on small screens
+5. **Audit Logging**: Existing log_api_call pattern for user CRUD
+6. **Rate Limiting**: Existing patterns for user management endpoints
+
+### Research Findings
+
+#### 1. User Model Extensions
+
+**Decision**: Add four new fields to User model
+- `active: bool` (default=True) for soft delete
+- `is_project_manager: bool` (default=False) for project permissions
+- `password_expires_at: Optional[datetime]` for temporary password expiration
+- `must_change_password: bool` (default=False) for first-login enforcement
+
+**Rationale**:
+- Soft delete pattern preserves data integrity (tasks remain assigned to deleted users in audit trail)
+- PM flag enables granular permissions without complex role systems
+- Password expiration addresses security requirement from clarifications
+
+**Alternatives Considered**:
+- Hard delete: Rejected (breaks task assignee references)
+- Complex role system: Rejected (overkill for hackathon scope)
+- Password expiration via middleware: Rejected (requires DB access on every request)
+
+#### 2. Permission Model
+
+**Decision**: Boolean flag `is_project_manager` with admin-only control
+
+**Pattern**:
+```python
+# Backend: Enforce in endpoint
+if update_data.get('is_project_manager'):
+    if current_user.role != UserRole.admin:
+        raise HTTPException(403, "Only admins can modify project manager status")
+
+# Frontend: Hide checkbox from non-admins
+{current_user.role === 'admin' && (
+  <Checkbox name="is_project_manager" />
+)}
+```
+
+**Rationale**: Simple, easy to understand, sufficient for agency size (2-50 people)
+
+**Alternatives Considered**:
+- RBAC with complex permissions: Rejected (over-engineering)
+- Team-based permissions: Rejected (adds complexity without clear benefit)
+- Anyone can be PM: Rejected (violates clarification requirement)
+
+#### 3. Mobile Navigation Patterns
+
+**Decision**: Hamburger menu + Sheet component (Shadcn) with backdrop
+
+**Pattern**:
+```tsx
+// Hamburger button (md: breakpoint)
+<Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)}>
+  <Menu className="h-6 w-6" />
+</Button>
+
+// Sheet for drawer
+<Sheet open={open} onOpenChange={setOpen}>
+  <SheetContent side="left" className="w-64 sidebar-dark">
+    <nav> {/* Navigation links */} </nav>
+  </SheetContent>
+</Sheet>
+```
+
+**Rationale**:
+- Shadcn Sheet component provides consistent UX
+- `.sidebar-dark` utility ensures permanent dark sidebar (brand consistency)
+- Auto-close on route change prevents confusion
+
+**Alternatives Considered**:
+- Custom drawer implementation: Rejected (reinventing wheel)
+- Bottom navigation bar: Rejected (considered for Phase 3, not in current scope)
+- Always-visible sidebar on mobile: Rejected (insufficient screen space)
+
+#### 4. Dialog Mobile Patterns
+
+**Decision**: Full-screen modals on mobile (< 640px), centered modals on desktop
+
+**Pattern**:
+```tsx
+<DialogContent className="
+  fixed inset-0 m-0 h-full w-full rounded-none
+  sm:max-w-md sm:h-auto sm:rounded-lg sm:p-6
+">
+  {/* Form content */}
+</DialogContent>
+```
+
+**Rationale**:
+- Full-screen on mobile maximizes usable space
+- Centered modal on desktop follows established patterns
+- Responsive classes handle breakpoint automatically
+
+**Alternatives Considered**:
+- Bottom sheet on mobile: Rejected (adds complexity, Sheet component already used for nav)
+- Always centered: Rejected (poor UX on small screens)
+- Separate mobile pages: Rejected (duplication, harder to maintain)
+
+#### 5. Audit Logging
+
+**Decision**: Use existing `log_api_call` pattern from `app.core.logging`
+
+**Pattern**:
+```python
+from app.core.logging import log_api_call, get_logger
+
+logger = get_logger(__name__)
+log_api_call(
+    logger,
+    "POST /api/v1/users",
+    "user_created",
+    user_id=str(current_user.id),
+    target_user_id=str(new_user.id)
+)
+```
+
+**Rationale**:
+- Consistent with existing patterns (T155)
+- No new infrastructure required
+- Structured JSON logs in production
+
+**Alternatives Considered**:
+- Separate audit table: Rejected (adds complexity, not required by spec)
+- Third-party audit service: Rejected (overkill for current scope)
+- No audit logging: Rejected (violates FR-034 through FR-036)
+
+#### 6. Rate Limiting
+
+**Decision**: Use existing `check_rate_limit` function with in-memory sliding window
+
+**Pattern**:
+```python
+from app.core.rate_limit import check_rate_limit
+
+@router.post("/users")
+def create_user(
+    user_data: UserCreate,
+    request: Request,
+    current_user: CurrentUser,
+):
+    check_rate_limit(request, "user_create")
+    # ... endpoint logic
+```
+
+**Limits**:
+- `user_create`: 10/hour per agency
+- `user_update`: 30/hour per agency
+- `user_delete`: 10/hour per agency
+
+**Rationale**:
+- Consistent with existing auth endpoint rate limiting (T163)
+- Prevents abuse while allowing legitimate bulk operations
+- In-memory is sufficient for single-server deployment
+
+**Alternatives Considered**:
+- Redis-based rate limiting: Rejected (adds infrastructure dependency)
+- No rate limiting: Rejected (security risk)
+- Per-user limits: Rejected (too restrictive for team collaboration)
+
+### Migration Strategy
+
+**Alembic Migration**: `005_add_user_management_fields.py`
+
+```python
+from alembic import op
+import sqlalchemy as sa
+from datetime import datetime
+
+def upgrade():
+    # Add new columns to users table
+    op.add_column('users', sa.Column('active', sa.Boolean(), nullable=False, server_default='true'))
+    op.add_column('users', sa.Column('is_project_manager', sa.Boolean(), nullable=False, server_default='false'))
+    op.add_column('users', sa.Column('password_expires_at', sa.DateTime(), nullable=True))
+    op.add_column('users', sa.Column('must_change_password', sa.Boolean(), nullable=False, server_default='false'))
+
+    # Create index on active for filtering
+    op.create_index('ix_users_active', 'users', ['active'])
+
+def downgrade():
+    op.drop_index('ix_users_active', 'users')
+    op.drop_column('users', 'must_change_password')
+    op.drop_column('users', 'password_expires_at')
+    op.drop_column('users', 'is_project_manager')
+    op.drop_column('users', 'active')
+```
+
+---
+
+## Phase 1: Data Model & API Contracts
+
+This section defines the data entities and API contracts for the Phase 2 improvement.
+
+### Data Model Additions
+
+#### User Entity Extensions
+
+**Existing Fields** (from spec.md):
+```python
+class User(SQLModel, table=True):
+    id: UUID
+    email: EmailStr
+    name: str
+    hashed_password: str
+    role: UserRole  # admin, member, client
+    agency_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+```
+
+**New Fields** (Phase 2):
+```python
+# Phase 2: Soft delete and project management fields
+active: bool = Field(default=True, index=True)
+is_project_manager: bool = Field(default=False)
+password_expires_at: Optional[datetime] = Field(default=None)
+must_change_password: bool = Field(default=False)
+```
+
+#### Schemas
+
+**UserCreate** (existing, enhanced):
+```python
+class UserCreate(SQLModel):
+    email: EmailStr
+    name: str = Field(min_length=1, max_length=100)
+    password: Optional[str] = Field(None, min_length=8)  # Optional for auto-generation
+    role: UserRole = Field(default=UserRole.member)
+    is_project_manager: bool = Field(default=False)  # NEW
+```
+
+**UserUpdate** (NEW):
+```python
+class UserUpdate(SQLModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None
+    is_project_manager: Optional[bool] = None  # Admin-only
+    # Password changes handled separately (not in this workflow)
+```
+
+**UserRead** (existing, enhanced):
+```python
+class UserRead(SQLModel):
+    id: UUID
+    email: EmailStr
+    name: str
+    role: UserRole
+    agency_id: UUID
+    active: bool  # NEW
+    is_project_manager: bool  # NEW
+    created_at: datetime
+    updated_at: Optional[datetime]
+```
+
+**UserReadWithTempPassword** (NEW - for create response):
+```python
+class UserReadWithTempPassword(UserRead):
+    temporary_password: str  # Only shown on creation to admin
+```
+
+### API Endpoints
+
+#### User Management Endpoints
+
+**POST /api/v1/users** - Create team member
+```yaml
+post:
+  summary: Create a new team member
+  tags: [users]
+  security:
+    - BearerAuth: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              minLength: 1
+              maxLength: 100
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+              enum: [admin, member, client]
+              default: member
+          required: [name, email]
+  responses:
+    '201':
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserReadWithTempPassword'
+      description: User created with temporary password
+    '400':
+      description: Validation error or email already exists
+    '403':
+      description: Insufficient permissions (non-admin)
+```
+
+**PATCH /api/v1/users/{user_id}** - Update team member
+```yaml
+patch:
+  summary: Update team member details
+  tags: [users]
+  security:
+    - BearerAuth: []
+  parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/UserUpdate'
+  responses:
+    '200':
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserRead'
+    '400':
+      description: Validation error
+    '403':
+      description: Insufficient permissions (non-admin or modifying PM flag)
+    '404':
+      description: User not found
+```
+
+**DELETE /api/v1/users/{user_id}** - Soft delete team member
+```yaml
+delete:
+  summary: Soft delete a team member
+  tags: [users]
+  security:
+    - BearerAuth: []
+  parameters:
+    - name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '204':
+      description: User soft deleted successfully
+    '400':
+      description: Cannot delete last admin
+    '403':
+      description: Insufficient permissions (non-admin)
+    '404':
+      description: User not found
+```
+
+#### Project Management Endpoints (Verify Existence)
+
+**Existing endpoints to verify**:
+- `POST /api/v1/projects` - Should exist, verify if not
+- `PATCH /api/v1/projects/{project_id}` - Should exist, verify if not
+- `DELETE /api/v1/projects/{project_id}` - Should exist, verify if not
+
+### Frontend Data Structures
+
+#### Types
+
+```typescript
+// types/index.ts - Additions
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'member' | 'client';
+  agency_id: string;
+  active: boolean;
+  is_project_manager: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface UserCreate {
+  name: string;
+  email: string;
+  role: 'admin' | 'member' | 'client';
+  is_project_manager?: boolean;
+}
+
+export interface UserUpdate {
+  name?: string;
+  email?: string;
+  role?: 'admin' | 'member' | 'client';
+  is_project_manager?: boolean;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'on-hold' | 'completed';
+  agency_id: string;
+  created_at: string;
+  updated_at?: string;
+  // Computed
+  task_count?: number;
+}
+
+export interface ProjectCreate {
+  name: string;
+  description?: string;
+  status?: 'active' | 'on-hold' | 'completed';
+}
+
+export interface ProjectUpdate {
+  name?: string;
+  description?: string;
+  status?: 'active' | 'on-hold' | 'completed';
+}
+```
+
+---
+
+## Implementation Architecture
 
 ### Backend Architecture
 
-#### Layered Architecture Pattern
-
+**Layer Structure**:
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    API Layer                            │
-│  (FastAPI Route Handlers - /api/tasks, /api/auth)      │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Service Layer                          │
-│  (Business Logic - TaskService, AuthService)           │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Data Layer                             │
-│  (SQLModel - Task, User, Project entities)             │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              Neon PostgreSQL                            │
-└─────────────────────────────────────────────────────────┘
+Request → Router → Endpoint → Service → Model → Database
+                ↓
+            Middleware (Auth, Rate Limit, Logging)
 ```
 
-#### Dependency Injection Flow
-
+**Service Layer Pattern**:
 ```python
-# 1. Request arrives
-POST /api/tasks
+# app/services/user_service.py
 
-# 2. JWT Middleware verifies token
-#    Extracts agency_id, user_id
+class UserService:
+    def create_user(
+        self,
+        user_data: UserCreate,
+        agency_id: UUID,
+        session: Session,
+        admin_id: UUID  # For audit logging
+    ) -> User:
+        """Create user with auto-generated temp password."""
+        pass
 
-# 3. Route handler receives dependencies
-def create_task(
-    task: TaskCreate,           # Pydantic validation
-    session: SessionDep,        # DB session
-    current_user: CurrentUser   # JWT claims
-):
-    # 4. Delegates to service
-    service = TaskService(session)
-    return service.create_task(task, current_user.agency_id)
+    def update_user(
+        self,
+        user_id: UUID,
+        updates: UserUpdate,
+        agency_id: UUID,
+        admin_id: UUID,  # For permission check
+        session: Session
+    ) -> User:
+        """Update user with PM permission enforcement."""
+        pass
 
-# 5. Service handles business logic
-class TaskService:
-    def create_task(self, data, agency_id):
-        task = Task(**data.model_dump(), agency_id=agency_id)
-        session.add(task)
-        session.commit()
-        return task
+    def delete_user(
+        self,
+        user_id: UUID,
+        agency_id: UUID,
+        admin_id: UUID,  # For last-admin check
+        session: Session
+    ) -> None:
+        """Soft delete user and unassign tasks."""
+        pass
 ```
 
-#### Middleware Stack
+**Dependency Injection**:
+```python
+# app/core/deps.py (existing)
 
-1. **CORSMiddleware**: Handles CORS for frontend origin
-2. **JWTMiddleware**: Verifies JWT, extracts claims
-3. **AgencyScopingMiddleware**: Ensures agency_id present in JWT
-4. **ErrorHandlingMiddleware**: Catches exceptions, returns 500
-
----
+SessionDep = Annotated[Session, Depends(get_session)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+```
 
 ### Frontend Architecture
 
-#### Component Hierarchy
-
+**Component Hierarchy**:
 ```
-App Router (app/)
-│
-├── Root Layout
-│   ├── React Query Provider
-│   ├── Zustand Provider
-│   └── Theme Provider (with ThemeContext)
-│
-├── Dashboard Layout
-│   ├── Sidebar (collapsible with localStorage persistence)
-│   │   ├── Collapse/Expand Button
-│   │   ├── Navigation Items
-│   │   └── Theme Toggle Button
-│   ├── Header
-│   │   └── User Menu / Theme Toggle
-│   └── Content Area
-│       ├── StatCard Grid (with stagger animations)
-│       ├── TaskDistributionChart (animated bars)
-│       └── WorkflowProgress (animated steps)
-│
-└── Task Board Page (Server Component)
-    ├── TaskBoard (Client - dnd-kit)
-    │   ├── TaskColumn (Client - droppable)
-    │   │   └── TaskCard (Client - draggable)
-    │   └── DragOverlay
-    └── TaskDrawer (Client - side drawer)
+(app) layout
+  └── Sidebar (desktop) / MobileNav (mobile)
+      └── (main) layout
+          ├── dashboard/page
+          ├── projects/page
+          │   └── ProjectCard
+          │       └── ProjectForm (modal)
+          └── team/page
+              └── UserCard
+                  └── UserForm (modal)
 ```
 
-#### State Management Strategy
+**State Management**:
+```typescript
+// Server state (React Query)
+useQuery(['users']) → List users
+useMutation({ mutationFn: createUser }) → Create user
+useMutation({ mutationFn: updateUser }) → Update user
+useMutation({ mutationFn: deleteUser }) → Delete user
+
+// Client state (Zustand - check if exists)
+// Otherwise use component state for modals
+```
+
+**Permission System**:
+```typescript
+// lib/permissions.ts (NEW)
+
+export function usePermissions() {
+  // Get user from auth context
+  const { user } = useAuth();
+
+  return {
+    canManageUsers: user?.role === 'admin',
+    canManageProjects: user?.role === 'admin' || user?.is_project_manager,
+    canEditUser: (userId: string) =>
+      user?.id === userId || user?.role === 'admin',
+    isProjectManager: user?.is_project_manager || false,
+  };
+}
+```
+
+### Rich Text Editor & Markdown Rendering
+
+**Component**: `RichTextEditor` (`/components/task/RichTextEditor.tsx`)
+
+**Features**:
+- Markdown-based editing with toolbar
+- Toolbar buttons: Bold, Italic, Headings (H1, H2), Lists, Links, Horizontal Rule
+- Auto-expanding textarea (resizes based on content)
+- Always in edit mode (no preview toggle - markdown renders on cards)
+- Keyboard shortcuts displayed in tooltips
+
+**Markdown Renderer** (`/lib/markdown.ts`):
+```typescript
+export function renderMarkdown(markdown: string): string {
+  if (!markdown) return "";
+
+  let html = markdown
+    // Escape HTML first
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    // Headers
+    .replace(/^### (.*$)/gim, '<h3 class="text-sm font-bold mt-2 mb-1">$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold mt-2 mb-1">$1</h1>')
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
+    // Italic
+    .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+    // Links
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener" class="text-lime-600 dark:text-lime-400 hover:underline">$1</a>')
+    // Lists
+    .replace(/^\- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
+    // Code (inline)
+    .replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-muted rounded text-xs font-mono">$1</code>')
+    // Horizontal rules
+    .replace(/^---$/gim, '<hr class="my-2 border-border" />')
+    // Line breaks
+    .replace(/\n\n/g, '</p><p class="my-1">')
+    .replace(/\n/g, '<br />');
+
+  return `<p class="my-0">${html}</p>`;
+}
+```
+
+**Task Form Enhancements** (`/components/task/TaskForm.tsx`):
+
+**New Fields**:
+- Due Date: Date picker with calendar icon
+- Assignee: Dropdown of team members (fetched from `/api/v1/users`)
+- Project: Dropdown of projects (fetched from `/api/v1/projects`)
+- Description: RichTextEditor component instead of textarea
+
+**Layout**:
+- Wider modal: `max-w-3xl` instead of `max-w-md`
+- 2-column grid for related fields (Assignee + Project)
+- Full-width fields: Title, Description, Priority, Due Date
+- Custom scrollbar: `scrollbar-lime` class for overflow
+
+**Task Drawer Enhancements** (`/components/task/TaskDrawer.tsx`):
+
+**Features**:
+- Auto-fill form data using `useEffect` when task changes
+- Priority full width (removed from 2-column grid)
+- Custom scrollbar for content area
+- Action buttons: Archive, Delete
+- Form fields sync with task data on edit
+
+### Theme-Aware Badge Styling
+
+**Pattern for Dynamic Colors**:
+```typescript
+// In TaskCard component
+const [isDark, setIsDark] = useState(false);
+
+// Detect dark mode
+useEffect(() => {
+  const checkDark = () => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  };
+  checkDark();
+  const observer = new MutationObserver(checkDark);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  });
+  return () => observer.disconnect();
+}, []);
+
+// Badge styles with light/dark variants
+const getPriorityStyle = (priority: string) => {
+  const styles = {
+    LOW: {
+      light: { backgroundColor: '#dcfce7', color: '#14532d' },
+      dark: { backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#4ade80' },
+      dot: '#22c55e',
+    },
+    MEDIUM: {
+      light: { backgroundColor: '#fef9c3', color: '#713f12' },
+      dark: { backgroundColor: 'rgba(113, 63, 18, 0.3)', color: '#facc15' },
+      dot: '#eab308',
+    },
+    HIGH: {
+      light: { backgroundColor: '#fee2e2', color: '#7f1d1d' },
+      dark: { backgroundColor: 'rgba(127, 29, 29, 0.3)', color: '#f87171' },
+      dot: '#ef4444',
+    },
+  };
+  return styles[priority as keyof typeof styles] || styles.LOW;
+};
+
+const priority = getPriorityStyle(task.priority);
+const priorityStyle = isDark ? priority.dark : priority.light;
+```
+
+### Task Card Action Menu
+
+**Dropdown Menu Pattern** (`/components/board/TaskCard.tsx`):
 
 ```typescript
-// Server State (React Query)
-const {data: tasks} = useTasks()  // Auto-refetch every 10s
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
-// Client State (Zustand)
-const {selectedTask, setSelectedTask} = useUIStore()
-const {isSidebarCollapsed, toggleSidebar} = useSidebarStore()
-
-// Theme State (ThemeContext)
-const {theme, toggleTheme} = useTheme()  // 'light' | 'dark', persisted to localStorage
-
-// Local State (useState)
-const [isDragging, setIsDragging] = useState(false)
-```
-
-#### Data Flow Pattern
-
-```
-User Action (Drag Task)
-      │
-      ▼
-Event Handler (onDragEnd)
-      │
-      ▼
-Optimistic Update (setQueryData)
-      │
-      ▼
-API Call (fetch PATCH /tasks/{id})
-      │
-      ├─ Success → Invalidate Query (refetch)
-      └─ Error → Rollback (setQueryData with previous)
+// Three-dot menu with actions
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <motion.button
+      whileHover={{ rotate: 90, scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      className="opacity-0 group-hover:opacity-100"
+    >
+      <MoreHorizontal size={16} strokeWidth={2.5} />
+    </motion.button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end" className="w-48">
+    <DropdownMenuLabel>Task Actions</DropdownMenuLabel>
+    <DropdownMenuSeparator />
+    <DropdownMenuItem onClick={handleEdit}>
+      <Edit2 className="w-4 h-4 mr-2 text-lime-600" />
+      Edit Task
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={handleArchive}>
+      <Archive className="w-4 h-4 mr-2 text-blue-600" />
+      Archive Task
+    </DropdownMenuItem>
+    <DropdownMenuSeparator />
+    <DropdownMenuItem
+      onClick={handleDelete}
+      className="text-rose-600 focus:text-rose-600"
+    >
+      <Trash2 className="w-4 h-4 mr-2" />
+      Delete Task
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
 ```
 
 ---
 
-### Theme Implementation Design
+## Mobile-Responsive Design Strategy
 
-**⭐ PRE-IMPLEMENTATION: Use `@.claude/agents/nextjs-frontend-architect.md` for ALL frontend tasks.**
+### Breakpoints
 
-This agent orchestrates:
-- `building-nextjs-apps` skill for Next.js 16 patterns and SSR-safe components
-- `theme-factory` skill for professional color palettes
-- `frontend-designer` skill for animation choreography
-- `gemini-frontend-assistant` skill for code generation
-
-**For theme specifically**, the architect will use `theme-factory` to generate color palette and theme structure BEFORE implementing.
-
-**Approach**: CSS-first theming with Tailwind dark mode, React Context for state, and design tokens for consistency
-
-```typescript
-// Theme Context (contexts/ThemeContext.tsx)
-interface ThemeContextType {
-  theme: 'light' | 'dark'
-  toggleTheme: () => void
-}
-
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'light',
-  toggleTheme: () => {}
-})
-
-export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
-    localStorage.getItem('theme') as 'light' | 'dark' || 'light'
-  )
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-    document.documentElement.classList.toggle('dark')
-  }
-
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
-}
+```css
+/* Tailwind breakpoints (existing) */
+sm: 640px   /* Small phones */
+md: 768px   /* Tablets, large phones */
+lg: 1024px  /* Desktops */
+xl: 1280px  /* Large desktops */
 ```
 
-**Tailwind Configuration** (tailwind.config.ts):
-```typescript
-export default {
-  darkMode: 'class',  // Uses .dark class on HTML element
-  theme: {
-    extend: {
-      colors: {
-        // Primary brand color - Deep Orange (Creative Industrial)
-        primary: {
-          DEFAULT: 'var(--color-primary)',        /* #f97316 */
-          hover: 'var(--color-primary-hover)',     /* #ea580c */
-          light: 'var(--color-primary-light)',     /* #fdba74 */
-        },
-        // Secondary - Teal (Professional balance)
-        secondary: {
-          DEFAULT: 'var(--color-secondary)',       /* #14b8a6 */
-          hover: 'var(--color-secondary-hover)',   /* #0d9488 */
-        },
-        // Accent - Electric Blue (Trustworthy tech)
-        accent: {
-          DEFAULT: 'var(--color-accent)',         /* #3b82f6 */
-          hover: 'var(--color-accent-hover)',     /* #2563eb */
-        },
-        // Light mode
-        background: 'hsl(var(--color-bg) / <alpha-value>)',
-        foreground: 'hsl(var(--color-fg) / <alpha-value>)',
-        // Dark mode override
-        dark: {
-          background: 'hsl(var(--color-dark-bg) / <alpha-value>)',
-          foreground: 'hsl(var(--color-dark-fg) / <alpha-value>)',
-        }
-      }
-    }
-  }
-}
+### Responsive Patterns
+
+**Grid System**:
+```tsx
+{/* Dashboard stats - mobile first */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <StatCard />  {/* 1 col mobile, 2 tablet, 4 desktop */}
+</div>
 ```
 
-**CSS Variables** (globals.css):
+**Navigation**:
+```tsx
+{/* Desktop: permanent sidebar */}
+<Sidebar className="hidden md:flex" />
+
+{/* Mobile: hamburger menu */}
+<MobileNav className="md:hidden" />
+```
+
+**Dialogs**:
+```tsx
+<DialogContent className="
+  fixed inset-0 m-0 h-full w-full rounded-none
+  sm:max-w-md sm:h-auto sm:rounded-lg sm:p-6
+">
+  {/* Full screen on mobile, centered modal on desktop */}
+</DialogContent>
+```
+
+### Touch Targets
+
+**Minimum**: 44x44px (Apple HIG)
+**Recommended**: 48x48px
+
+```tsx
+<button className="h-12 w-12 min-w-[48px]">
+  <Icon className="h-5 w-5" />
+</button>
+```
+
+---
+
+## Theme & Visual Identity
+
+### Eco-Modern Theme (DoQuanta Inspired)
+
+**Core Colors**:
 ```css
 :root {
-  /* Primary - Deep Orange (Creative, Industrial) */
-  --color-primary: 251 146 22;      /* #f97316 - orange-500 */
-  --color-primary-hover: 234 88 12; /* #ea580c - orange-600 */
-  --color-primary-light: 251 186 116; /* #fdba74 - orange-400 */
-
-  /* Secondary - Teal */
-  --color-secondary: 20 184 166;    /* #14b8a6 - teal-500 */
-  --color-secondary-hover: 13 148 136; /* #0d9488 - teal-600 */
-
-  /* Accent - Electric Blue */
-  --color-accent: 59 130 246;       /* #3b82f6 - blue-500 */
-  --color-accent-hover: 37 99 235;  /* #2563eb - blue-600 */
-
-  /* Light mode */
-  --color-bg: 0 0% 100%;            /* white */
-  --color-fg: 222 47% 11%;          /* slate-900 */
-
-  /* Dark mode */
-  --color-dark-bg: 222 47% 4%;       /* slate-950 */
-  --color-dark-fg: 210 40% 98%;      /* slate-50 */
+  /* Light Mode */
+  --brand-primary: 84 100% 59%;      /* Lime Green #a3e635 */
+  --brand-secondary: 240 5.9% 10%;   /* Deep Black Zinc 900 */
+  --background: 0 0% 100%;           /* Pure White */
+  --foreground: 240 10% 3.9%;        /* Zinc 950 */
+  --card: 0 0% 100%;                 /* Pure White */
+  --accent: 83, 78%, 56%;             /* Lime 400 */
+  --accent-hover: 83, 78%, 45%;       /* Lime 500 - for hover states */
+  --radius: 0.5rem;
 }
 
 .dark {
-  --color-bg: var(--color-dark-bg);
-  --color-fg: var(--color-dark-fg);
+  /* Dark Mode */
+  --background: 240 10% 3.9%;        /* Zinc 950 */
+  --foreground: 0 0% 98%;            /* Zinc 50 */
+  --card: 240 10% 3.9%;              /* Zinc 950 */
+  --accent: 83, 78%, 56%;             /* Lime 400 */
+  --accent-hover: 83, 78%, 45%;       /* Lime 500 */
+}
+
+/* Permanent Dark Sidebar Utility */
+.sidebar-dark {
+  @apply bg-zinc-950 text-zinc-50 border-zinc-800;
+}
+
+/* Custom Scrollbar Styling */
+.scrollbar-lime {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--accent)) hsl(var(--muted));
+}
+
+.scrollbar-lime::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-lime::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.scrollbar-lime::-webkit-scrollbar-thumb {
+  background: hsl(var(--accent));
+  border-radius: 4px;
+}
+
+.scrollbar-lime::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent-hover));
 }
 ```
 
-**Theme Toggle Component** (components/ui/ThemeToggle.tsx):
-```typescript
-import { motion } from 'framer-motion'
-import { useTheme } from '@/contexts/ThemeContext'
+**Typography**:
+```css
+/* Headers - bold, tight tracking */
+.font-header {
+  @apply font-black tracking-tighter uppercase;
+}
 
-export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme()
-
-  return (
-    <motion.button
-      onClick={toggleTheme}
-      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-      whileTap={{ scale: 0.95 }}
-      whileHover={{ rotate: 15 }}
-      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-    >
-      <motion.span
-        animate={{ rotate: theme === 'dark' ? 360 : 0 }}
-        transition={{ duration: 0.5, ease: "easeInOut" }}
-      >
-        {theme === 'light' ? '🌙' : '☀️'}
-      </motion.span>
-    </motion.button>
-  )
+/* Body - clean, legible */
+.font-body {
+  @apply font-normal;
 }
 ```
 
----
-
-### Authentication Flow
-
-```
-┌─────────┐                    ┌──────────────┐
-│ Browser │                    │ Better Auth  │
-└────┬────┘                    └──────┬───────┘
-     │                                │
-     │ 1. POST /auth/register         │
-     ├───────────────────────────────>│
-     │                                │
-     │ 2. Create Agency + User        │
-     │    (DB transaction)            │
-     │                                │
-     │ 3. Generate JWT                │
-     │<───────────────────────────────┤
-     │                                │
-     │ 4. Set httpOnly Cookie         │
-     │    (auth_token)                │
-     │                                │
-     │ 5. Redirect to Dashboard       │
-     │                                │
-     │ 6. GET /dashboard              │
-     │    (Cookie sent automatically) │
-     │                                │
-     │ 7. JWT Middleware verifies     │
-     │    token                       │
-     │                                │
-     │ 8. Return Dashboard Data       │
-     │<───────────────────────────────┤
-```
-
----
-
-### API Contract
-
-**OpenAPI Specification**: `contracts/openapi.yaml`
-
-**Key Endpoints**:
-
-| Method | Path | Description | Auth Required |
-|--------|------|-------------|---------------|
-| POST | /auth/register | Register agency + user | No |
-| POST | /auth/login | Login, get JWT | No |
-| GET | /tasks | List agency tasks | Yes |
-| POST | /tasks | Create task | Yes |
-| PATCH | /tasks/{id} | Update task | Yes |
-| DELETE | /tasks/{id} | Delete task | Yes |
-| POST | /tasks/{id}/assign | Assign to user | Yes |
-| POST | /time-entries | Log time | Yes |
-| GET | /analytics/profitability | Get report | Yes |
-
-**Response Format**:
-```json
-{
-  "data": {...},
-  "total": 42,
-  "page": 1
+**Utilities**:
+```css
+/* Card elevation */
+.card-float {
+  @apply shadow-lg shadow-slate-200/50 dark:shadow-none;
 }
-```
 
-**Error Format**:
-```json
-{
-  "error": "Validation failed",
-  "details": {
-    "title": "Field required"
-  }
+/* Hover feedback */
+.hover-lift {
+  @apply transition-transform duration-200 hover:-translate-y-0.5;
 }
 ```
 
 ---
 
-### Security Architecture
+## Testing Strategy
 
-#### JWT Token Structure
+### Backend Tests
 
-```json
-{
-  "sub": "user_uuid",
-  "agency_id": "agency_uuid",
-  "email": "user@agency.com",
-  "exp": 1738368000,
-  "iat": 1738364400
-}
-```
-
-#### Tenant Isolation Strategy
-
-1. **JWT contains agency_id claim**
-2. **Middleware extracts agency_id on every request**
-3. **All queries filter by agency_id**
-4. **No cross-agency data access possible**
-
-#### Input Validation
-
-- **Backend**: Pydantic schemas on all endpoints
-- **Frontend**: Client-side validation + server-side validation
-- **SQL Injection**: SQLModel prevents via parameterized queries
-
----
-
-### Performance Optimization
-
-#### Backend
-
-| Optimization | Implementation |
-|-------------|----------------|
-| Connection Pooling | Neon built-in pooling |
-| Query Optimization | Composite indexes on (agency_id, status) |
-| Response Compression | FastAPI GZipMiddleware |
-| Caching | React Query client-side caching |
-
-#### Frontend
-
-| Optimization | Implementation |
-|-------------|----------------|
-| Code Splitting | Next.js dynamic imports |
-| Image Optimization | next/image component |
-| Streaming | Server Components with streaming |
-| Animation Performance | GPU acceleration via Motion |
-
----
-
-### Deployment Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Vercel                              │
-│  (Frontend - Next.js 16)                                │
-│  - Edge Functions for auth                              │
-│  - Static assets for images/CSS                         │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼ HTTPS
-┌─────────────────────────────────────────────────────────┐
-│                    Railway / Vercel                     │
-│  (Backend - FastAPI)                                    │
-│  - Containerized deployment                             │
-│  - Auto-scaling on demand                               │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│                    Neon PostgreSQL                      │
-│  - Serverless, scales to zero                           │
-│  - Automatic backups                                    │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-### Monitoring Strategy
-
-#### Backend Metrics
-
-- **Response time**: p50, p95, p99 (target: < 200ms p95)
-- **Error rate**: 4xx, 5xx percentages
-- **Database queries**: Slow query log (> 100ms)
-- **JWT verification**: Failure rate
-
-#### Frontend Metrics
-
-- **LCP**: < 1.5s (Core Web Vitals)
-- **FID**: < 100ms (First Input Delay)
-- **CLS**: < 0.1 (Cumulative Layout Shift)
-- **Error tracking**: Sentry for client errors
-
-#### Logging
-
+**Contract Tests** (`tests/contract/test_users_contract.py`):
 ```python
-# Backend structured logging
-import logging
+def test_post_users_contracts(openapi_schema):
+    """Verify POST /users matches OpenAPI spec."""
+    # Validate request/response schemas
 
-logger = logging.getLogger(__name__)
-logger.info("Task created", extra={
-    "task_id": task.id,
-    "user_id": user.id,
-    "agency_id": user.agency_id
-})
+def test_patch_users_contracts(openapi_schema):
+    """Verify PATCH /users/{id} matches OpenAPI spec."""
+
+def test_delete_users_contracts(openapi_schema):
+    """Verify DELETE /users/{id} matches OpenAPI spec."""
+```
+
+**Integration Tests** (`tests/integration/test_users_api.py`):
+```python
+async def test_create_user_as_admin(client, admin_token):
+    """Test admin can create user."""
+
+async def test_create_user_as_member_fails(client, member_token):
+    """Test member cannot create user."""
+
+async def test_update_project_manager_as_admin(client, admin_token):
+    """Test admin can set PM flag."""
+
+async def test_update_project_manager_as_member_fails(client, member_token):
+    """Test member cannot set PM flag."""
+
+async def test_delete_last_admin_fails(client, admin_token):
+    """Test cannot delete last admin."""
+
+async def test_delete_user_unassigns_tasks(client, admin_token):
+    """Test tasks become unassigned."""
+```
+
+### Frontend Tests
+
+**Unit Tests** (`components/team/UserForm.test.tsx`):
+```typescript
+describe('UserForm', () => {
+  it('validates name is required');
+  it('validates email format');
+  it('shows PM checkbox only to admins');
+  it('displays temp password after creation');
+  it('shows loading state during submission');
+});
+```
+
+**E2E Tests** (`e2e/user-crud.spec.ts`):
+```typescript
+test('complete user management workflow', async ({ page }) => {
+  // Login as admin
+  // Navigate to team page
+  // Click Add Team Member
+  // Fill form
+  // Submit
+  // Verify temp password shown
+  // Edit user (set PM flag)
+  // Delete user
+  // Verify tasks unassigned
+});
+```
+
+**Mobile Tests** (`e2e/mobile-responsiveness.spec.ts`):
+```typescript
+test('dashboard works on mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto('/dashboard');
+
+  // Verify hamburger visible
+  // Open menu
+  // Verify stat cards stacked
+});
+
+test('user form full screen on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto('/team');
+  await page.click('text=Add Team Member');
+
+  // Verify dialog is full screen
+  const dialog = await page.locator('[role="dialog"]');
+  const box = await dialog.boundingBox();
+  expect(box?.width).toBe(375);
+});
 ```
 
 ---
 
-## Risk Analysis
+## Security Considerations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| JWT leaked | Tenant data breach | Short expiration, httpOnly cookies |
-| Database downtime | Service unavailable | Neon auto-scaling, retry logic |
-| CORS misconfig | XSS vulnerability | Whitelist origins only |
-| Drag-and-drop failure | Core feature broken | Fallback to dropdown for status |
-| High latency | Poor UX | Optimistic updates, loading states |
+### Authentication & Authorization
+
+**All endpoints require JWT**:
+```python
+@router.post("/users")
+def create_user(
+    user_data: UserCreate,
+    current_user: CurrentUser,  # From JWT
+):
+    # current_user.agency_id available for scoping
+```
+
+**Permission checks**:
+```python
+# Admin-only for user CRUD
+if current_user.role != UserRole.admin:
+    raise HTTPException(403, "Insufficient permissions")
+
+# Admin-only for PM flag modification
+if 'is_project_manager' in update_data:
+    if current_user.role != UserRole.admin:
+        raise HTTPException(403, "Only admins can modify project manager status")
+```
+
+### Input Validation
+
+**Email uniqueness**:
+```python
+existing = session.exec(
+    select(User).where(
+        User.email == user_data.email,
+        User.agency_id == current_user.agency_id
+    )
+).first()
+if existing:
+    raise ValueError("Email already exists in agency")
+```
+
+**Password requirements**:
+```python
+password: str = Field(min_length=8, max_length=100)
+```
+
+### Rate Limiting
+
+**User management endpoints**:
+```python
+@router.post("/users")
+def create_user(
+    user_data: UserCreate,
+    request: Request,
+    current_user: CurrentUser,
+):
+    check_rate_limit(request, "user_create")
+```
+
+### Audit Logging
+
+**All user CRUD operations logged**:
+```python
+log_api_call(
+    logger,
+    "POST /api/v1/users",
+    "user_created",
+    user_id=str(current_user.id),
+    target_user_id=str(new_user.id),
+    agency_id=str(current_user.agency_id)
+)
+```
 
 ---
 
-## Rollback Strategy
+## Performance Optimizations
 
-### Database Rollback
+### Backend
 
-```bash
-# Alembic downgrade
-alembic downgrade -1
+**Database queries**:
+```python
+# Index on active field for filtering
+active: bool = Field(default=True, index=True)
 
-# Backup before migrations
-pg_dump $DATABASE_URL > backup.sql
+# Index on agency_id for multi-tenant queries (existing)
 ```
 
-### Application Rollback
-
-```bash
-# Git revert
-git revert HEAD
-
-# Or deploy previous version
-vercel deploy --prebuilt
+**Response compression**:
+```python
+# GZip middleware (existing)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 ```
+
+### Frontend
+
+**Code splitting**:
+```typescript
+// Dynamic imports for heavy components
+const ProjectForm = dynamic(() => import('@/components/project/ProjectForm'), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false
+});
+```
+
+**Optimistic updates**:
+```typescript
+const mutation = useMutation({
+  mutationFn: (data) => api.post('/users', data),
+  onMutate: async (newUser) => {
+    // Optimistic update
+    queryClient.setQueryData(['users'], (old) => [...old, newUser]);
+  },
+  onError: (err) => {
+    // Rollback on error
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+  },
+});
+```
+
+**Drag-and-Drop Synchronous Updates**:
+```typescript
+// In TaskBoard handleDragEnd
+const handleDragEnd = async (event: DragEndEvent) => {
+  const { active, over } = event;
+  const taskId = active.id as string;
+  const overId = over.id as string;
+
+  // Manually update cache FIRST (synchronous optimistic update)
+  queryClient.setQueryData<Task[]>(
+    ['tasks'],
+    (old = []) =>
+      old.map((t) =>
+        t.id === taskId
+          ? { ...t, status: overId as any, updated_at: new Date().toISOString() }
+          : t
+      )
+  );
+
+  // Now clear activeTask - the UI will show the task in the new column
+  setActiveTask(null);
+
+  // Then call the mutation in the background
+  updateTask.mutate({
+    id: taskId,
+    data: { status: overId as any },
+  });
+};
+```
+
+---
+
+## Implementation Phases
+
+This section breaks down the implementation into phases based on the user's plan input.
+
+### Phase 1: Backend User Management CRUD
+
+**Priority**: P0 - Blocks all team management features
+**Estimated Effort**: 4-6 hours
+
+**Tasks**:
+1. Add `UserUpdate` schema to `app/models/user.py`
+2. Implement `create_user()` in `app/services/user_service.py`
+3. Implement `update_user()` in `app/services/user_service.py`
+4. Implement `delete_user()` in `app/services/user_service.py`
+5. Add POST endpoint to `app/api/endpoints/users.py`
+6. Add PATCH endpoint to `app/api/endpoints/users.py`
+7. Add DELETE endpoint to `app/api/endpoints/users.py`
+8. Add password expiration fields to User model
+9. Add `is_project_manager` field to User model
+10. Implement audit logging for user CRUD operations
+11. Create and run Alembic migration
+
+**Acceptance Criteria**:
+- [ ] POST /api/v1/users creates user with hashed password, sets password_expires_at (now + 7 days), must_change_password=True
+- [ ] PATCH /api/v1/users/{id} updates name, email, role, is_project_manager (admin-only for PM flag)
+- [ ] DELETE /api/v1/users/{id} soft-deletes (active=False), unassigns all tasks
+- [ ] Returns 403 when non-admin tries to modify is_project_manager flag
+- [ ] Returns 400 when attempting to delete last admin
+- [ ] Audit log entries created for all user CRUD operations
+
+### Phase 2: Mobile-Responsive Dashboard Layout
+
+**Priority**: P0 - Blocks all mobile UX work
+**Estimated Effort**: 6-8 hours
+
+**Tasks**:
+1. Create MobileNav component with hamburger + drawer
+2. Add Archive link to Sidebar
+3. Update Sidebar for mobile responsiveness
+4. Update dashboard page with responsive grid
+5. Add mobile-specific CSS utilities
+
+**Acceptance Criteria**:
+- [ ] Sidebar collapses to hamburger on < 768px
+- [ ] Hamburger opens slide-in drawer with backdrop
+- [ ] Stat cards stack vertically on mobile
+- [ ] Touch targets >= 44x44px
+- [ ] Archive link visible in mobile drawer
+
+### Phase 3: Frontend Project Management
+
+**Priority**: P1 - Core workflow functionality
+**Estimated Effort**: 8-10 hours
+
+**Tasks**:
+1. Create ProjectForm component (create/edit modal)
+2. Create ProjectCard component with actions
+3. Add project mutation hooks to query.ts
+4. Update Projects page with CRUD UI
+5. Implement project deletion flow
+
+**Acceptance Criteria**:
+- [ ] Create/edit/delete workflows working
+- [ ] Permission-based UI hiding
+- [ ] Loading states on mutations
+- [ ] Error toasts on failures
+- [ ] Mobile: Full-screen dialog on small screens
+
+### Phase 4: Frontend Team Management
+
+**Priority**: P1 - Core workflow functionality
+**Estimated Effort**: 10-12 hours
+
+**Tasks**:
+1. Create UserForm component (add/edit modal)
+2. Create UserCard component with actions
+3. Add user mutation hooks to query.ts
+4. Create usePermissions hook
+5. Update Team page with CRUD UI
+6. Implement user deletion flow
+
+**Acceptance Criteria**:
+- [ ] Create/edit/delete workflows working
+- [ ] Admin-only access enforced
+- [ ] Temporary password displayed after creation
+- [ ] "Cannot delete last admin" error handling
+- [ ] PM checkbox visible to admins only
+
+### Phase 5: Navigation Enhancement
+
+**Priority**: P2 - UX improvement
+**Estimated Effort**: 2-3 hours
+
+**Tasks**:
+1. Add Archive navigation item to Sidebar
+2. Position between Time Entries and Settings
+3. Add active state highlighting
+4. Test navigation from all pages
+
+**Acceptance Criteria**:
+- [ ] Archive link in sidebar
+- [ ] Archive positioned correctly
+- [ ] Archive highlights when active
 
 ---
 
 ## Definition of Done
 
-- [ ] All 47 functional requirements implemented (FR-001 to FR-047)
-- [ ] Backend tests: 80%+ coverage
-- [ ] Frontend tests: Critical paths covered
-- [ ] E2E tests: Login, drag task, create task
-- [ ] LCP < 1.5s on dashboard
-- [ ] Drag-and-drop latency < 500ms
-- [ ] JWT authentication working
-- [ ] Agency isolation verified
-- [ ] OpenAPI spec matches implementation
-- [ ] Production deployment ready
-- [ ] Documentation complete (quickstart, API docs)
+This feature improvement is complete when:
+
+### Backend
+- [ ] POST /api/v1/users creates user with temp password (7-day expiration)
+- [ ] PATCH /api/v1/users/{id} updates user with PM permission check
+- [ ] DELETE /api/v1/users/{id} soft-deletes and unassigns tasks
+- [ ] Last admin cannot be deleted (returns 400)
+- [ ] Non-admins cannot modify PM flag (returns 403)
+- [ ] Audit logs created for all user CRUD
+- [ ] Migration run successfully
+- [ ] All contract tests passing
+- [ ] All integration tests passing
+
+### Frontend - Projects
+- [ ] ProjectForm component created
+- [ ] ProjectCard component created
+- [ ] Projects page has create/edit/delete UI
+- [ ] Permission-based button hiding
+- [ ] Loading states on mutations
+- [ ] Error toasts display
+- [ ] Mobile: Full-screen dialogs
+- [ ] Mobile: Touch-friendly buttons
+
+### Frontend - Team
+- [ ] UserForm component created
+- [ ] UserCard component created
+- [ ] Team page has add/edit/delete UI
+- [ ] Admin-only access enforced
+- [ ] Temp password shown after creation
+- [ ] PM checkbox admin-only
+- [ ] Mobile: Form fields stack
+- [ ] Mobile: Large touch targets
+
+### Navigation
+- [ ] Archive link in sidebar
+- [ ] Archive positioned correctly
+- [ ] Archive highlights when active
+
+### Mobile Responsiveness
+- [ ] Sidebar hamburger on < 768px
+- [ ] Drawer with backdrop
+- [ ] Stat cards stack
+- [ ] No horizontal scroll
+- [ ] Touch targets >= 44x44px
+- [ ] Dialogs full-screen on mobile
+
+### E2E Tests
+- [ ] User CRUD workflow test passes
+- [ ] Project CRUD workflow test passes
+- [ ] Permission denial test passes
+- [ ] Mobile viewport tests pass
 
 ---
 
-## Related Files
+## Quick Start Commands
 
-- [spec.md](./spec.md) - Feature requirements
-- [research.md](./research.md) - Technology research
-- [data-model.md](./data-model.md) - Database schema
-- [contracts/openapi.yaml](./contracts/openapi.yaml) - API specification
-- [quickstart.md](./quickstart.md) - Developer onboarding
-- [AGENT_CONTEXT.md](./AGENT_CONTEXT.md) - AI agent reference
+```bash
+# Backend - Run migration
+cd teamflow-web/backend
+uv run alembic upgrade head
+
+# Backend - Start server
+uv run uvicorn app.main:app --reload
+
+# Frontend - Start dev server
+cd teamflow-web/frontend
+npm run dev
+
+# Run tests
+cd teamflow-web/backend && uv run pytest
+cd teamflow-web/frontend && npm run test
+```
 
 ---
 
-## Next Commands
+## References
 
-1. `/sp.tasks` - Generate implementation tasks from this plan
-2. `/sp.implement` - Execute implementation (after tasks generated)
-3. `/sp.adr <title>` - Create ADR for architectural decisions
+- **Spec**: `specs/002-fullstack-web-crm/spec-phase2-complete-workflow.md`
+- **Agent Context**: `specs/002-fullstack-web-crm/AGENT_CONTEXT.md`
+- **Module Prompt**: `module_prompts/phase-2-complete-workflow-plan.prompt.md`
+- **Constitution**: `.specify/memory/constitution.md`

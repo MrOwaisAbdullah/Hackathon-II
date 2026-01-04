@@ -6,6 +6,22 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    // Priority badge colors
+    "bg-green-100", "text-green-900", "bg-green-500",
+    "bg-yellow-100", "text-yellow-900", "bg-yellow-500",
+    "bg-red-100", "text-red-900", "bg-red-500",
+    "bg-green-950/50", "text-green-400",
+    "bg-yellow-950/50", "text-yellow-400",
+    "bg-red-950/50", "text-red-400",
+    // Status badge colors
+    "bg-gray-100", "text-gray-900",
+    "bg-blue-100", "text-blue-900",
+    "bg-purple-100", "text-purple-900",
+    "bg-blue-950/50", "text-blue-400",
+    "bg-purple-950/50", "text-purple-400",
+    "bg-gray-800/50", "text-gray-300",
+  ],
   theme: {
     extend: {
       colors: {

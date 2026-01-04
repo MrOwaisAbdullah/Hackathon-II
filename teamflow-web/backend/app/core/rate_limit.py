@@ -24,6 +24,13 @@ RATE_LIMITS = {
     "auth_login": RateLimitConfig(max_requests=5, window_seconds=60),  # 5 login attempts per minute
     "auth_register": RateLimitConfig(max_requests=3, window_seconds=3600),  # 3 registrations per hour
     "auth_default": RateLimitConfig(max_requests=20, window_seconds=60),  # Default: 20 requests per minute
+    # Self-account management rate limits
+    "auth_delete_me": RateLimitConfig(max_requests=1, window_seconds=3600),  # 1 account deletion per hour
+    "auth_export_me": RateLimitConfig(max_requests=5, window_seconds=3600),  # 5 data exports per hour
+    # T186: User management rate limits
+    "users_create": RateLimitConfig(max_requests=10, window_seconds=3600),  # 10 user creations per hour
+    "users_update": RateLimitConfig(max_requests=30, window_seconds=60),  # 30 user updates per minute
+    "users_delete": RateLimitConfig(max_requests=5, window_seconds=3600),  # 5 user deletions per hour
 }
 
 

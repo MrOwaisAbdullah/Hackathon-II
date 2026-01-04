@@ -10,7 +10,7 @@
  * - T134 (US5): Time entries section with logging form
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useTask,
@@ -63,15 +63,15 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
   // Time tracking hook (US5 T134)
   const { timeEntries, formattedTime, refetchTotalTime } = useTimeTracking(taskId);
 
-  // Sync local state with task data
-  useState(() => {
+  // Sync local state with task data whenever task changes
+  useEffect(() => {
     if (task) {
       setEditedTitle(task.title);
       setEditedDescription(task.description || "");
-      setEditedPriority(task.priority || null);
+      setEditedPriority(task.priority);
       setEditedDueDate(task.due_date);
     }
-  });
+  }, [task]);
 
   const handleAssigneeChange = async (assigneeId: string | null) => {
     if (!taskId) return;
@@ -109,11 +109,18 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
     onClose();
   };
 
+  // Helper to normalize dates for comparison (handle null/undefined/empty strings)
+  const normalizeDate = (date: string | undefined | null): string | undefined => {
+    if (!date) return undefined;
+    // Extract just the date part (YYYY-MM-DD) for comparison
+    return date.split('T')[0];
+  };
+
   const hasChanges = task && (
     editedTitle !== task.title ||
     editedDescription !== (task.description || "") ||
     editedPriority !== task.priority ||
-    editedDueDate !== task.due_date
+    normalizeDate(editedDueDate) !== normalizeDate(task.due_date)
   );
 
   return (
@@ -153,7 +160,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 scrollbar-lime">
                 {isLoadingTask ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -170,7 +177,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                         name="title"
                         value={editedTitle}
                         onChange={(e) => setEditedTitle(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full px-3 py-2 border-2 border-input rounded-xl bg-background focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80"
                         placeholder="Task title"
                       />
                     </div>
@@ -248,7 +255,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                                     <div className="w-7 h-7 rounded-full border-2 border-dashed border-muted-foreground/30" />
                                     <span className="text-sm">Unassigned</span>
                                     {!task.assignee_id && (
-                                      <span className="ml-auto text-xs text-primary">
+                                      <span className="ml-auto text-xs text-accent">
                                         Current
                                       </span>
                                     )}
@@ -274,7 +281,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                                         />
                                         <span className="text-sm font-medium">{user.name}</span>
                                         {task.assignee_id === user.id && (
-                                          <span className="ml-auto text-xs text-primary">
+                                          <span className="ml-auto text-xs text-accent">
                                             Current
                                           </span>
                                         )}
@@ -289,35 +296,32 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                       </div>
                     </div>
 
-                    {/* Status & Priority - Grid */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Status (Read-only) */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Status
-                        </label>
-                        <div className="px-3 py-2 bg-muted/30 rounded-lg text-sm">
-                          {task.status}
-                        </div>
+                    {/* Status - Full Width (Read-only) */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Status
                       </div>
+                      <div className="px-3 py-2 bg-muted/30 rounded-lg text-sm">
+                        {task.status}
+                      </div>
+                    </div>
 
-                      {/* Priority - Editable (T145) */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Priority
-                        </label>
-                        <PrioritySelector
-                          value={editedPriority}
-                          onChange={setEditedPriority}
-                        />
+                    {/* Priority - Full Width (Editable) */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Priority
                       </div>
+                      <PrioritySelector
+                        value={editedPriority}
+                        onChange={setEditedPriority}
+                      />
                     </div>
 
                     {/* Due Date - Editable (T146) */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">
+                      <div className="text-sm font-medium text-muted-foreground">
                         Due Date
-                      </label>
+                      </div>
                       <DatePicker
                         value={editedDueDate}
                         onChange={setEditedDueDate}
@@ -327,10 +331,10 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                     {/* Time Entries Section (US5 T134) */}
                     <div className="space-y-3 pt-4 border-t border-border">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                           <Clock className="w-4 h-4" />
                           Time Tracked
-                        </label>
+                        </div>
                         <span className="text-lg font-semibold">{formattedTime}</span>
                       </div>
 
@@ -416,7 +420,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setIsTimeLoggingFormOpen(true)}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors"
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent/10 text-accent hover:bg-accent/20 border border-accent/30 rounded-lg transition-colors"
                         >
                           <Clock className="w-4 h-4" />
                           <span className="text-sm font-medium">Log Time</span>
@@ -462,7 +466,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                     className={`
                       flex-1 px-4 py-2 rounded-lg font-medium transition-colors
                       ${hasChanges
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        ? "bg-accent text-accent-foreground hover:bg-accent-hover"
                         : "bg-muted text-muted-foreground cursor-not-allowed"
                       }
                     `}

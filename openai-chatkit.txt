@@ -1,0 +1,322 @@
+hatKit Embeddable Chat UI
+OpenAI’s ChatKit provides a ready-made chat interface that you embed in your app and drive with your own backend logic. The React SDK gives you a <ChatKit> component and a control hook – you “just drop the ChatKit component into your app, give it a client token, and customize the chat experience as needed”
+github.com
+. In a standard setup ChatKit’s frontend connects to OpenAI’s hosted service (via a client secret), but for full flexibility you use the advanced integration mode and run your own ChatKit server.
+Advanced ChatKit Integration (Custom Backend)
+With advanced (self-hosted) integration, you deploy a ChatKit server (using OpenAI’s ChatKit Python SDK) on your infrastructure. You subclass ChatKitServer and implement a respond() method that returns a stream of chat events. In that server code you instantiate an agent (e.g. Agent(model="gpt-4.1",…) by default) and call Runner.run_streamed to generate replies
+platform.openai.com
+. Crucially, you can replace that model with any LLM-compatible backend. The ChatKit docs explicitly note that advanced integration lets you “run ChatKit on your own infrastructure” and “connect to any agentic backend”
+platform.openai.com
+. In practice this means your FastAPI (or other) endpoint simply proxies the user’s message through whatever LLM you configure, then returns the stream back to the client via Server-Sent Events (SSE).
+Using Other LLMs (Gemini, OpenRouter, etc.)
+Because the ChatKit server is just code you write, you can plug in any LLM. For example, OpenAI’s Python client library lets you target other models by specifying a custom endpoint. You might do:
+from openai import OpenAI
+client = OpenAI(
+    api_key="<YOUR_ALT_LLM_KEY>",
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
+This is exactly how Google’s Gemini can be used: Google provides an “OpenAI-compatible” REST interface, so using the above base URL and a Gemini API key lets you call client.chat.completions.create({model="gemini-2.5-flash", ...})
+ai.google.dev
+. In other words, you can route the ChatKit server’s agent calls to Gemini instead of OpenAI. Similarly, if you have an OpenRouter or Portkey (AI gateway) account, you can set base_url="https://openrouter.ai/api/v1" (with its API key) and switch the model slug (e.g. "anthropic/claude-3-5-sonnet" or "openai/gpt-5" style names)
+news.ycombinator.com
+community.openai.com
+. In the OpenAI Agents SDK (used by ChatKit), this is done by providing a custom OpenAI client. The OpenAI forum notes that you can do:
+from openai import AsyncOpenAI
+from agents import set_default_openai_client, Agent, Runner, OpenAIChatCompletionsModel
+
+external_client = AsyncOpenAI(
+    api_key="",  # e.g. "ollama" (dummy) or your non-OpenAI key
+    base_url="http://localhost:11434/v1"  # your LLM proxy
+)
+set_default_openai_client(external_client)
+
+assistant = Agent(
+    model=OpenAIChatCompletionsModel(model="gemini-1.5-pro", openai_client=external_client),
+    instructions="You are a helpful assistant."
+)
+result = Runner.run_sync(assistant, "Hello world")
+print(result.final_output)
+Here the AsyncOpenAI can be pointed at a Gemini or Ollama endpoint and then used for the agent
+community.openai.com
+community.openai.com
+. In short, any model with an OpenAI-compatible chat API (Gemini, Claude, Llama, Mistral, etc.) can power the ChatKit server by configuring the base URL or using a library like LiteLLM that wraps many providers. Important: Gemini has specific requirements. Google notes Gemini works via the OpenAI libraries if you use the special Google endpoint
+ai.google.dev
+. Some developers have reported that only chat-completion endpoints are fully supported (i.e. you can’t use the newer “Responses API” yet)
+community.openai.com
+. In practice, however, pointing the OpenAI client at Google’s URL (as above) generally works for chat.
+ChatKit JS Frontend with Custom Backend
+On the frontend, you configure ChatKit in advanced mode by providing your own API URL and a domain key (client secret). Unlike the “getClientSecret” mode (which relies on OpenAI’s servers for everything), advanced mode tells ChatKit to proxy all operations through your server. As one guide explains, when you use api: { url: CHATKIT_API_URL, domainKey: CHATKIT_API_DOMAIN_KEY }, the ChatKit UI will send sessions, thread messages, etc. to your endpoint
+buildwithmatija.com
+. This effectively makes your backend a full proxy for the conversation. In this mode your FastAPI endpoints must handle session creation, message streaming, etc. (the ChatKit SDK helps with parsing and formatting these calls). The upside is you gain total control – the chat UI doesn’t talk to OpenAI at all, it only talks to your server. In practice, you’ll write a FastAPI route that calls ChatKitServer.process() and returns a streaming response. The BuildWithMatija tutorial notes that if you instead use the simpler getClientSecret callback, the front-end will speak directly to OpenAI’s endpoints, which won’t work without an OpenAI API key
+buildwithmatija.com
+. So for a non-OpenAI LLM use case you must use the url+domainKey approach (advanced integration) so that your server can call the alternate model.
+Retrieval Augmentation with Qdrant
+In a RAG setup, your ChatKit server can first query Qdrant (or another vector store) to get relevant documents, then feed them as context into the LLM. Qdrant Cloud provides a managed high-performance vector database to store your document embeddings. It is built for “high-dimensional vectors” and large-scale AI applications
+qdrant.tech
+. Typically, you would use an embeddings model (e.g. from Cohere, HuggingFace, or even OpenAI’s embedding API) to encode your docs, store them in Qdrant, and on each user query retrieve the top-N relevant pieces. Those pieces are then included in the ChatKit agent prompt or as system messages. In this way, the agent has up-to-date knowledge without relying on the LLM’s internal memory. (You could embed with any provider or free model; for example, OpenAI’s text-embedding-3 models are natively supported by Qdrant, but many open-source embeddings also work.)
+Summary
+Yes – you can build a RAG chatbot with Qdrant + ChatKit (UI) + ChatKit Python (server) without ever using OpenAI’s own LLM. By running ChatKit in “advanced” mode, your FastAPI endpoints become a full-chat proxy. In that server you can instantiate an Agent whose model is wired to Gemini, OpenRouter, Mistral, etc., for example by setting OpenAI(base_url=..., api_key=...) to the provider’s endpoint
+news.ycombinator.com
+community.openai.com
+. The front-end simply streams chat events over SSE from your server. This fulfills the requirement: ChatKit-Python + ChatKit-JS on your stack, with any compatible LLM (Gemini via Google’s API, or hundreds of models via OpenRouter/Portkey), and Qdrant providing the retrieval context. Sources: OpenAI’s ChatKit documentation and examples
+platform.openai.com
+platform.openai.com
+; community forums on using OpenAI(base_url=...) for alternative models
+news.ycombinator.com
+community.openai.com
+; Google Gemini API docs
+ai.google.dev
+; Qdrant product info
+qdrant.tech
+; integration guides
+buildwithmatija.com
+.
+Citations
+
+GitHub - openai/chatkit-js
+
+https://github.com/openai/chatkit-js
+
+Advanced integrations with ChatKit | OpenAI API
+
+https://platform.openai.com/docs/guides/custom-chatkit
+
+ChatKit | OpenAI API
+
+https://platform.openai.com/docs/guides/chatkit
+
+OpenAI compatibility  |  Gemini API  |  Google AI for Developers
+
+https://ai.google.dev/gemini-api/docs/openai
+OpenAI ChatKit | Hacker News
+
+https://news.ycombinator.com/item?id=45493718
+
+Agents sdk, use a diff model - API - OpenAI Developer Community
+
+https://community.openai.com/t/agents-sdk-use-a-diff-model/1145349
+
+Agents sdk, use a diff model - API - OpenAI Developer Community
+
+https://community.openai.com/t/agents-sdk-use-a-diff-model/1145349
+
+Change baseURL on responses API? - API - OpenAI Developer Community
+
+https://community.openai.com/t/change-baseurl-on-responses-api/1365319
+
+OpenAI ChatKit + Next.js: Complete Integration Guide | Build with Matija
+
+https://www.buildwithmatija.com/blog/chatkit-nextjs-integration
+
+OpenAI ChatKit + Next.js: Complete Integration Guide | Build with Matija
+
+https://www.buildwithmatija.com/blog/chatkit-nextjs-integration
+
+Qdrant - Vector Database - Qdrant
+
+https://qdrant.tech/
+All Sources
+
+github
+
+platform.openai
+
+ai.google
+news.ycombinator
+
+community.openai
+
+buildwithmatija
+
+--------------
+
+
+To build your RAG chatbot as described—using Qdrant Cloud for vector storage/retrieval, a non-OpenAI LLM API (e.g., Gemini via Google's API, or OpenRouter for routed access to various models), FastAPI for the backend API, and Next.js/TypeScript with OpenAI's ChatKit.js on the frontend—without any OpenAI API key or dependency on OpenAI's services, you can achieve this via ChatKit's advanced integration mode. This mode allows full customization of the backend while keeping the frontend ChatKit.js component intact.
+
+ChatKit (both Python and JS sides) is designed primarily for OpenAI-hosted backends and models, but it explicitly supports self-hosted custom backends with your own "inference stack." This means you can replace OpenAI's model calls with your chosen non-OpenAI LLM, integrate RAG logic with Qdrant, and expose an OpenAI-compatible chat endpoint that ChatKit.js can connect to via a custom URL. Direct support for non-OpenAI models in the "recommended" (OpenAI-hosted) mode does not exist, as it requires an OpenAI API key and ties into OpenAI's Agent Builder workflows. However, the advanced mode bypasses this entirely.
+
+Below, I'll outline the setup step-by-step, based on OpenAI's official ChatKit documentation and examples. This ensures compatibility without OpenAI dependencies.
+
+### Backend Setup (FastAPI + OpenAI ChatKit Python SDK + Qdrant + Non-OpenAI LLM)
+1. **Install Dependencies**:
+   - Install the OpenAI ChatKit Python package: `pip install openai-chatkit`.
+   - Add other libraries: `pip install fastapi uvicorn qdrant-client google-generativeai` (for Gemini; swap with `openrouter` or your preferred LLM client if using OpenRouter).
+   - No OpenAI Python SDK or API key is needed here—ChatKit Python can run standalone in custom mode.
+
+2. **Implement a Custom ChatKit Server**:
+   - Subclass `chatkit.server.ChatKitServer` and override the `respond` method. This is where you'll handle incoming user messages, perform RAG (retrieve from Qdrant), generate responses with your non-OpenAI LLM, and stream back events/widgets to the frontend.
+   - Use a persistent store for threads/messages (e.g., default SQLite via `chatkit.store.Store`).
+   - Integrate Qdrant for RAG: On app startup or per-session, embed documents into Qdrant Cloud (using your Qdrant API key/URL). In `respond`, embed the user query, search Qdrant for relevant chunks, and pass them as context to your LLM.
+
+   Example code structure (in `server.py`):
+
+   ```python
+   import os
+   from chatkit.server import ChatKitServer, Response, stream_text, stream_widget
+   from chatkit.store import Store
+   from qdrant_client import QdrantClient
+   from google.generativeai import GenerativeModel  # Or your LLM client (e.g., OpenRouter)
+   from fastapi import FastAPI, Request
+   from fastapi.responses import StreamingResponse
+
+   # Qdrant setup (use your Qdrant Cloud URL and API key)
+   qdrant_client = QdrantClient(url="https://your-qdrant-cloud-url", api_key="your-qdrant-api-key")
+   collection_name = "your_rag_collection"  # Assume pre-created with embeddings
+
+   # LLM setup (example: Gemini; replace with OpenRouter or other)
+   gemini_model = GenerativeModel("gemini-1.5-pro")  # Use your Google API key via env var GOOGLE_API_KEY
+
+   class CustomChatKitServer(ChatKitServer):
+       def __init__(self, store: Store):
+           super().__init__(store)
+
+       async def respond(self, message_id: str) -> Response:
+           # Get the user message from the store
+           message = await self.store.get_message(message_id)
+           user_query = message['content']
+
+           # RAG: Embed query and search Qdrant (use your embedding model, e.g., Sentence Transformers)
+           from sentence_transformers import SentenceTransformer
+           embedder = SentenceTransformer('all-MiniLM-L6-v2')
+           query_embedding = embedder.encode(user_query).tolist()
+           search_results = qdrant_client.search(
+               collection_name=collection_name,
+               query_vector=query_embedding,
+               limit=5
+           )
+           context = "\n".join([hit.payload['text'] for hit in search_results])  # Extract relevant chunks
+
+           # Generate response with non-OpenAI LLM (Gemini example)
+           prompt = f"Context: {context}\n\nUser: {user_query}\nAssistant:"
+           llm_response = gemini_model.generate_content(prompt).text
+
+           # Stream the response back (supports text, widgets, etc.)
+           async def stream_generator():
+               yield from stream_text(llm_response)
+               # Optional: Yield custom widgets, e.g., yield from stream_widget({"type": "card", "content": "Some UI element"})
+
+           return StreamingResponse(stream_generator(), media_type="application/x-ndjson")
+
+   # FastAPI app to expose the ChatKit endpoint
+   app = FastAPI()
+   store = Store(db_path="chatkit.db")  # Persistent SQLite store
+   server = CustomChatKitServer(store)
+
+   @app.post("/chatkit/respond")
+   async def handle_respond(request: Request):
+       # Forward to your custom server (handle auth if needed, e.g., via headers)
+       body = await request.json()
+       message_id = body.get("message_id")
+       return await server.respond(message_id)
+
+   # Additional endpoints for session creation, file uploads, etc. (implement as needed)
+   @app.post("/chatkit/sessions")
+   async def create_session():
+       # Custom session logic (no OpenAI key needed)
+       session_id = "your-generated-session-id"
+       return {"session_id": session_id, "client_token": "your-jwt-or-token"}
+
+   if __name__ == "__main__":
+       import uvicorn
+       uvicorn.run(app, host="0.0.0.0", port=8000)
+   ```
+
+   - Run with `python server.py`.
+   - Customize authentication (e.g., JWT) in session creation—no OpenAI key required.
+   - For tools/actions (e.g., if your chatbot needs to invoke external APIs), use ChatKit's `ActionConfig` and register them in the server.
+   - Handle file uploads/previews with a custom `FileStore`.
+
+3. **RAG-Specific Integration**:
+   - Pre-load documents: Use Qdrant client's `upsert` to embed and store chunks (e.g., via a setup script).
+   - In `respond`, augment the LLM prompt with retrieved context to enable RAG.
+   - For embeddings, use a non-OpenAI model like Hugging Face's Sentence Transformers (compatible with Qdrant).
+
+### Frontend Setup (Next.js + TypeScript + OpenAI ChatKit.js)
+1. **Install Dependencies**:
+   - In your Next.js project: `npm install @openai/chatkit-react`.
+   - No OpenAI API key is needed here either.
+
+2. **Embed the Chat Widget**:
+   - Use the `useChatKit` hook or `<ChatKitProvider>` to render the chat.
+   - Set the `api.url` to your custom backend endpoint (e.g., `http://localhost:8000/chatkit`).
+   - Use a client token from your backend's session endpoint (fetch it via an API call).
+
+   Example in a Next.js page/component (`ChatPage.tsx`):
+
+   ```typescript
+   import { useChatKit, ChatKitProvider } from '@openai/chatkit-react';
+
+   const ChatComponent = () => {
+     const { chatKit } = useChatKit({
+       api: {
+         url: 'https://your-backend-url/chatkit',  // Point to your FastAPI endpoint
+         domainKey: 'your-optional-domain-key',   // For custom auth if needed
+       },
+       clientToken: 'fetch-from-your-backend-session-endpoint',  // Get via API fetch
+     });
+
+     return (
+       <ChatKitProvider>
+         <div>{chatKit.renderWidget()}</div>  // Or customize with themes/widgets
+       </ChatKitProvider>
+     );
+   };
+
+   export default ChatComponent;
+   ```
+
+   - Fetch the `clientToken` on page load from your backend's `/chatkit/sessions` endpoint.
+   - Customize the UI with themes, widgets (e.g., cards/forms), and actions as needed.
+   - ChatKit.js will handle streaming, file attachments, and agentic flows by forwarding to your backend.
+
+### Key Considerations
+- **Non-OpenAI LLM Compatibility**: In the custom `respond` method, you can use any LLM API (e.g., Gemini's `generate_content`, OpenRouter's client). Ensure the response format matches ChatKit's streaming expectations (NDJSON with text/widgets).
+- **No OpenAI API Key**: The advanced mode runs entirely on your infrastructure, so no OpenAI dependencies.
+- **Scaling/Security**: Use FastAPI's async features for streaming. Add auth (e.g., API keys or JWT) to your endpoints. For production, deploy on Vercel/AWS with Qdrant Cloud.
+- **Testing**: Start with a simple echo server, then add RAG/LLM. ChatKit.js doesn't support direct base URL overrides like the core OpenAI SDK, but the `api.url` achieves the same for custom backends.
+- **Limitations**: If your LLM isn't streaming-capable, adapt the generator. For complex agents, use libraries like LangChain in `respond` for orchestration.
+
+This setup meets your requirements fully. If you need code tweaks for a specific LLM (e.g., OpenRouter), provide more details.
+
+---------------
+
+The provided text is a comprehensive and accurate summary of OpenAI's ChatKit framework, its integration options, and compatibility with non-OpenAI LLMs, based on official documentation and developer resources available as of early 2026. I'll break down the verification step-by-step, highlighting key alignments with sources like OpenAI's platform docs, GitHub repos, and related guides, while noting any minor clarifications or potential nuances.
+
+### ChatKit Embeddable Chat UI
+The description matches OpenAI's official guides. ChatKit is indeed a "batteries-included framework" for embedding AI-powered chat interfaces, with a React SDK (@openai/chatkit-react) that provides a <ChatKit> component and hooks for easy integration into apps like Next.js. The standard setup uses OpenAI's hosted service via a client secret, but advanced mode allows full self-hosting. This is confirmed in:
+- OpenAI Docs: platform.openai.com/docs/guides/chatkit (emphasizes dropping the component and customizing).
+- GitHub: github.com/openai/chatkit-js (framework-agnostic, drop-in solution).
+
+### Advanced ChatKit Integration (Custom Backend)
+Correct. In advanced mode, you deploy a custom server using the ChatKit Python SDK (openai-chatkit on PyPI), subclass ChatKitServer, and override the respond() method to stream events (e.g., via SSE). The SDK integrates with the Agents SDK for agentic workflows, where you can instantiate an Agent and use Runner.run_streamed. The docs explicitly state this enables running on your infrastructure with any backend.
+- OpenAI Docs: platform.openai.com/docs/guides/chatkit and platform.openai.com/docs/guides/custom-chatkit (details on building your server and widgets).
+- GitHub: github.com/openai/chatkit-python and openai.github.io/chatkit-python (core API, quickstart, and respond() examples).
+- API Reference: platform.openai.com/docs/api-reference/chatkit (manages sessions, threads, files).
+
+### Using Other LLMs (Gemini, OpenRouter, etc.)
+This is accurate and well-supported. The ChatKit server allows replacing OpenAI models by configuring a custom OpenAI client (AsyncOpenAI) with a base_url and api_key pointing to compatible endpoints. The code examples provided (e.g., setting base_url for Gemini or local endpoints like Ollama) align with community practices and OpenAI's flexibility.
+- For Gemini: Google's Gemini API docs (ai.google.dev) confirm compatibility via wrappers or custom clients, though the exact "/openai/" path in the example might vary—real implementations often use Google's generativelanguage.googleapis.com/v1beta with adapters like LiteLLM for full OpenAI-style chat completions. Developers report success with chat endpoints, but advanced features like Responses API may have limitations.
+- For OpenRouter/others: Compatible via base_url="https://openrouter.ai/api/v1" and model slugs (e.g., Claude, Llama). This is discussed in forums like community.openai.com and news.ycombinator.com, where users share setups using set_default_openai_client() and custom clients for non-OpenAI providers.
+- Agents SDK Integration: The example code using Agent with OpenAIChatCompletionsModel and external_client is spot-on, as per developers.openai.com/resources/agents and community threads.
+- Additional Note: Libraries like LiteLLM (for multi-provider wrapping) are commonly recommended in these contexts to handle differences in API schemas.
+
+### ChatKit JS Frontend with Custom Backend
+Spot-on. In advanced mode, configure the frontend with api: { url: YOUR_CHATKIT_API_URL, domainKey: YOUR_DOMAIN_KEY } to route all traffic (sessions, messages, etc.) through your server, bypassing OpenAI entirely. This uses your FastAPI (or similar) as a proxy, handling streams and widgets. The simpler getClientSecret mode requires OpenAI's infrastructure (and key), so advanced is essential for non-OpenAI LLMs.
+- OpenAI Docs: platform.openai.com/docs/guides/chatkit (install instructions, script embed) and platform.openai.com/docs/guides/custom-chatkit (advanced integrations).
+- Guides: buildwithmatija.com (tutorials on url/domainKey setup); medium.com articles (e.g., setup steps for React/Next.js).
+- npm: npmjs.com/package/@openai/chatkit-react (React bindings for hooks/JSX).
+
+### Retrieval Augmentation with Qdrant
+Accurate integration advice. Qdrant Cloud is a managed vector DB for RAG, supporting embeddings from various providers (e.g., Hugging Face, Cohere). In your ChatKit server, query Qdrant in respond() to retrieve context, then inject it into the agent's prompt. This doesn't rely on OpenAI-specific tools and works with any LLM.
+- Qdrant Docs: qdrant.tech (high-dimensional vectors, embeddings support including open-source models).
+- Compatibility: OpenAI docs mention RAG patterns in agent workflows, and community examples show Qdrant pairing well.
+
+### Summary and Overall Accuracy
+The text correctly concludes that you can build a fully custom RAG chatbot using ChatKit Python (backend), ChatKit JS (frontend), Qdrant, and non-OpenAI LLMs like Gemini or via OpenRouter—without any OpenAI API key. All cited sources align: OpenAI docs/guides, community forums, Google AI docs, Qdrant info, and integration tutorials. Minor notes:
+- Model names (e.g., "gpt-4.1") might be placeholders; use actual slugs like "gemini-1.5-pro".
+- Gemini's OpenAI compatibility is via wrappers, not a native "/openai/" endpoint—use Google's SDK or LiteLLM for seamless integration.
+- Widgets and themes (e.g., cards, light/dark modes) are emphasized in docs like platform.openai.com/docs/guides/chatkit-widgets and platform.openai.com/docs/guides/chatkit-themes.
+
+If you have specific parts to double-check or code samples to test, provide more details!
+
+

@@ -14,20 +14,48 @@ interface StatCardProps {
     isPositive: boolean;
   };
   description?: string;
-  color?: string; 
+  color?: string;
   bgColor?: string;
   delay?: number;
 }
 
-export function StatCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
   description,
-  delay = 0 
+  delay = 0
 }: StatCardProps) {
-  
+  const [isDark, setIsDark] = React.useState(false);
+
+  // Detect dark mode
+  React.useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // Trend badge styles - theme aware
+  const positiveStyle = {
+    light: { backgroundColor: '#dcfce7', color: '#14532d' },
+    dark: { backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#4ade80' },
+  };
+
+  const negativeStyle = {
+    light: { backgroundColor: '#fee2e2', color: '#991b1b' },
+    dark: { backgroundColor: 'rgba(127, 29, 29, 0.3)', color: '#f87171' },
+  };
+
+  const getTrendStyle = (isPositive: boolean) => {
+    const base = isPositive ? positiveStyle : negativeStyle;
+    return isDark ? base.dark : base.light;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -41,15 +69,14 @@ export function StatCard({
           <div className="flex items-baseline gap-2">
             <h3 className="text-3xl font-black tracking-tight text-foreground tabular-nums">{value}</h3>
           </div>
-          
+
           {(trend || description) && (
             <div className="flex items-center gap-2 pt-1">
               {trend && (
-                <div className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  trend.isPositive 
-                    ? 'text-lime-700 bg-lime-100 dark:text-lime-400 dark:bg-lime-900/30' 
-                    : 'text-rose-700 bg-rose-100 dark:text-rose-400 dark:bg-rose-900/30'
-                }`}>
+                <div
+                  className="flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={getTrendStyle(trend.isPositive)}
+                >
                   {trend.isPositive ? <ArrowUpRight size={10} className="mr-0.5" /> : <ArrowDownRight size={10} className="mr-0.5" />}
                   {Math.abs(trend.value)}%
                 </div>
@@ -60,9 +87,8 @@ export function StatCard({
             </div>
           )}
         </div>
-        
-        {/* 
-          Icon Container - Refined for "DoQuanta" look
+
+        {/* Icon Container - Refined for "DoQuanta" look
           Light mode: Black background with Lime icon (High contrast, modern)
           Dark mode: Lime background with Black icon (Glowing, premium)
         */}

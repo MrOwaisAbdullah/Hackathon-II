@@ -389,7 +389,9 @@ paths:
     get:
       tags: [users]
       summary: List team members
-      description: Returns all users in the same agency
+      description: |
+        Returns all active users in the same agency.
+        Excludes soft-deleted users (active=false).
       responses:
         '200':
           content:
@@ -401,6 +403,41 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                    example: 5
+
+    post:
+      tags: [users]
+      summary: Create team member
+      description: |
+        Creates a new team member in the same agency.
+        Auto-generates a secure temporary password if not provided.
+        Password expires in 7 days by default.
+        Requires current_user to be admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReadWithTempPassword'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Only admins can create users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already exists in agency
 
   /users/{user_id}:
     parameters:
@@ -415,6 +452,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [users]
+      summary: Update user
+      description: |
+        Partial update of user fields.
+        Only admins can modify role and is_project_manager.
+        Users can update their own name and email.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Insufficient permissions
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [users]
+      summary: Delete user (soft delete)
+      description: |
+        Soft deletes user by setting active=false.
+        User's assigned tasks become unassigned.
+        Cannot delete the last admin in the agency.
+        Requires current_user to be admin.
+      responses:
+        '204':
+          description: User deactivated
+        '403':
+          description: Cannot delete last admin or insufficient permissions
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ============================================================
   # TIME ENTRIES ENDPOINTS
@@ -604,7 +685,7 @@ components:
 
     User:
       type: object
-      required: [id, email, name, agency_id]
+      required: [id, email, name, role, agency_id]
       properties:
         id:
           type: string
@@ -614,12 +695,114 @@ components:
           format: email
         name:
           type: string
+          minLength: 1
+          maxLength: 100
+        role:
+          type: string
+          enum: [admin, member, client]
+          default: member
         agency_id:
           type: string
           format: uuid
+        active:
+          type: boolean
+          default: true
+          description: Soft delete flag
+        is_project_manager:
+          type: boolean
+          default: false
+          description: Can create and manage projects
+        password_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Temporary password expiration
+        must_change_password:
+          type: boolean
+          default: false
+          description: Force password change on login
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    UserCreate:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: Optional password, auto-generated if not provided
+        role:
+          type: string
+          enum: [admin, member, client]
+          default: member
+        is_project_manager:
+          type: boolean
+          default: false
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, member, client]
+          description: Admin-only field
+        is_project_manager:
+          type: boolean
+          description: Admin-only field
+
+    UserReadWithTempPassword:
+      allOf:
+        - type: object
+          required: [id, email, name, role, agency_id, temporary_password]
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+            role:
+              type: string
+              enum: [admin, member, client]
+            agency_id:
+              type: string
+              format: uuid
+            active:
+              type: boolean
+            is_project_manager:
+              type: boolean
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+              nullable: true
+            temporary_password:
+              type: string
+              description: Auto-generated temporary password (shown once on creation)
 
     Project:
       type: object

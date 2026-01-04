@@ -11,13 +11,41 @@
  * - Total hours tracked per project
  */
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useProjectProfitability } from "@/lib/query";
 import { TrendingUp, TrendingDown, DollarSign, Clock, CheckCircle } from "lucide-react";
 import type { ProjectProfitability } from "@/types/task";
 
 export function ProfitabilityReport() {
+  const [isDark, setIsDark] = useState(false);
+
+  // Detect dark mode
+  useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // Profit margin badge styles - theme aware
+  const positiveProfitStyle = {
+    light: { backgroundColor: '#dcfce7', color: '#14532d' },
+    dark: { backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#4ade80' },
+  };
+
+  const negativeProfitStyle = {
+    light: { backgroundColor: '#fee2e2', color: '#991b1b' },
+    dark: { backgroundColor: 'rgba(127, 29, 29, 0.3)', color: '#f87171' },
+  };
+
+  const getProfitStyle = (isPositive: boolean) => {
+    const base = isPositive ? positiveProfitStyle : negativeProfitStyle;
+    return isDark ? base.dark : base.light;
+  };
   const { data: profitabilityData = [], isLoading } = useProjectProfitability();
 
   // Calculate aggregate stats
@@ -203,11 +231,8 @@ export function ProfitabilityReport() {
                       </div>
                     </div>
                     <div
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        project.profit >= 0
-                          ? "bg-green-500/20 text-green-500"
-                          : "bg-red-500/20 text-red-500"
-                      }`}
+                      className="px-2 py-1 rounded text-xs font-medium"
+                      style={getProfitStyle(project.profit >= 0)}
                     >
                       {formatPercent(project.profit_margin)}
                     </div>

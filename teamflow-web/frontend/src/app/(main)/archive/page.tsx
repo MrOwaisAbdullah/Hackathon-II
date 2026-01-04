@@ -7,18 +7,22 @@
  * - Restore functionality
  * - Search/filter
  * - Empty state
+ * - View task details in drawer
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useArchivedTasks, useRestoreTask } from "@/lib/query";
-import { Search, RotateCcw, Archive, Loader2 } from "lucide-react";
+import { Search, RotateCcw, Archive, Loader2, Eye } from "lucide-react";
+import { TaskDrawer } from "@/components/task/TaskDrawer";
 
 export default function ArchivePage() {
   const { data: archivedTasks = [], isLoading } = useArchivedTasks();
   const restoreTask = useRestoreTask();
   const [searchQuery, setSearchQuery] = useState("");
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [drawerTaskId, setDrawerTaskId] = useState<string | undefined>();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const filteredTasks = archivedTasks.filter((task) =>
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -60,7 +64,7 @@ export default function ArchivePage() {
               placeholder="Search archived tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-10 pr-4 py-3 text-foreground border-2 border-input rounded-xl bg-background focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80 transition-all duration-200"
             />
           </div>
         </div>
@@ -119,9 +123,22 @@ export default function ArchivePage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setDrawerTaskId(task.id);
+                          setIsDrawerOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                        title="View task details"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleRestore(task.id)}
                         disabled={restoringId === task.id || restoreTask.isPending}
-                        className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 text-sm bg-accent text-accent-foreground rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50"
                         data-testid="restore-button"
                       >
                         {restoringId === task.id ? (
@@ -161,6 +178,13 @@ export default function ArchivePage() {
           </motion.div>
         )}
       </motion.div>
+
+      {/* Task Drawer */}
+      <TaskDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        taskId={drawerTaskId}
+      />
     </div>
   );
 }

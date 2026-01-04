@@ -32,7 +32,7 @@ export function UserFilter({ value, onChange, currentUserId }: UserFilterProps) 
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg hover:bg-muted/50 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 bg-card border border-input rounded-lg hover:bg-muted/50 transition-colors"
       >
         <Filter className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-medium">{getFilterLabel()}</span>
@@ -54,7 +54,7 @@ export function UserFilter({ value, onChange, currentUserId }: UserFilterProps) 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute top-full left-0 mt-2 w-64 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden"
+              className="absolute top-full left-0 mt-2 w-64 bg-card border border-input rounded-lg shadow-lg z-20 overflow-hidden"
             >
               <div className="p-1">
                 {/* All Tasks */}
@@ -70,7 +70,7 @@ export function UserFilter({ value, onChange, currentUserId }: UserFilterProps) 
                   </div>
                   <span className="text-sm font-medium">All Tasks</span>
                   {value === "all" && (
-                    <Check className="w-4 h-4 text-primary ml-auto" />
+                    <Check className="w-4 h-4 text-accent ml-auto" />
                   )}
                 </button>
 
@@ -83,12 +83,12 @@ export function UserFilter({ value, onChange, currentUserId }: UserFilterProps) 
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
+                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-accent" />
                     </div>
                     <span className="text-sm font-medium">My Tasks</span>
                     {value === "my-tasks" && (
-                      <Check className="w-4 h-4 text-primary ml-auto" />
+                      <Check className="w-4 h-4 text-accent ml-auto" />
                     )}
                   </button>
                 )}
@@ -106,13 +106,13 @@ export function UserFilter({ value, onChange, currentUserId }: UserFilterProps) 
                   </div>
                   <span className="text-sm font-medium">Unassigned</span>
                   {value === "unassigned" && (
-                    <Check className="w-4 h-4 text-primary ml-auto" />
+                    <Check className="w-4 h-4 text-accent ml-auto" />
                   )}
                 </button>
 
                 {/* Divider */}
                 {users.length > 0 && (
-                  <div className="my-2 border-t border-border" />
+                  <div className="my-2 border-t border-input" />
                 )}
 
                 {/* Team Members */}
@@ -130,14 +130,14 @@ export function UserFilter({ value, onChange, currentUserId }: UserFilterProps) 
                       }}
                       className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/30 flex items-center justify-center">
-                        <span className="text-xs font-semibold text-primary">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/20 to-accent/30 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-accent">
                           {user.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <span className="text-sm font-medium">{user.name}</span>
                       {value === user.id && (
-                        <Check className="w-4 h-4 text-primary ml-auto" />
+                        <Check className="w-4 h-4 text-accent ml-auto" />
                       )}
                     </button>
                   ))

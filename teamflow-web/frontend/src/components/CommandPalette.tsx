@@ -308,7 +308,7 @@ export function CommandPalette() {
                         </div>
 
                         {/* Commands in this category */}
-                        {cmds.map((command, idx) => {
+                        {cmds.map((command) => {
                           const globalIndex = flatCommands.indexOf(command);
                           const isSelected = globalIndex === selectedIndex;
                           const Icon = command.icon;

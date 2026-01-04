@@ -1,10 +1,11 @@
 """Task models."""
 from datetime import date, datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from pydantic import Field as PDField
+from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -86,6 +87,12 @@ class TaskRead(TaskBase):
     id: UUID
     created_at: datetime
     updated_at: Optional[datetime] = None
+    # Include assignee data (populated from relationship)
+    # Using Any to avoid forward reference issues with Pydantic v2
+    assignee: Optional[Any] = None
+
+    class Config:
+        from_attributes = True
 
 
 class TaskAssign(SQLModel):
@@ -95,8 +102,6 @@ class TaskAssign(SQLModel):
 
 
 # Import User and Project for relationships
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from app.models.user import User
+    from app.models.user import User, UserRead
     from app.models.project import Project
