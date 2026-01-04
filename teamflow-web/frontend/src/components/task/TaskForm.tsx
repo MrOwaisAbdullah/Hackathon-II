@@ -1,9 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Sparkles, Calendar, User as UserIcon, FolderOpen } from "lucide-react";
+import { X, Plus, Sparkles  } from "lucide-react";
 import { useCreateTask, useUsers, useProjects } from "@/lib/query";
-import { Project, TaskPriority } from "@/types";
+import { TaskPriority } from "@/types";
 import { useState } from "react";
 import { PrioritySelector } from "./PrioritySelector";
 import { RichTextEditor } from "./RichTextEditor";
@@ -25,7 +25,7 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState<string | undefined>("");
   const [assigneeId, setAssigneeId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
