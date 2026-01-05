@@ -6,6 +6,8 @@ import { Plus, Loader2 } from "lucide-react";
 import { useProjects, useDeleteProject } from "@/lib/query";
 import { ProjectForm } from "@/components/project/ProjectForm";
 import { ProjectCard } from "@/components/project/ProjectCard";
+import { ProjectDrawer } from "@/components/project/ProjectDrawer";
+import { useProjectDrawer } from "@/hooks/useProjectDrawer";
 import { Button } from "@/components/ui/button";
 import type { Project } from "@/types";
 
@@ -13,11 +15,17 @@ export default function ProjectsPage() {
   const { data: projects, isLoading, error } = useProjects();
   const deleteProject = useDeleteProject();
   const [showForm, setShowForm] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | undefined>();
+
+  // Use drawer for editing
+  const {
+    isDrawerOpen,
+    selectedProject,
+    openDrawer,
+    closeDrawer,
+  } = useProjectDrawer();
 
   const handleEdit = (project: Project) => {
-    setEditingProject(project);
-    setShowForm(true);
+    openDrawer(project);
   };
 
   const handleDelete = async (project: Project) => {
@@ -28,7 +36,6 @@ export default function ProjectsPage() {
 
   const handleFormClose = () => {
     setShowForm(false);
-    setEditingProject(undefined);
   };
 
   if (error) {
@@ -101,16 +108,22 @@ export default function ProjectsPage() {
         </motion.div>
       )}
 
-      {/* Project Form Modal */}
+      {/* Project Form Modal - Only for creating */}
       {showForm && (
         <ProjectForm
-          project={editingProject}
           onClose={handleFormClose}
           onSuccess={() => {
             handleFormClose();
           }}
         />
       )}
+
+      {/* Project Drawer - For editing */}
+      <ProjectDrawer
+        isOpen={isDrawerOpen}
+        onClose={closeDrawer}
+        project={selectedProject}
+      />
     </div>
   );
 }

@@ -11,6 +11,8 @@ import {
 import dynamic from 'next/dynamic';
 import { StatCardSkeleton, ChartSkeleton, ListSkeleton } from '@/components/ui/Skeleton';
 import { useDashboardStats, useTasksByStatus, useProjects, useTasks } from '@/lib/query';
+import { ProjectDrawer } from '@/components/project/ProjectDrawer';
+import { useProjectDrawer } from '@/hooks/useProjectDrawer';
 
 // Dynamic imports for heavy dashboard components
 const TaskDistributionChart = dynamic(
@@ -35,6 +37,14 @@ export default function DashboardPage() {
   const { data: chartData, isLoading: chartLoading } = useTasksByStatus();
   const { data: projectsData, isLoading: projectsLoading } = useProjects();
   const { data: tasksData } = useTasks();
+
+  // Project drawer for editing
+  const {
+    isDrawerOpen,
+    selectedProject,
+    openDrawer,
+    closeDrawer,
+  } = useProjectDrawer();
 
   // Calculate total tasks for chart
   const totalTasks = chartData?.reduce((sum, item) => sum + item.value, 0) || 0;
@@ -176,7 +186,7 @@ export default function DashboardPage() {
           {projectsLoading ? (
             <ListSkeleton count={4} />
           ) : (
-            <ProjectList projects={projectsList} />
+            <ProjectList projects={projectsList} onEdit={openDrawer} />
           )}
         </div>
         <div className="lg:col-span-1">
@@ -185,6 +195,13 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {/* Project Drawer */}
+      <ProjectDrawer
+        isOpen={isDrawerOpen}
+        onClose={closeDrawer}
+        project={selectedProject}
+      />
     </div>
   );
 }
