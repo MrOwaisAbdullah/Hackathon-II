@@ -10,10 +10,10 @@ from sqlmodel import Field, Relationship, SQLModel
 
 class ProjectStatus(str, Enum):
     """Project status enum."""
-    ACTIVE = "active"
-    ON_HOLD = "on_hold"
-    COMPLETED = "completed"
-    ARCHIVED = "archived"
+    active = "active"
+    on_hold = "on_hold"
+    completed = "completed"
+    archived = "archived"
 
 
 class Project(SQLModel, table=True):
@@ -24,7 +24,7 @@ class Project(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     name: str = Field(max_length=255)
     description: Optional[str] = Field(default=None)
-    status: ProjectStatus = Field(default=ProjectStatus.ACTIVE, index=True)
+    status: ProjectStatus = Field(default=ProjectStatus.active, index=True)
     hourly_rate: Optional[int] = Field(default=None)  # For profitability tracking
     agency_id: UUID = Field(foreign_key="agencies.id", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -40,7 +40,7 @@ class ProjectBase(SQLModel):
 
     name: str = PDField(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    status: ProjectStatus = Field(default=ProjectStatus.ACTIVE)
+    status: ProjectStatus = Field(default=ProjectStatus.active)
     hourly_rate: Optional[int] = None
 
 
