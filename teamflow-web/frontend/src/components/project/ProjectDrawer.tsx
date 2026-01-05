@@ -16,8 +16,6 @@ import { ProjectStatus } from "@/types";
 import {
   Loader2,
   X,
-  Calendar,
-  Building2,
 } from "lucide-react";
 import {
   Select,
@@ -97,6 +95,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed right-0 top-0 h-full w-full max-w-md bg-card shadow-xl z-50"
+            data-testid="project-drawer"
           >
             <div className="flex h-full flex-col">
               {/* Header */}
@@ -106,6 +105,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                   onClick={onClose}
                   className="rounded p-2 hover:bg-muted"
                   aria-label="Close drawer"
+                  data-testid="close-drawer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -117,8 +117,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                   <div className="space-y-6">
                     {/* Name - Editable */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
+                      <label className="text-sm font-medium text-muted-foreground">
                         Name
                       </label>
                       <input
@@ -147,8 +146,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
 
                     {/* Status - Full Width (Editable) */}
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                      <div className="text-sm font-medium text-muted-foreground">
                         Status
                       </div>
                       <Select
