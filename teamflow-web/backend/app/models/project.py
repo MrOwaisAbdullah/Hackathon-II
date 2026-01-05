@@ -1,10 +1,10 @@
 """Project models."""
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Union, Any
 from uuid import UUID, uuid4
 
-from pydantic import Field as PDField
+from pydantic import Field as PDField, field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -55,8 +55,24 @@ class ProjectUpdate(SQLModel):
 
     name: Optional[str] = PDField(None, min_length=1, max_length=255)
     description: Optional[str] = None
-    status: Optional[ProjectStatus] = None
+    status: Optional[Union[ProjectStatus, str]] = None
     hourly_rate: Optional[int] = None
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def validate_status(cls, v: Any) -> Optional[ProjectStatus]:
+        """Validate and convert status string to ProjectStatus enum."""
+        if v is None:
+            return None
+        if isinstance(v, ProjectStatus):
+            return v
+        # If it's a string, convert to enum
+        if isinstance(v, str):
+            try:
+                return ProjectStatus(v)
+            except ValueError:
+                raise ValueError(f"Invalid status value: {v}. Must be one of: {', '.join([s.value for s in ProjectStatus])}")
+        raise ValueError(f"Status must be a string or ProjectStatus enum, got {type(v)}")
 
 
 class ProjectRead(ProjectBase):
