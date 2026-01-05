@@ -451,12 +451,15 @@ This section documents the complete user journey from first visit to active usag
 - **FR-047**: When a team member is deleted from the agency, all tasks assigned to that member MUST become unassigned (assignee_id set to null) and display an empty avatar placeholder
 
 #### Dashboard & Analytics
-- **FR-022**: System MUST display a dashboard with key metrics (active projects, tasks, team utilization) AND animated visualizations (bar charts, workflow progress indicators)
+- **FR-022**: System MUST display a dashboard with key metrics (active projects, tasks, team utilization) AND animated visualizations (bar charts, upcoming deadline indicators)
 - **FR-023**: System MUST show profitability calculations when time and rate data are available
 - **FR-024**: Dashboard cards MUST animate in on page load with stagger effect
 - **FR-025**: Dashboard MUST provide statistics updated via polling every 10 seconds and a manual refresh button for immediate sync
 - **FR-048**: Dashboard sidebar MUST support collapse/expand on desktop with smooth transition animation
 - **FR-049**: When sidebar is collapsed, it MUST show icons-only and content area MUST expand to fill available space
+- **FR-066**: Dashboard MUST display Upcoming Deadlines component showing tasks due within 7 days, sorted by urgency (overdue first, then by due date)
+- **FR-067**: Upcoming Deadlines MUST display overdue badges with pulsing animation for tasks past their due date
+- **FR-068**: Upcoming Deadlines MUST link tasks to their respective project detail pages for quick navigation
 
 #### Time & Profitability
 - **FR-026**: Users MUST be able to log time against tasks (via timer or manual entry)
@@ -494,6 +497,19 @@ This section documents the complete user journey from first visit to active usag
 - **FR-038**: Users MUST be able to archive tasks (soft delete) with restore capability
 - **FR-039**: System MUST support drag-to-archive or context menu for deletion
 - **FR-040**: Archived tasks MUST be viewable in a separate archive section
+- **FR-069**: TaskDrawer MUST display all time entries logged against the task with duration, description, date, and user
+- **FR-070**: TaskDrawer MUST calculate and display total time automatically from all time entries
+- **FR-071**: TaskDrawer MUST provide "Add Time Entry" button to open TimeLoggingForm
+
+#### Project Management & Navigation
+- **FR-072**: Projects MUST have a status field with four states: Active, On Hold, Completed, Archived
+- **FR-073**: Project status MUST be visually indicated with color-coded badges (emerald/amber/blue/gray)
+- **FR-074**: System MUST provide a ProjectDrawer component for editing project details (mirrors TaskDrawer design)
+- **FR-075**: ProjectDrawer MUST include rich text editor for project descriptions
+- **FR-076**: System MUST provide dynamic routes for individual project pages at `/projects/[id]`
+- **FR-077**: Project detail pages MUST display project metadata, description (rendered markdown), and task statistics
+- **FR-078**: Project detail pages MUST show progress bar with completion percentage
+- **FR-079**: Project detail pages MUST list all project tasks with priority and due date information
 
 #### Data Persistence
 - **FR-041**: System MUST persist all data (tasks, users, time entries) to a database
@@ -513,9 +529,9 @@ This section documents the complete user journey from first visit to active usag
 
 - **Task**: Represents a unit of work or deliverable. Key attributes: title, description (rich text with markdown support), status (Todo, Doing, Review, Done), priority (Low, Medium, High), due_date (optional), created_at, updated_at, agency_id, assignee_id (references User, optional), project_id (references Project, optional). Task descriptions support markdown rendering on cards with rich text editing in forms.
 
-- **TimeEntry**: Represents time logged against a task. Key attributes: duration (hours), description, date, task_id, user_id, billable (boolean), hourly_rate.
+- **TimeEntry**: Represents time logged against a task. Key attributes: duration (hours), description, date, task_id, user_id, billable (boolean), hourly_rate. Time entries are displayed in TaskDrawer with total time calculation.
 
-- **Project**: Represents a collection of tasks for a client or initiative. Key attributes: name, description, client_name, status, agency_id, budget, hourly_rate. Has many Tasks.
+- **Project**: Represents a collection of tasks for a client or initiative. Key attributes: name, description (rich text with markdown support), status (Active, On Hold, Completed, Archived), agency_id, budget, hourly_rate. Has many Tasks. Projects have dedicated detail pages with dynamic routes.
 
 ---
 

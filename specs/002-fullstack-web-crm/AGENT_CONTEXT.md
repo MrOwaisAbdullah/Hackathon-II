@@ -41,20 +41,20 @@ This file provides context for AI agents working on TeamFlow Phase 2. Use this t
 | Plan | Quickstart | ✅ Complete | `quickstart.md` |
 | Implementation | Phases 1-8 (Core Features) | ✅ Complete | `teamflow-web/` |
 | Implementation | Phase 9 (Polish) | ✅ Complete | See tasks.md T150-T163 |
-| Planning | Phase 10 (Complete Workflow) | ✅ Complete | See below |
+| Implementation | Phase 10 (Complete Workflow) | ✅ Complete | See tasks.md T173-T234 |
+| Implementation | Phase 11 (Theme & UI Fixes) | ✅ Complete | See tasks.md T300-T325 |
+| Features | Dashboard Components | ✅ Complete | UpcomingDeadlines, TaskDistributionChart |
+| Features | Project Management | ✅ Complete | ProjectDrawer, ProjectForm, ProjectCard, Dynamic Routes |
+| Features | Rich Text Editing | ✅ Complete | RichTextEditor, Markdown rendering |
+| Features | Task Management | ✅ Complete | TaskDrawer with time entries, total time calc |
 
 ### Pending
 
 | Phase | Task | Status |
 |-------|------|--------|
-| Implementation | Phase 10 User CRUD (Backend) | ⏳ Pending - Backend endpoints |
-| Implementation | Phase 10 Project Forms (Frontend) | ⏳ Pending - Create/edit/delete UI |
-| Implementation | Phase 10 Team Forms (Frontend) | ⏳ Pending - Add/edit/remove UI |
-| Implementation | Phase 10 Mobile Navigation | ⏳ Pending - Hamburger menu |
-| Implementation | Phase 10 Archive Link | ⏳ Pending - Sidebar navigation |
 | Validation | Lighthouse/WCAG audits (T160-T161) | ⏳ Requires dev server |
 | Validation | Test suite execution (T166-T170) | ⏳ Requires dev server |
-| Documentation | Task count update (T171-T172) | ⏳ Pending |
+| Documentation | Analysis report update (T172) | ⏳ Pending |
 
 ---
 
@@ -121,9 +121,98 @@ def get_tasks(current_user: CurrentUser):
 
 ---
 
-## Recent Bug Fixes & Improvements (2026-01-05)
+## Recent Feature Implementations (2026-01-05)
+
+### Dashboard Improvements
+
+**UpcomingDeadlines Component** (`components/dashboard/UpcomingDeadlines.tsx`)
+- Replaces WorkflowProgress for more actionable deadline visibility
+- Displays tasks with due dates sorted by urgency (overdue first, then upcoming)
+- Shows overdue badges with pulsing animation for critical items
+- Theme-aware priority badges (HIGH/MEDIUM/LOW) with light/dark variants
+- Links tasks directly to their project pages for quick navigation
+- Displays count summary: "X overdue · Y due soon"
+- Limits to 8 most urgent tasks to prevent information overload
+- Empty state with calendar icon when no deadlines exist
+**File**: `teamflow-web/frontend/src/components/dashboard/UpcomingDeadlines.tsx`
+
+**TaskDistributionChart Color Fix**
+- **Issue**: Hex color values not compatible with chart rendering
+- **Solution**: Convert HSL values to RGB for chart library compatibility
+- **File**: `teamflow-web/frontend/src/components/dashboard/TaskDistributionChart.tsx`
+
+### Project Management Enhancements
+
+**ProjectDrawer Component** (`components/project/ProjectDrawer.tsx`)
+- Side panel for editing project details (mirrors TaskDrawer design)
+- Editable fields: name, description (rich text), status
+- Rich text editor for project descriptions with markdown rendering
+- Status dropdown with 4 options: Active, On Hold, Completed, Archived
+- Auto-save detection with disabled save button when no changes
+- Spring animation for slide-in/slide-out
+- Backdrop blur overlay for focus
+**File**: `teamflow-web/frontend/src/components/project/ProjectDrawer.tsx`
+
+**Dynamic Project View Page** (`app/(main)/projects/[id]/page.tsx`)
+- Dynamic route for individual project pages
+- Displays project metadata: name, status badge, creation date
+- Renders project description with markdown
+- Stats grid: Total Tasks, Completed, Progress percentage
+- Animated progress bar showing completion percentage
+- Lists all project tasks with priority badges and due dates
+- Back button navigation with arrow icon
+- Loading state with spinner
+- Error handling redirects to projects page on 404
+**File**: `teamflow-web/frontend/src/app/(main)/projects/[id]/page.tsx`
+
+**Project Status Field**
+- Extended Project model with `status` enum field
+- Four states: ACTIVE, ON_HOLD, COMPLETED, ARCHIVED
+- Visual badges with color coding (emerald/amber/blue/gray)
+- Theme-aware styling with light/dark mode support
+- Status filtering on Projects page
+**Files**: `backend/app/models/project.py`, `frontend/src/types/index.ts`
+
+### Rich Text & Markdown Features
+
+**Markdown Rendering System** (`lib/markdown.ts`)
+- Custom `renderMarkdown()` function for converting markdown to HTML
+- Supports: headers (H1-H3), bold, italic, links, lists, inline code, horizontal rules
+- Escapes HTML first for security (XSS prevention)
+- Applies Tailwind classes for consistent styling
+- Theme-aware link colors (lime-600/lime-400)
+- Used throughout: TaskCard descriptions, Project descriptions, TaskDrawer
+**File**: `teamflow-web/frontend/src/lib/markdown.ts`
+
+**RichTextEditor Component** (`components/task/RichTextEditor.tsx`)
+- Toolbar with: Bold, Italic, H1, H2, List, Link, HR buttons
+- Auto-expanding textarea based on content height
+- Keyboard shortcuts: Ctrl+B (bold), Ctrl+I (italic)
+- Always in edit mode (markdown renders on cards, editor in forms)
+- Custom lime-themed scrollbar for overflow content
+- Used in: TaskForm, TaskDrawer, ProjectDrawer
+**File**: `teamflow-web/frontend/src/components/task/RichTextEditor.tsx`
+
+### Task Management Improvements
+
+**TaskDrawer Time Entries Display**
+- Shows all time entries logged against the task
+- Displays duration, description, date, and user who logged time
+- Calculates and displays total time automatically
+- "Add Time Entry" button opens TimeLoggingForm
+- Time entries listed in chronological order
+- Empty state when no time entries exist
+**File**: `teamflow-web/frontend/src/components/task/TaskDrawer.tsx`
+
+**Total Time Calculation Fix**
+- **Issue**: Total time not displaying in TaskDrawer
+- **Solution**: Added `useMemo` to sum time entry durations
+- Displays formatted total (e.g., "2h 30m")
+- Updates automatically when time entries change
+**File**: `teamflow-web/frontend/src/components/task/TaskDrawer.tsx`
 
 ### Theme System Fixes
+
 **Issue**: Hardcoded colors throughout the app causing inconsistent theming
 **Solution**: Systematically replaced hardcoded colors with theme variables
 
@@ -140,6 +229,7 @@ def get_tasks(current_user: CurrentUser):
 | UserFilter | Dropdown uses `border-input`, `text-accent` |
 
 ### Custom Component Replacements
+
 **Issue**: Native HTML elements (`<select>`, `<input type="date">`) can't be fully themed
 **Solution**: Created custom components with full theme control
 
@@ -149,31 +239,33 @@ def get_tasks(current_user: CurrentUser):
 | `AssigneeSelect` | `components/task/AssigneeSelect.tsx` | Custom dropdown for assignee selection with avatars |
 | `DatePicker` | `components/task/DatePicker.tsx` | Custom date picker with calendar popover, month/year navigation |
 
-### TaskDrawer Bug Fixes
-**Issue**: Save button always disabled despite making changes
-**Root Cause**: Date comparison using different formats (ISO datetime vs YYYY-MM-DD)
-**Solution**: Added `normalizeDate()` helper function to extract date part before comparison
+### Bug Fixes
+
+**TaskDrawer Save Button Bug**
+- **Issue**: Save button always disabled despite making changes
+- **Root Cause**: Date comparison using different formats (ISO datetime vs YYYY-MM-DD)
+- **Solution**: Added `normalizeDate()` helper function to extract date part before comparison
 **File**: `teamflow-web/frontend/src/components/task/TaskDrawer.tsx:112-124`
 
-### DatePicker Navigation Enhancement
-**Issue**: No way to navigate to different months or years
-**Solution**: Added previous/next month buttons with year transitions
+**DatePicker Navigation Enhancement**
+- **Issue**: No way to navigate to different months or years
+- **Solution**: Added previous/next month buttons with year transitions
 **Features**:
 - Left/right arrow buttons for month navigation
 - Automatic year transition (Dec → Jan, Jan → Dec of previous year)
 - Sync view with selected date when opening
 **File**: `teamflow-web/frontend/src/components/task/DatePicker.tsx:44-98`
 
-### TaskBoard Destructuring Fix
-**Issue**: Tasks not displaying despite successful API responses
-**Root Cause**: Hook returns `{ tasks }` but component was looking for `{ data: tasks }`
-**Solution**: Fixed destructuring in TaskBoard component
+**TaskBoard Destructuring Fix**
+- **Issue**: Tasks not displaying despite successful API responses
+- **Root Cause**: Hook returns `{ tasks }` but component was looking for `{ data: tasks }`
+- **Solution**: Fixed destructuring in TaskBoard component
 **File**: `teamflow-web/frontend/src/components/board/TaskBoard.tsx:39`
 
-### Backend Pydantic Forward Reference Fix
-**Issue**: 500 error when creating/listing tasks due to Pydantic v2 forward reference
-**Root Cause**: `TaskRead.assignee: Optional["UserRead"]` causes issues
-**Solution**: Changed to `assignee: Optional[Any]` to avoid forward reference problems
+**Backend Pydantic Forward Reference Fix**
+- **Issue**: 500 error when creating/listing tasks due to Pydantic v2 forward reference
+- **Root Cause**: `TaskRead.assignee: Optional["UserRead"]` causes issues
+- **Solution**: Changed to `assignee: Optional[Any]` to avoid forward reference problems
 **File**: `teamflow-web/backend/app/models/task.py:26`
 
 ---

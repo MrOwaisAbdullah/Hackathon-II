@@ -869,6 +869,225 @@ import {
 
 ---
 
+## Dashboard Component Enhancements
+
+### UpcomingDeadlines Component
+
+**Component**: `UpcomingDeadlines` (`/components/dashboard/UpcomingDeadlines.tsx`)
+
+**Purpose**: Replace WorkflowProgress with actionable deadline visibility, showing tasks due within 7 days sorted by urgency.
+
+**Features**:
+- Filters tasks: excludes DONE/ARCHIVED, must have due_date
+- Sorts by urgency: overdue first (most overdue first), then upcoming (by due date)
+- Limits to 8 most urgent tasks
+- Displays count summary: "X overdue · Y due soon"
+- Theme-aware priority badges (HIGH/MEDIUM/LOW) with light/dark variants
+- Overdue badges with pulsing animation for critical items
+- Links tasks directly to their project pages
+- Empty state with calendar icon
+
+**Date Utilities**:
+```typescript
+const getToday = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
+const getDaysUntilDue = (dueDate: string): number => {
+  const today = getToday();
+  const due = new Date(dueDate);
+  due.setHours(0, 0, 0, 0);
+  return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+};
+
+const isOverdue = daysUntilDue < 0;
+const isDueSoon = daysUntilDue >= 0 && daysUntilDue <= 7;
+```
+
+**Usage**:
+```tsx
+<UpcomingDeadlines tasks={tasks} projects={projects} />
+```
+
+### TaskDistributionChart Color Fix
+
+**Issue**: Hex color values (#a3e635) not compatible with chart rendering library
+**Solution**: Convert HSL values to RGB for compatibility
+
+**Pattern**:
+```typescript
+const TASK_COLORS = {
+  TODO: 'rgba(163, 230, 53, 0.8)',      // lime-400 to RGB
+  DOING: 'rgba(250, 204, 21, 0.8)',     // yellow-400 to RGB
+  REVIEW: 'rgba(251, 146, 60, 0.8)',    // orange-400 to RGB
+  DONE: 'rgba(74, 222, 128, 0.8)'       // emerald-400 to RGB
+};
+```
+
+---
+
+## Project Management Enhancements
+
+### ProjectDrawer Component
+
+**Component**: `ProjectDrawer` (`/components/project/ProjectDrawer.tsx`)
+
+**Purpose**: Side panel for editing project details, mirroring TaskDrawer design pattern.
+
+**Features**:
+- Slides in from right with spring animation
+- Backdrop blur overlay for focus
+- Editable fields: name, description (rich text), status
+- Rich text editor for project descriptions
+- Status dropdown with 4 options: Active, On Hold, Completed, Archived
+- Auto-save detection (disabled button when no changes)
+- Displays created date (read-only)
+- Footer with Cancel/Save buttons
+
+**State Management**:
+```typescript
+const [editedName, setEditedName] = useState("");
+const [editedDescription, setEditedDescription] = useState("");
+const [editedStatus, setEditedStatus] = useState<ProjectStatus | null>();
+
+// Sync local state with project data
+useEffect(() => {
+  if (project) {
+    setEditedName(project.name);
+    setEditedDescription(project.description || "");
+    setEditedStatus(project.status);
+  }
+}, [project]);
+
+const hasChanges = project && (
+  editedName !== project.name ||
+  editedDescription !== (project.description || "") ||
+  editedStatus !== project.status
+);
+```
+
+**Usage**:
+```tsx
+<ProjectDrawer
+  isOpen={isOpen}
+  onClose={() => setIsOpen(false)}
+  project={selectedProject}
+/>
+```
+
+### Dynamic Project View Page
+
+**Route**: `/projects/[id]/page.tsx`
+
+**Purpose**: Dynamic route for individual project pages with comprehensive project information.
+
+**Features**:
+- Uses Next.js 16 dynamic routes with `use()` hook for params
+- Displays project metadata: name, status badge, creation date
+- Renders project description with `renderMarkdown()`
+- Stats grid: Total Tasks, Completed, Progress percentage
+- Animated progress bar (fills from 0% to progress%)
+- Lists all project tasks with priority badges and due dates
+- Back button navigation with arrow icon
+- Loading state with spinner
+- Error handling redirects to projects page on 404
+
+**Progress Calculation**:
+```typescript
+const projectTasks = tasks.filter((task) => task.project_id === id);
+const completedTasks = projectTasks.filter((t) => t.status === "DONE").length;
+const progress = projectTasks.length > 0
+  ? Math.round((completedTasks / projectTasks.length) * 100)
+  : 0;
+```
+
+**Status Badge Styling**:
+```typescript
+const getStatusStyle = (status: ProjectStatus) => {
+  const styles = {
+    active: {
+      bg: "bg-emerald-500/10 dark:bg-emerald-500/20",
+      text: "text-emerald-700 dark:text-emerald-400",
+      border: "border-emerald-200 dark:border-emerald-800",
+    },
+    on_hold: {
+      bg: "bg-amber-500/10 dark:bg-amber-500/20",
+      text: "text-amber-700 dark:text-amber-400",
+      border: "border-amber-200 dark:border-amber-800",
+    },
+    completed: {
+      bg: "bg-blue-500/10 dark:bg-blue-500/20",
+      text: "text-blue-700 dark:text-blue-400",
+      border: "border-blue-200 dark:border-blue-800",
+    },
+    archived: {
+      bg: "bg-gray-500/10 dark:bg-gray-500/20",
+      text: "text-gray-700 dark:text-gray-400",
+      border: "border-gray-200 dark:border-gray-800",
+    },
+  };
+  return styles[status] || styles.active;
+};
+```
+
+### Project Status Field
+
+**Backend**: Extended Project model with `status` enum field
+
+**Migration**: Add status column to projects table
+```python
+# Alembic migration
+sa.Column('status', sa.String(), nullable=False, server_default='ACTIVE')
+```
+
+**Frontend**: Added ProjectStatus enum to types
+```typescript
+export enum ProjectStatus {
+  ACTIVE = 'ACTIVE',
+  ON_HOLD = 'ON_HOLD',
+  COMPLETED = 'COMPLETED',
+  ARCHIVED = 'ARCHIVED'
+}
+```
+
+---
+
+## Task Management Improvements
+
+### TaskDrawer Time Entries Display
+
+**Enhancement**: Added time entries section to TaskDrawer
+
+**Features**:
+- Lists all time entries for the task
+- Displays duration, description, date, and user who logged time
+- Calculates total time automatically with `useMemo`
+- Formats total as "Xh Ym" (e.g., "2h 30m")
+- "Add Time Entry" button opens TimeLoggingForm
+- Empty state when no time entries exist
+
+**Total Time Calculation**:
+```typescript
+const totalTime = useMemo(() => {
+  if (!task?.time_entries || task.time_entries.length === 0) {
+    return "0h 0m";
+  }
+
+  const totalMinutes = task.time_entries.reduce((sum, entry) => {
+    return sum + entry.duration;
+  }, 0);
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours}h ${minutes}m`;
+}, [task?.time_entries]);
+```
+
+---
+
 ## Mobile-Responsive Design Strategy
 
 ### Breakpoints

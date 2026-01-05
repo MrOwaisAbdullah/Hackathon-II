@@ -377,7 +377,8 @@
 - [ ] T169 Verify OpenAPI spec matches implementation with openapi-spec-validator
 - [ ] T170 Verify data isolation between agencies with multi-tenant test suite
 - [X] T171 [D] Update task count in tasks.md (actual count: 270 tasks)
-- [X] T171a [D] Update spec.md with rich text editor and task form enhancements (FR-060, FR-061)
+- [X] T171b [D] Update tasks.md with Phase 12 tasks (actual count: 371 tasks)
+- [X] T171c [D] Update spec.md with rich text editor and task form enhancements (FR-060, FR-061)
 - [X] T171b [D] Update spec.md with UI requirements (FR-062 through FR-065)
 - [X] T171c [D] Update spec.md Task entity with markdown support and new fields
 - [X] T171d [D] Update spec.md color palette to eco-modern lime theme
@@ -688,3 +689,81 @@ With multiple developers:
 - [X] T325 [D] Add "Recent Bug Fixes & Improvements" section to AGENT_CONTEXT.md in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
 
 **Checkpoint**: Theme system now uses consistent CSS variables throughout, custom components replace native elements for full theme control, all reported UI bugs resolved
+
+---
+
+## Phase 12: Dashboard & Project Management Enhancements (2026-01-05)
+
+**Purpose**: Implement advanced dashboard components, project management features, and rich text editing capabilities
+
+### Dashboard Improvements
+
+- [X] T400 [P] [US-ALL] Create UpcomingDeadlines component replacing WorkflowProgress in frontend/src/components/dashboard/UpcomingDeadlines.tsx
+- [X] T401 [P] [US-ALL] Implement task filtering (exclude DONE/ARCHIVED, must have due_date) in UpcomingDeadlines
+- [X] T402 [P] [US-ALL] Implement urgency sorting (overdue first, then by due date) in UpcomingDeadlines
+- [X] T403 [P] [US-ALL] Add theme-aware priority badges with light/dark mode variants to UpcomingDeadlines
+- [X] T404 [P] [US-ALL] Add overdue badges with pulsing animation for critical tasks in UpcomingDeadlines
+- [X] T405 [P] [US-ALL] Implement task-to-project linking in UpcomingDeadlines component
+- [X] T406 [P] [US-ALL] Add empty state with calendar icon to UpcomingDeadlines
+- [X] T407 [P] [US-ALL] Fix TaskDistributionChart hex color compatibility (convert HSL to RGB) in frontend/src/components/dashboard/TaskDistributionChart.tsx
+
+### Project Management Features
+
+- [X] T410 [P] [US-ALL] Create ProjectDrawer component for editing project details in frontend/src/components/project/ProjectDrawer.tsx
+- [X] T411 [P] [US-ALL] Implement slide-in animation matching TaskDrawer pattern in ProjectDrawer
+- [X] T412 [P] [US-ALL] Add rich text editor to ProjectDrawer for project descriptions
+- [X] T413 [P] [US-ALL] Implement status dropdown with 4 options (Active, On Hold, Completed, Archived) in ProjectDrawer
+- [X] T414 [P] [US-ALL] Add auto-save detection with disabled button state in ProjectDrawer
+- [X] T415 [P] [US-ALL] Create dynamic project view page at /projects/[id]/page.tsx in frontend/src/app/(main)/projects/[id]/page.tsx
+- [X] T416 [P] [US-ALL] Implement project metadata display (name, status badge, creation date) on project detail page
+- [X] T417 [P] [US-ALL] Add markdown rendering for project descriptions on project detail page
+- [X] T418 [P] [US-ALL] Implement stats grid (Total Tasks, Completed, Progress) on project detail page
+- [X] T419 [P] [US-ALL] Add animated progress bar showing completion percentage on project detail page
+- [X] T420 [P] [US-ALL] List all project tasks with priority badges and due dates on project detail page
+- [X] T421 [P] [US-ALL] Add back button navigation with arrow icon to project detail page
+- [X] T422 [P] [US-ALL] Implement loading state with spinner on project detail page
+- [X] T423 [P] [US-ALL] Add error handling with redirect to projects page on 404
+- [X] T424 [P] [US-ALL] Extend Project model with status enum field (ACTIVE, ON_HOLD, COMPLETED, ARCHIVED) in backend/app/models/project.py
+- [X] T425 [P] [US-ALL] Add ProjectStatus enum to frontend types in frontend/src/types/index.ts
+
+### Rich Text & Markdown Features
+
+- [X] T430 [P] [US-ALL] Create renderMarkdown utility function in frontend/src/lib/markdown.ts
+- [X] T431 [P] [US-ALL] Implement markdown to HTML conversion (headers, bold, italic, links, lists, code, HR) in renderMarkdown
+- [X] T432 [P] [US-ALL] Add HTML escaping for XSS prevention in renderMarkdown
+- [X] T433 [P] [US-ALL] Apply Tailwind classes for consistent styling in renderMarkdown
+- [X] T434 [P] [US-ALL] Add theme-aware link colors (lime-600/lime-400) in renderMarkdown
+- [X] T435 [P] [US-ALL] Update TaskCard to render markdown descriptions in frontend/src/components/board/TaskCard.tsx
+- [X] T436 [P] [US-ALL] Update RichTextEditor component with toolbar (Bold, Italic, H1, H2, List, Link, HR) in frontend/src/components/task/RichTextEditor.tsx
+- [X] T437 [P] [US-ALL] Add auto-expanding textarea to RichTextEditor based on content height
+- [X] T438 [P] [US-ALL] Implement keyboard shortcuts (Ctrl+B for bold, Ctrl+I for italic) in RichTextEditor
+- [X] T439 [P] [US-ALL] Add custom lime-themed scrollbar to RichTextEditor for overflow content
+- [X] T440 [P] [US-ALL] Update TaskForm to use RichTextEditor instead of textarea in frontend/src/components/task/TaskForm.tsx
+- [X] T441 [P] [US-ALL] Update TaskDrawer to use RichTextEditor for editing descriptions in frontend/src/components/task/TaskDrawer.tsx
+- [X] T442 [P] [US-ALL] Update ProjectDrawer to use RichTextEditor for project descriptions in frontend/src/components/project/ProjectDrawer.tsx
+
+### Task Management Improvements
+
+- [X] T450 [P] [US-ALL] Add time entries display section to TaskDrawer in frontend/src/components/task/TaskDrawer.tsx
+- [X] T451 [P] [US-ALL] Display time entry details (duration, description, date, user) in TaskDrawer
+- [X] T452 [P] [US-ALL] Implement total time calculation with useMemo in TaskDrawer
+- [X] T453 [P] [US-ALL] Format total time as "Xh Ym" (e.g., "2h 30m") in TaskDrawer
+- [X] T454 [P] [US-ALL] Add "Add Time Entry" button to TaskDrawer opening TimeLoggingForm
+- [X] T455 [P] [US-ALL] Add empty state for time entries section when no entries exist
+
+### Documentation Updates
+
+- [X] T490 [D] Update AGENT_CONTEXT.md with dashboard improvements section in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+- [X] T491 [D] Update AGENT_CONTEXT.md with project management enhancements section in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+- [X] T492 [D] Update AGENT_CONTEXT.md with rich text & markdown features section in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+- [X] T493 [D] Update AGENT_CONTEXT.md with task management improvements section in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+- [X] T494 [D] Update AGENT_CONTEXT.md current state to reflect completed Phases 10-12 in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+- [X] T495 [D] Update spec.md with new functional requirements (FR-066 through FR-079) in specs/002-fullstack-web-crm/spec.md
+- [X] T496 [D] Update spec.md Key Entities section with enhanced descriptions in specs/002-fullstack-web-crm/spec.md
+- [X] T497 [D] Update plan.md with dashboard component enhancements section in specs/002-fullstack-web-crm/plan.md
+- [X] T498 [D] Update plan.md with project management enhancements section in specs/002-fullstack-web-crm/plan.md
+- [X] T499 [D] Update plan.md with task management improvements section in specs/002-fullstack-web-crm/plan.md
+- [X] T500 [D] Add Phase 12 tasks to tasks.md in specs/002-fullstack-web-crm/tasks.md
+
+**Checkpoint**: Phase 12 Complete - Dashboard components enhanced with UpcomingDeadlines, project management features fully implemented with ProjectDrawer and dynamic routes, rich text editing with markdown rendering deployed throughout the app, task management improved with time entries display
+
