@@ -19,9 +19,9 @@ const TaskDistributionChart = dynamic(
   () => import('@/components/dashboard/TaskDistributionChart').then(m => ({ default: m.TaskDistributionChart })),
   { loading: () => <ChartSkeleton />, ssr: true }
 );
-const WorkflowProgress = dynamic(
-  () => import('@/components/dashboard/WorkflowProgress').then(m => ({ default: m.WorkflowProgress })),
-  { loading: () => <div className="bg-card rounded-lg p-6 border border-border shadow-sm h-64 animate-pulse" />, ssr: true }
+const UpcomingDeadlines = dynamic(
+  () => import('@/components/dashboard/UpcomingDeadlines').then(m => ({ default: m.UpcomingDeadlines })),
+  { loading: () => <ListSkeleton count={5} />, ssr: true }
 );
 const ProjectList = dynamic(
   () => import('@/components/dashboard/ProjectList').then(m => ({ default: m.ProjectList })),
@@ -49,43 +49,8 @@ export default function DashboardPage() {
   // Calculate total tasks for chart
   const totalTasks = chartData?.reduce((sum, item) => sum + item.value, 0) || 0;
 
-  // Filter out archived tasks and calculate workflow progress based on real data
+  // Filter out archived tasks for calculations
   const activeTasks = tasksData?.filter(t => t.status !== 'ARCHIVED') || [];
-  const totalActiveTasks = activeTasks.length;
-
-  // Calculate workflow percentages
-  const todoCount = activeTasks.filter(t => t.status === 'TODO').length;
-  const doingCount = activeTasks.filter(t => t.status === 'DOING').length;
-  const reviewCount = activeTasks.filter(t => t.status === 'REVIEW').length;
-  const doneCount = activeTasks.filter(t => t.status === 'DONE').length;
-
-  // Create workflow steps based on real data
-  const workflowSteps = [
-    {
-      id: '1',
-      label: 'Backlog',
-      status: todoCount > 0 ? 'current' as const : 'completed' as const,
-      date: `${todoCount} tasks`
-    },
-    {
-      id: '2',
-      label: 'In Progress',
-      status: 'current' as const,
-      date: `${doingCount} tasks`
-    },
-    {
-      id: '3',
-      label: 'In Review',
-      status: reviewCount > 0 ? 'current' as const : 'pending' as const,
-      date: `${reviewCount} tasks`
-    },
-    {
-      id: '4',
-      label: 'Completed',
-      status: doneCount > 0 ? 'completed' as const : 'pending' as const,
-      date: `${doneCount} tasks`
-    },
-  ];
 
   // Prepare projects data with correct progress calculation
   const projectsList = projectsData && projectsData.length > 0
@@ -193,8 +158,9 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="lg:col-span-1">
-            <WorkflowProgress
-              steps={workflowSteps}
+            <UpcomingDeadlines
+              tasks={tasksData}
+              projects={projectsData}
             />
           </div>
         </div>
