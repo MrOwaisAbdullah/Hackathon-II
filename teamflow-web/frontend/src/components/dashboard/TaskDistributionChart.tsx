@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 interface DataPoint {
   label: string;
   value: number;
-  color: string; // Tailwind bg class
+  color: string; // Hex color code
 }
 
 interface TaskDistributionChartProps {
@@ -66,15 +66,16 @@ export function TaskDistributionChart({
               <span className="text-muted-foreground">{item.label}</span>
               <span className="text-foreground tabular-nums">{item.value}</span>
             </div>
-            
+
             {/* Progress Bar Background */}
             <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden">
-              {/* Animated Progress Fill */}
+              {/* Animated Progress Fill with inline style */}
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(item.value / (totalTasks || 1)) * 100}%` }}
                 transition={{ duration: 0.8, delay: 0.2 + (index * 0.05), ease: "easeOut" }}
-                className={`h-full rounded-full ${item.color}`}
+                className="h-full rounded-full"
+                style={{ backgroundColor: item.color }}
               />
             </div>
           </div>

@@ -124,15 +124,15 @@ class AnalyticsService:
             session: Database session
 
         Returns:
-            List of dicts with label, value, and color (Tailwind class) for each status
+            List of dicts with label, value, and color (hex code) for each status
         """
         # Eco-Modern Theme: Lime-based colors with proper contrast
         status_colors = {
-            TaskStatus.TODO: "bg-slate-400",      # Neutral gray for TODO
-            TaskStatus.DOING: "bg-lime-400",      # Lime accent for active
-            TaskStatus.REVIEW: "bg-amber-400",     # Amber for review needed
-            TaskStatus.DONE: "bg-emerald-500",     # Emerald for completed
-            TaskStatus.ARCHIVED: "bg-zinc-500",   # Dark zinc for archived
+            TaskStatus.TODO: "#94a3b8",        # Slate-400
+            TaskStatus.DOING: "#a3e635",       # Lime-500
+            TaskStatus.REVIEW: "#f59e0b",       # Amber-500
+            TaskStatus.DONE: "#10b981",         # Emerald-500
+            TaskStatus.ARCHIVED: "#71717a",     # Zinc-500
         }
 
         status_labels = {
