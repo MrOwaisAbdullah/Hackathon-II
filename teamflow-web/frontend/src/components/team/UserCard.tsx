@@ -103,7 +103,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
       animate={{ opacity: 1, y: 0 }}
       className="group relative bg-card rounded-xl border border-border hover:shadow-lg hover:border-lime-500/50 transition-all"
     >
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <div className="flex items-start justify-between">
           {/* User Info */}
           <div className="flex items-start gap-4 flex-1">
@@ -164,7 +164,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
               <motion.button
                 whileHover={{ rotate: 90, scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100"
+                className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal size={16} strokeWidth={2.5} />

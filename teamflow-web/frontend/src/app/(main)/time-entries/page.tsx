@@ -147,18 +147,19 @@ export default function TimeEntriesPage() {
   const activeTasks = tasks.filter(t => t.status !== 'ARCHIVED');
 
   return (
-    <div className="p-8">
+    <div className="p-3 md:p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="flex justify-between items-center mb-8">
+        {/* T612: Header with flex-wrap for mobile */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 md:mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Time Entries</h1>
             <p className="text-muted-foreground">Track time across projects</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {/* Filter Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -206,8 +207,8 @@ export default function TimeEntriesPage() {
           </div>
         </div>
 
-        {/* Total Hours Card */}
-        <div className="mb-6 bg-card rounded-lg border border-border p-6">
+        {/* Total Hours Card - Mobile padding */}
+        <div className="mb-6 bg-card rounded-lg border border-border p-3 md:p-6">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-muted-foreground mb-1">

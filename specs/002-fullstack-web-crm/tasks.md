@@ -767,3 +767,68 @@ With multiple developers:
 
 **Checkpoint**: Phase 12 Complete - Dashboard components enhanced with UpcomingDeadlines, project management features fully implemented with ProjectDrawer and dynamic routes, rich text editing with markdown rendering deployed throughout the app, task management improved with time entries display
 
+---
+
+## Phase 13: Mobile Responsiveness Fixes (2026-01-05)
+
+**Purpose**: Address user-reported mobile issues: excessive padding, header collapsing, card overflow, and sidebar dark theme
+
+### Mobile Padding Optimization
+
+- [X] T600 [P] [US-ALL] Audit all components with excessive padding on mobile in frontend/src/components/
+- [X] T601 [P] [US-ALL] Update dashboard page padding from p-6 to p-2/p-3 on mobile (< 768px) in frontend/src/app/(main)/dashboard/page.tsx
+- [X] T602 [P] [US-ALL] Update StatCard component padding for mobile (p-3 on mobile, p-6 on desktop) in frontend/src/components/dashboard/StatCard.tsx
+- [X] T603 [P] [US-ALL] Update ProjectCard component padding for mobile in frontend/src/components/project/ProjectCard.tsx
+- [X] T604 [P] [US-ALL] Update UserCard component padding for mobile in frontend/src/components/team/UserCard.tsx
+- [X] T605 [P] [US-ALL] Update TaskDrawer sheet padding for mobile (p-3 on mobile, p-6 on desktop) in frontend/src/components/task/TaskDrawer.tsx
+
+### Header Layout Fixes
+
+- [X] T610 [P] [US-ALL] Audit all header components for collapsing issues on mobile in frontend/src/app/
+- [X] T611 [P] [US-ALL] Update dashboard page header layout with flex-wrap and gap-2 for mobile in frontend/src/app/(main)/dashboard/page.tsx
+- [X] T612 [P] [US-ALL] Update tasks page header layout to prevent button overlap on mobile in frontend/src/app/(main)/tasks/page.tsx
+- [X] T613 [P] [US-ALL] Update projects page header layout for mobile in frontend/src/app/(main)/projects/page.tsx
+- [X] T614 [P] [US-ALL] Update team page header layout for mobile in frontend/src/app/(main)/team/page.tsx
+- [X] T615 [P] [US-ALL] Ensure all header buttons use min-width and proper spacing on mobile
+
+### Card Overflow Prevention
+
+- [X] T620 [P] [US-ALL] Audit all card components for overflow issues on mobile in frontend/src/components/
+- [X] T621 [P] [US-ALL] Add w-full class to all card content containers to prevent horizontal overflow
+- [X] T622 [P] [US-ALL] Apply line-clamp to long text in TaskCard on mobile (line-clamp-2 for title) in frontend/src/components/board/TaskCard.tsx
+- [X] T623 [P] [US-ALL] Apply line-clamp to ProjectCard descriptions on mobile in frontend/src/components/project/ProjectCard.tsx
+- [X] T624 [P] [US-ALL] Add max-width constraints to deadline badges and priority badges on mobile
+- [X] T625 [P] [US-ALL] Ensure UpcomingDeadlines items truncate properly on mobile in frontend/src/components/dashboard/UpcomingDeadlines.tsx
+
+### Mobile Sidebar Dark Theme
+
+- [X] T630 [P] [US-ALL] Verify MobileNav drawer uses .sidebar-dark class in frontend/src/components/dashboard/MobileNav.tsx
+- [X] T631 [P] [US-ALL] Add .sidebar-dark class to MobileNav Sheet component if missing
+- [X] T632 [P] [US-ALL] Verify .sidebar-dark CSS rules exist in globals.css with dark background
+- [X] T633 [P] [US-ALL] Test mobile sidebar in both light and dark themes for consistency
+
+### Touch Target Verification
+
+- [X] T640 [P] [US-ALL] Audit all buttons and interactive elements for 44x44px minimum touch targets
+- [X] T641 [P] [US-ALL] Update TaskCard menu button to meet minimum touch target size
+- [X] T642 [P] [US-ALL] Update priority selector buttons in TaskDrawer for mobile
+- [X] T643 [P] [US-ALL] Ensure all form inputs meet minimum touch target on mobile
+
+### E2E Testing for Mobile
+
+- [X] T650 [P] [US-ALL] Add E2E test for dashboard layout on 375px viewport in frontend/tests/e2e/mobile-phase13.spec.ts
+- [X] T651 [P] [US-ALL] Add E2E test for header layout on mobile viewport in frontend/tests/e2e/mobile-phase13.spec.ts
+- [X] T652 [P] [US-ALL] Add E2E test for card overflow prevention on mobile in frontend/tests/e2e/mobile-phase13.spec.ts
+- [X] T653 [P] [US-ALL] Add E2E test for mobile sidebar dark theme consistency in frontend/tests/e2e/mobile-phase13.spec.ts
+
+### Documentation Updates
+
+- [X] T690 [D] Update spec.md with Phase 13 mobile requirements (FR-080 through FR-085) in specs/002-fullstack-web-crm/spec.md
+- [X] T691 [D] Update tasks.md with Phase 13 tasks in specs/002-fullstack-web-crm/tasks.md
+- [X] T692 [D] Update plan.md with mobile responsiveness patterns in specs/002-fullstack-web-crm/plan.md
+- [X] T693 [D] Update AGENT_CONTEXT.md with Phase 13 mobile fixes section in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+
+**Checkpoint**: Phase 13 Complete - Mobile responsiveness issues resolved with reduced padding, fixed header layouts, prevented card overflow, consistent sidebar dark theme, verified touch targets, and comprehensive E2E tests
+
+---
+

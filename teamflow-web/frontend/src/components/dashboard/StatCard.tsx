@@ -61,7 +61,7 @@ export function StatCard({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: delay * 0.05, ease: [0.16, 1, 0.3, 1] }}
-      className="card-float hover-lift p-5 rounded-lg group relative overflow-hidden bg-card border border-border"
+      className="card-float hover-lift p-3 md:p-5 rounded-lg group relative overflow-hidden bg-card border border-border"
     >
       <div className="flex items-start justify-between z-10 relative">
         <div className="space-y-1.5">

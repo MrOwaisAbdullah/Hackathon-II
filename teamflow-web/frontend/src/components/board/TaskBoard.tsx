@@ -239,15 +239,15 @@ export function TaskBoard() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Header - T612: Mobile responsive with flex-wrap */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Task Board</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Task Board</h1>
             <p className="text-muted-foreground">
               Drag and drop tasks to update status
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
             <UserFilter
               value={userFilter}
               onChange={setUserFilter}

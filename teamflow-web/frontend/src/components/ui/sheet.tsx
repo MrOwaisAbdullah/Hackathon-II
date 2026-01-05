@@ -9,9 +9,10 @@ interface SheetProps {
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   side?: 'left' | 'right' | 'top' | 'bottom';
+  className?: string;
 }
 
-export function Sheet({ open, onOpenChange, children, side = 'left' }: SheetProps) {
+export function Sheet({ open, onOpenChange, children, side = 'left', className }: SheetProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -49,7 +50,7 @@ export function Sheet({ open, onOpenChange, children, side = 'left' }: SheetProp
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className={`fixed z-50 bg-card border border-border shadow-xl h-full w-80 ${
               side === 'left' ? 'left-0 top-0' : side === 'right' ? 'right-0 top-0' : side === 'top' ? 'top-0 left-0 right-0' : 'bottom-0 left-0 right-0'
-            }`}
+            } ${className || ''}`}
           >
             {children}
           </motion.div>
@@ -66,7 +67,7 @@ interface SheetHeaderProps {
 
 export function SheetHeader({ title, onClose }: SheetHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-6 border-b border-border">
+    <div className="flex items-center justify-between p-4 md:p-6 border-b border-border">
       <h2 className="text-lg font-bold text-foreground">{title}</h2>
       <button
         onClick={onClose}
@@ -83,5 +84,5 @@ interface SheetContentProps {
 }
 
 export function SheetContent({ children }: SheetContentProps) {
-  return <div className="flex-1 overflow-y-auto p-4">{children}</div>;
+  return <div className="flex-1 overflow-y-auto p-3 md:p-4">{children}</div>;
 }

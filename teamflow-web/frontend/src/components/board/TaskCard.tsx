@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flag, MoreHorizontal, Clock, User, Edit2, Trash2, Archive, CheckCircle, Eye } from "lucide-react";
+import { Flag, MoreHorizontal, Clock, User, Edit2, Trash2, Archive, CheckCircle, Eye, ArrowRight, Circle } from "lucide-react";
 import type { Task } from "@/types";
 import { CSS } from "@dnd-kit/utilities";
 import { useState, useEffect } from "react";
@@ -13,8 +13,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { useArchiveTask, useDeleteTask } from "@/lib/query";
+import { useArchiveTask, useDeleteTask, useUpdateTask } from "@/lib/query";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { renderMarkdown } from "@/lib/markdown";
@@ -43,6 +46,27 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
 
   const archiveTask = useArchiveTask();
   const deleteTask = useDeleteTask();
+  const updateTask = useUpdateTask();
+
+  // Status options for "Move to" submenu
+  const statusOptions = [
+    { value: 'TODO', label: 'To Do', icon: 'circle' },
+    { value: 'DOING', label: 'In Progress', icon: 'spinner' },
+    { value: 'REVIEW', label: 'In Review', icon: 'eye' },
+    { value: 'DONE', label: 'Done', icon: CheckCircle },
+  ].filter(option => option.value !== task.status);
+
+  const handleMoveToStatus = async (newStatus: string) => {
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { status: newStatus as any },
+      });
+      toast.success(`Task moved to ${statusOptions.find(s => s.value === newStatus)?.label || newStatus}`);
+    } catch (error) {
+      toast.error('Failed to move task');
+    }
+  };
   const [showMenu, setShowMenu] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -163,7 +187,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
       whileHover={{ y: -2, boxShadow: "0 8px 25px -5px rgba(0, 0, 0, 0.1)" }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-card p-4 shadow-sm",
+        "group relative overflow-hidden rounded-xl border bg-card p-3 md:p-4 shadow-sm w-full min-w-0",
         "transition-all duration-200 ease-out",
         "hover:shadow-lg hover:border-lime-500/30",
         (isDragging || isDndDragging) && "opacity-50 shadow-2xl ring-2 ring-lime-500 scale-105 z-50"
@@ -201,20 +225,16 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
           </motion.div>
         </div>
 
-        {/* Action Menu */}
+        {/* Action Menu - Always visible */}
         <DropdownMenu open={showMenu} onOpenChange={setShowMenu}>
           <DropdownMenuTrigger asChild>
             <motion.button
               whileHover={{ rotate: 90, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
-                "text-muted-foreground hover:text-foreground hover:bg-muted",
-                "opacity-0 group-hover:opacity-100"
-              )}
+              className="flex items-center justify-center w-10 h-10 lg:w-8 lg:h-8 rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
               onClick={(e) => e.stopPropagation()}
             >
-              <MoreHorizontal size={16} strokeWidth={2.5} />
+              <MoreHorizontal size={18} strokeWidth={2.5} />
             </motion.button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -226,6 +246,41 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
               Task Actions
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {/* Move to submenu - for easy status change on mobile */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Flag className="w-4 h-4 mr-2 text-lime-600" />
+                <span>Move to</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {statusOptions.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMoveToStatus(option.value);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {option.icon === CheckCircle ? (
+                      <CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />
+                    ) : option.icon === 'spinner' ? (
+                      <div className="w-4 h-4 mr-2 text-blue-600 flex items-center justify-center">
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : option.icon === 'eye' ? (
+                      <Eye className="w-4 h-4 mr-2 text-purple-600" />
+                    ) : option.icon === 'circle' ? (
+                      <Circle className="w-4 h-4 mr-2 text-zinc-500" />
+                    ) : (
+                      <div className="w-4 h-4 mr-2" />
+                    )}
+                    <span>{option.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={(e) => {
@@ -272,17 +327,17 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
         </DropdownMenu>
       </div>
 
-      {/* Title */}
-      <h4 className="font-semibold text-sm mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem]">
+      {/* Title - T622: Mobile line-clamp-2, w-full for overflow prevention */}
+      <h4 className="font-semibold text-sm mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem] w-full">
         {task.title}
       </h4>
 
-      {/* Description - Markdown rendered */}
+      {/* Description - T622: Mobile line-clamp-2, w-full for overflow prevention */}
       {task.description && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+          className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed prose prose-sm dark:prose-invert max-w-none w-full"
           dangerouslySetInnerHTML={{
             __html: renderMarkdown(task.description),
           }}

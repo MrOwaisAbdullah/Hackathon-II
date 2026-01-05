@@ -110,7 +110,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
       whileHover={{ y: -2, boxShadow: "0 8px 25px -5px rgba(0, 0, 0, 0.1)" }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-card p-4 shadow-sm",
+        "group relative overflow-hidden rounded-xl border bg-card p-3 md:p-4 shadow-sm w-full min-w-0",
         "transition-all duration-200 ease-out",
         "hover:shadow-lg hover:border-lime-500/30"
       )}
@@ -140,11 +140,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
             <motion.button
               whileHover={{ rotate: 90, scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
-                "text-muted-foreground hover:text-foreground hover:bg-muted",
-                "opacity-0 group-hover:opacity-100"
-              )}
+              className="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreHorizontal size={16} strokeWidth={2.5} />
@@ -223,12 +219,12 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
         </h3>
       </Link>
 
-      {/* Description */}
+      {/* Description - T623: Mobile line-clamp-2, w-full for overflow prevention */}
       {project.description && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed prose prose-xs max-w-none dark:prose-invert"
+          className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed prose prose-xs max-w-none dark:prose-invert w-full"
           dangerouslySetInnerHTML={{
             __html: renderMarkdown(project.description)
           }}

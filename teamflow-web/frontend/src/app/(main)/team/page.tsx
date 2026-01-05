@@ -84,7 +84,7 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-3 md:p-8">
       {/* Error Alert */}
       <AnimatePresence>
         {errorState.show && (
@@ -132,18 +132,18 @@ export default function TeamPage() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
+      {/* T614: Header with flex-wrap for mobile */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex items-center justify-between mb-8"
+        className="flex flex-wrap items-center justify-between gap-3 mb-6 md:mb-8"
       >
         <div>
           <h1 className="text-3xl font-bold mb-2">Team</h1>
           <p className="text-muted-foreground">Manage your team members</p>
         </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="shrink-0">
           <Button onClick={() => setShowForm(true)}>
             <Plus size={20} />
             Add Team Member

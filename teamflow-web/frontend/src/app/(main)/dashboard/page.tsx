@@ -77,8 +77,9 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className="space-y-8 pb-8">
-        {/* Header */}
+      {/* T601: Mobile padding optimization - p-2 on mobile, p-8 on desktop */}
+      <div className="space-y-6 md:space-y-8 p-2 md:p-8 pb-6 md:pb-8">
+        {/* T611: Header layout with flex-wrap for mobile */}
         <div className="flex flex-col gap-1">
           <motion.h1
             initial={{ opacity: 0, y: -10 }}

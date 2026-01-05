@@ -36,22 +36,22 @@ export function MobileNav() {
         <Menu size={24} />
       </motion.button>
 
-      {/* Mobile Sheet/Drawer */}
-      <Sheet open={open} onOpenChange={setOpen} side="left">
+      {/* Mobile Sheet/Drawer - T631: Add .sidebar-dark class for consistent dark theme */}
+      <Sheet open={open} onOpenChange={setOpen} side="left" className="sidebar-dark">
         {/* Header */}
         <SheetHeader title="Menu" onClose={() => setOpen(false)} />
 
         {/* Content */}
         <SheetContent>
           <div className="space-y-6">
-            {/* User Profile */}
-            <div className="flex items-center gap-3 p-4 bg-secondary rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-lime-500 flex items-center justify-center text-white font-bold">
+            {/* User Profile - Fixed dark background for sidebar-dark */}
+            <div className="flex items-center gap-3 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+              <div className="w-12 h-12 rounded-full bg-lime-500 flex items-center justify-center text-white font-bold shrink-0">
                 {user?.name?.[0] || 'U'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <p className="font-medium text-zinc-50 truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-zinc-400 truncate">{user?.email}</p>
               </div>
             </div>
 
@@ -70,7 +70,7 @@ export function MobileNav() {
                       className={`flex items-center gap-3 px-4 py-4 rounded-lg transition-colors ${
                         isActive
                           ? 'text-black bg-lime-500 font-semibold'
-                          : 'text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-foreground'
+                          : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-50'
                       }`}
                     >
                       <item.icon size={22} className="shrink-0" />
@@ -82,11 +82,11 @@ export function MobileNav() {
             </nav>
 
             {/* Divider */}
-            <div className="border-t border-border" />
+            <div className="border-t border-zinc-700" />
 
             {/* Theme Toggle */}
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-sm font-medium text-foreground">Theme</span>
+              <span className="text-sm font-medium text-zinc-50">Theme</span>
               <ThemeToggle />
             </div>
 
@@ -97,7 +97,7 @@ export function MobileNav() {
                 logout();
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 font-medium transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-lg text-rose-400 hover:bg-zinc-800 font-medium transition-colors"
             >
               <LogOut size={22} />
               <span>Logout</span>

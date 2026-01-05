@@ -39,14 +39,14 @@ export default function ArchivePage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-3 md:p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        {/* T615: Header with flex-wrap for mobile */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 md:mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Archived Tasks</h1>
             <p className="text-muted-foreground">
@@ -85,7 +85,7 @@ export default function ArchivePage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ delay: Math.min(i * 0.05, 0.3) }}
-                  className="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow"
+                  className="bg-card rounded-lg border border-border p-3 md:p-6 hover:shadow-md transition-shadow"
                   data-testid="archived-task-card"
                 >
                   <div className="flex items-center justify-between gap-4">

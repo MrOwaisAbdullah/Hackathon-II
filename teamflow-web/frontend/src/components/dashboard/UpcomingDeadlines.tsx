@@ -299,7 +299,7 @@ export function UpcomingDeadlines({ tasks = [], projects = [] }: UpcomingDeadlin
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: 0.15, ease: 'easeOut' }}
-      className="card-float p-6 rounded-lg h-full flex flex-col"
+      className="card-float p-4 md:p-6 rounded-lg h-full flex flex-col"
     >
       {/* Header */}
       <div className="mb-5 border-b border-border pb-4 flex items-center justify-between">

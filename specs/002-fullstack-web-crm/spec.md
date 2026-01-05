@@ -511,6 +511,14 @@ This section documents the complete user journey from first visit to active usag
 - **FR-078**: Project detail pages MUST show progress bar with completion percentage
 - **FR-079**: Project detail pages MUST list all project tasks with priority and due date information
 
+#### Mobile Responsiveness (Phase 13)
+- **FR-080**: Application MUST reduce excessive padding on mobile devices (< 768px) - use p-2/p-3 on mobile vs p-6/p-8 on desktop
+- **FR-081**: Header elements MUST NOT collapse or overlap on mobile - use flex-wrap and proper spacing with gap-2
+- **FR-082**: Card content MUST NOT overflow on mobile - use w-full, line-clamp for text truncation, max-width constraints
+- **FR-083**: Mobile sidebar drawer MUST use `.sidebar-dark` class for consistent dark theme in both light and dark modes
+- **FR-084**: All touch targets MUST be at least 44x44px on mobile devices for accessibility
+- **FR-085**: Mobile viewport layouts MUST stack vertically (flex-col on mobile, flex-row on desktop) with appropriate breakpoints
+
 #### Data Persistence
 - **FR-041**: System MUST persist all data (tasks, users, time entries) to a database
 - **FR-042**: System MUST handle optimistic UI updates with server synchronization

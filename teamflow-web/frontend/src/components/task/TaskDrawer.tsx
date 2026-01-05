@@ -146,8 +146,8 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
             data-testid="task-drawer"
           >
             <div className="flex h-full flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-border p-4">
+              {/* Header - T605: Mobile padding optimization */}
+              <div className="flex items-center justify-between border-b border-border p-3 md:p-4">
                 <h2 className="text-lg font-semibold">Task Details</h2>
                 <button
                   onClick={onClose}
@@ -159,8 +159,8 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                 </button>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4 scrollbar-lime">
+              {/* Content - T605: Mobile padding optimization */}
+              <div className="flex-1 overflow-y-auto p-3 md:p-4 scrollbar-lime">
                 {isLoadingTask ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
