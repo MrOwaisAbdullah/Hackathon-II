@@ -133,3 +133,48 @@ export function WorkflowSkeleton({ steps = 5 }: WorkflowSkeletonProps) {
     </div>
   );
 }
+
+// Skeleton for Upcoming Deadlines component
+interface DeadlinesSkeletonProps {
+  count?: number;
+}
+
+export function DeadlinesSkeleton({ count = 5 }: DeadlinesSkeletonProps) {
+  return (
+    <div className="bg-card rounded-lg p-6 border border-border shadow-sm h-full flex flex-col">
+      {/* Header skeleton */}
+      <div className="mb-5 border-b border-border pb-4 flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </div>
+
+      {/* List items skeleton */}
+      <div className="flex-1 space-y-2">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg border border-transparent">
+            <Skeleton className="h-4 w-4 rounded-full shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-10 rounded-sm" />
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <Skeleton className="h-4 w-16 rounded-sm" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer skeleton */}
+      <div className="pt-4 mt-4 border-t border-border">
+        <Skeleton className="h-4 w-24 mx-auto" />
+      </div>
+    </div>
+  );
+}

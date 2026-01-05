@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 // T159: Code splitting - Dashboard components loaded dynamically
 import dynamic from 'next/dynamic';
-import { StatCardSkeleton, ChartSkeleton, ListSkeleton } from '@/components/ui/Skeleton';
+import { StatCardSkeleton, ChartSkeleton, ListSkeleton, DeadlinesSkeleton } from '@/components/ui/Skeleton';
 import { useDashboardStats, useTasksByStatus, useProjects, useTasks } from '@/lib/query';
 import { ProjectDrawer } from '@/components/project/ProjectDrawer';
 import { useProjectDrawer } from '@/hooks/useProjectDrawer';
@@ -21,7 +21,7 @@ const TaskDistributionChart = dynamic(
 );
 const UpcomingDeadlines = dynamic(
   () => import('@/components/dashboard/UpcomingDeadlines').then(m => ({ default: m.UpcomingDeadlines })),
-  { loading: () => <ListSkeleton count={5} />, ssr: true }
+  { loading: () => <DeadlinesSkeleton count={5} />, ssr: true }
 );
 const ProjectList = dynamic(
   () => import('@/components/dashboard/ProjectList').then(m => ({ default: m.ProjectList })),
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const { data: statsData, isLoading: statsLoading } = useDashboardStats();
   const { data: chartData, isLoading: chartLoading } = useTasksByStatus();
   const { data: projectsData, isLoading: projectsLoading } = useProjects();
-  const { data: tasksData } = useTasks();
+  const { data: tasksData, isLoading: tasksLoading } = useTasks();
 
   // Project drawer for editing
   const {
@@ -158,10 +158,14 @@ export default function DashboardPage() {
             )}
           </div>
           <div className="lg:col-span-1">
-            <UpcomingDeadlines
-              tasks={tasksData}
-              projects={projectsData}
-            />
+            {tasksLoading ? (
+              <DeadlinesSkeleton count={5} />
+            ) : (
+              <UpcomingDeadlines
+                tasks={tasksData}
+                projects={projectsData}
+              />
+            )}
           </div>
         </div>
       </div>
