@@ -1,0 +1,181 @@
+name: Deploy TeamFlow Fullstack Application
+
+# Triggers on pushes to default branch (002-fullstack-web-crm) or main
+# Also supports manual workflow dispatch
+on:
+  push:
+    branches:
+      - 002-fullstack-web-crm  # Current default branch
+      - main                    # Future-proof if renamed to 'main'
+      - master                  # Legacy support
+    paths:
+      - 'teamflow-web/frontend/**'
+      - 'teamflow-web/backend/**'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual deployment'
+        required: false
+        type: string
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+
+jobs:
+  # Deploy Frontend to Vercel
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: teamflow-web/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./teamflow-web/frontend
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./teamflow-web/frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.BACKEND_API_URL }}
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        working-directory: ./teamflow-web/frontend
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        working-directory: ./teamflow-web/frontend
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        working-directory: ./teamflow-web/frontend
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "frontend_url=$url" >> $GITHUB_OUTPUT
+
+      - name: Comment deployment URL
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Frontend deployed to: ${{ steps.deploy.outputs.frontend_url }}'
+            })
+
+  # Deploy Backend to HuggingFace Spaces
+  deploy-backend:
+    name: Deploy Backend to HuggingFace Spaces
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install HuggingFace Hub
+        run: pip install huggingface_hub
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Clone HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Clone the space
+          git clone https://hf:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_NAME} hf-space
+
+          # Copy backend files to space (excluding .venv and other unnecessary files)
+          rsync -av --exclude='.venv' --exclude='.venv_linux' --exclude='.pytest_cache' \
+            --exclude='__pycache__' --exclude='*.pyc' --exclude='.git' \
+            --exclude='.env' --exclude='node_modules' \
+            teamflow-web/backend/ hf-space/
+
+          # Change to space directory
+          cd hf-space
+
+          # Add and commit changes
+          git add .
+          git diff --quiet && git diff --staged --quiet || git commit -m "Deploy from GitHub Actions - $(date)"
+
+          # Push to HuggingFace
+          git push origin main
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting for HuggingFace Space to rebuild..."
+          sleep 60
+
+      - name: Verify deployment
+        run: |
+          # Extract space name from HF_SPACE_NAME
+          SPACE_NAME=$(echo $HF_SPACE_NAME | cut -d'/' -f2)
+          SPACE_URL="https://$SPACE_NAME.hf.space/health"
+
+          echo "Checking health endpoint: $SPACE_URL"
+
+          # Try health check (may still be building)
+          for i in {1..10}; do
+            if curl -f -s "$SPACE_URL" > /dev/null 2>&1; then
+              echo "✅ Backend deployed successfully!"
+              curl -s "$SPACE_URL"
+              break
+            else
+              echo "Attempt $i/10: Space still building..."
+              sleep 30
+            fi
+          done
+
+      - name: Comment deployment URL
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const spaceName = '${{ env.HF_SPACE_NAME }}'.split('/')[1];
+            const url = `https://${spaceName}.hf.space`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Backend deployed to: ' + url + '\n\nAPI Docs: ' + url + '/docs'
+            })
+
+  # Summary
+  deployment-summary:
+    name: Deployment Summary
+    needs: [deploy-frontend, deploy-backend]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Display deployment status
+        run: |
+          echo "### 🚀 TeamFlow Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend (Vercel):** ${{ needs.deploy-frontend.result == 'success' && '✅ Deployed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend (HuggingFace):** ${{ needs.deploy-backend.result == 'success' && '✅ Deployed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Access URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: Configure in Vercel dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: https://\`${{ secrets.HF_SPACE_NAME }}\`.hf.space" >> $GITHUB_STEP_SUMMARY

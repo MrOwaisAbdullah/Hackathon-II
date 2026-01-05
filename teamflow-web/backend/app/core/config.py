@@ -1,4 +1,6 @@
 """Application configuration."""
+import os
+from typing import List
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -15,11 +17,11 @@ class Settings(BaseSettings):
     # API
     api_v1_prefix: str = "/api/v1"
 
-    # CORS
-    cors_origins: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-    ]
+    # CORS - Support comma-separated string for HuggingFace Spaces
+    frontend_url: str = Field(
+        default="http://localhost:3000,http://localhost:8000",
+        description="Comma-separated list of allowed frontend URLs for CORS",
+    )
 
     # JWT
     secret_key: str = Field(
@@ -33,12 +35,43 @@ class Settings(BaseSettings):
         description="Environment (development, staging, production)",
     )
 
+    @property
+    def cors_origins(self) -> List[str]:
+        """Parse frontend_url into a list of CORS origins."""
+        # Check if we're in HuggingFace Spaces
+        is_hf_spaces = os.getenv("SPACE_ID") is not None or os.getenv("HUGGINGFACE_SPACE_ID") is not None
+
+        if isinstance(self.frontend_url, str):
+            origins = [url.strip() for url in self.frontend_url.split(",")]
+        else:
+            origins = list(self.frontend_url)
+
+        # Add common HuggingFace and Vercel domains in production
+        if self.environment == "production" or is_hf_spaces:
+            # Allow all vercel.app domains (for preview deployments)
+            if not any("vercel.app" in origin for origin in origins):
+                origins.append("https://*.vercel.app")
+
+            # Allow huggingface.co domains
+            if not any("huggingface.co" in origin for origin in origins):
+                origins.append("https://huggingface.co")
+
+        return origins
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:
         """Ensure database_url is a valid PostgreSQL connection string."""
         if not v.startswith("postgresql://") and not v.startswith("postgresql+"):
             raise ValueError("Database URL must use postgresql:// scheme (Neon PostgreSQL)")
+        return v
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        """Ensure secret_key is strong enough."""
+        if len(v) < 32 and cls.environment != "development":
+            raise ValueError("SECRET_KEY must be at least 32 characters in production")
         return v
 
     class Config:
