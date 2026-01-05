@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, Edit, Trash2, Calendar, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Calendar, CheckCircle, ExternalLink, FolderOpen } from 'lucide-react';
+import Link from 'next/link';
 import type { Project, ProjectStatus } from '@/types';
 import {
   DropdownMenu,
@@ -12,6 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { useUpdateProject } from '@/lib/query';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface ProjectCardProps {
@@ -23,6 +26,7 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
   const [showMenu, setShowMenu] = React.useState(false);
   const [isDark, setIsDark] = React.useState(false);
+  const updateProject = useUpdateProject();
 
   // Detect dark mode
   React.useEffect(() => {
@@ -35,19 +39,19 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
     return () => observer.disconnect();
   }, []);
 
-  const getStatusColor = (status: ProjectStatus) => {
-    switch (status) {
-      case 'active':
-        return 'bg-lime-500';
-      case 'on_hold':
-        return 'bg-amber-500';
-      case 'completed':
-        return 'bg-emerald-500';
-      case 'archived':
-        return 'bg-zinc-400';
-      default:
-        return 'bg-zinc-400';
+  // Handle status toggle
+  const handleStatusToggle = async () => {
+    const newStatus = project.status === 'active' ? 'on_hold' : 'active';
+    try {
+      await updateProject.mutateAsync({
+        id: project.id,
+        data: { status: newStatus },
+      });
+      toast.success(`Project ${newStatus === 'active' ? 'activated' : 'put on hold'}`);
+    } catch (error) {
+      toast.error('Failed to update project status');
     }
+    setShowMenu(false);
   };
 
   const getStatusLabel = (status: ProjectStatus) => {
@@ -156,14 +160,43 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              asChild
+              className="cursor-pointer"
+            >
+              <Link href={`/projects/${project.id}`} className="flex items-center">
+                <ExternalLink className="w-4 h-4 mr-2 text-accent" />
+                <span>View Project</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(project);
               }}
               className="cursor-pointer"
             >
-              <Edit className="w-4 h-4 mr-2 text-lime-600" />
+              <Edit className="w-4 h-4 mr-2 text-accent" />
               <span>Edit Project</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusToggle();
+              }}
+              className="cursor-pointer"
+            >
+              {project.status === 'active' ? (
+                <>
+                  <Calendar className="w-4 h-4 mr-2 text-amber-600" />
+                  <span>Put On Hold</span>
+                </>
+              ) : (
+                <>
+                  <FolderOpen className="w-4 h-4 mr-2 text-emerald-600" />
+                  <span>Activate</span>
+                </>
+              )}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -171,7 +204,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
                 e.stopPropagation();
                 onDelete(project);
               }}
-              className="cursor-pointer text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/20"
+              className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               <span>Delete Project</span>
@@ -181,9 +214,11 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
       </div>
 
       {/* Title */}
-      <h3 className="font-bold text-base mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-lime-600 dark:group-hover:text-lime-400 transition-colors">
-        {project.name}
-      </h3>
+      <Link href={`/projects/${project.id}`}>
+        <h3 className="font-bold text-base mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-accent transition-colors">
+          {project.name}
+        </h3>
+      </Link>
 
       {/* Description */}
       {project.description && (
@@ -204,16 +239,19 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium"
         >
-          <Calendar size={13} strokeWidth={2} className="text-lime-500" />
+          <Calendar size={13} strokeWidth={2} className="text-accent" />
           <span>Created {new Date(project.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
         </motion.div>
 
-        {/* Status Indicator Dot */}
+        {/* Status Indicator Dot - using theme-aware colors */}
         <motion.div
           whileHover={{ scale: 1.1 }}
           className={cn(
             "w-3 h-3 rounded-sm",
-            getStatusColor(project.status)
+            project.status === 'active' && "bg-accent",
+            project.status === 'on_hold' && "bg-amber-500",
+            project.status === 'completed' && "bg-emerald-500",
+            project.status === 'archived' && "bg-muted-foreground"
           )}
         />
       </div>

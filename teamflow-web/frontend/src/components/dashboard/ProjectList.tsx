@@ -131,7 +131,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
           <h3 className="font-bold text-base text-foreground tracking-tight uppercase">Active Projects</h3>
           <Link
             href="/projects"
-            className="text-xs font-bold text-lime-600 dark:text-lime-400 hover:underline flex items-center gap-0.5 transition-colors"
+            className="text-xs font-bold text-accent hover:underline flex items-center gap-0.5 transition-colors"
           >
             View All <ArrowRight size={12} />
           </Link>
@@ -210,7 +210,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                           className="cursor-pointer"
                         >
                           <Link href={`/projects/${project.id}`} className="flex items-center">
-                            <ExternalLink className="w-4 h-4 mr-2 text-lime-600" />
+                            <ExternalLink className="w-4 h-4 mr-2 text-accent" />
                             <span>View Project</span>
                           </Link>
                         </DropdownMenuItem>
@@ -218,7 +218,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                           onClick={() => handleEdit(project)}
                           className="cursor-pointer"
                         >
-                          <Edit className="w-4 h-4 mr-2 text-lime-600" />
+                          <Edit className="w-4 h-4 mr-2 text-accent" />
                           <span>Edit Project</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -241,7 +241,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => setDeleteConfirm(project.id)}
-                          className="cursor-pointer text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/20"
+                          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
                           <span>Delete Project</span>
@@ -252,7 +252,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
 
                   {/* Content */}
                   <Link href={`/projects/${project.id}`}>
-                    <h4 className="font-bold text-sm mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-lime-600 dark:group-hover:text-lime-400 transition-colors">
+                    <h4 className="font-bold text-sm mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-accent transition-colors">
                       {project.name}
                     </h4>
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{project.client}</p>
@@ -266,12 +266,12 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                         <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
-                            animate={{ width: `${project.progress}%` }}
+                            animate={{ width: `${project.progress || 0}%` }}
                             transition={{ duration: 1, delay: 0.5 + (index * 0.05) }}
-                            className="h-full bg-lime-500 rounded-full"
+                            className="h-full bg-accent rounded-full"
                           />
                         </div>
-                        <span className="text-[10px] font-bold w-8 text-right text-foreground tabular-nums">{project.progress}%</span>
+                        <span className="text-[10px] font-bold w-8 text-right text-foreground tabular-nums">{project.progress || 0}%</span>
                       </div>
                     </div>
 
