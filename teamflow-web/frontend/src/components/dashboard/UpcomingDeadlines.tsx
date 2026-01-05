@@ -360,7 +360,7 @@ export function UpcomingDeadlines({ tasks = [], projects = [] }: UpcomingDeadlin
           className="pt-4 mt-4 border-t border-border"
         >
           <Link
-            href="/board"
+            href="/tasks"
             className="flex items-center justify-center gap-2 text-xs font-semibold text-accent hover:underline transition-all"
           >
             View all tasks
