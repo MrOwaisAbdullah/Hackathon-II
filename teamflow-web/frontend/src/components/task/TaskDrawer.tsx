@@ -347,7 +347,7 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                           className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                         >
                           <span className="text-sm font-medium">
-                            {timeEntries.timeEntries?.length || 0} entries
+                            {timeEntries?.length || 0} entries
                           </span>
                           <ChevronDownIcon
                             className={`w-4 h-4 text-muted-foreground transition-transform ${
@@ -375,14 +375,14 @@ export function TaskDrawer({ isOpen, onClose, taskId }: TaskDrawerProps) {
                                 />
 
                                 {/* Existing Time Entries */}
-                                {timeEntries.timeEntries &&
-                                  timeEntries.timeEntries.length > 0 && (
+                                {timeEntries &&
+                                  timeEntries.length > 0 && (
                                   <div className="space-y-2 pt-4 border-t border-border">
                                     <h4 className="text-sm font-medium text-muted-foreground">
                                       All Entries
                                     </h4>
                                     <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                                      {timeEntries.timeEntries.map((entry) => (
+                                      {timeEntries.map((entry) => (
                                         <div
                                           key={entry.id}
                                           className="flex items-start justify-between p-2 bg-background rounded-lg text-sm"
