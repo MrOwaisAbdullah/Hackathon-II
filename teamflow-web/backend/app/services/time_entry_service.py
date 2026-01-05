@@ -3,7 +3,8 @@ from datetime import date, datetime
 from typing import List, Optional
 from uuid import UUID
 
-from sqlmodel import Session, col, select, and_
+from sqlmodel import Session, col, select, and_, func
+from sqlalchemy import case
 
 from app.models.time_entry import TimeEntry, TimeEntryCreate, TimeEntryUpdate
 from app.models.task import Task
@@ -176,7 +177,7 @@ class TimeEntryService:
         """
         result = session.exec(
             select(
-                col(TimeEntry.duration_minutes).sum()
+                func.coalesce(func.sum(TimeEntry.duration_minutes), 0)
             ).where(
                 and_(
                     TimeEntry.task_id == task_id,
@@ -185,7 +186,7 @@ class TimeEntryService:
             )
         ).one()
 
-        return result or 0
+        return int(result)
 
     def get_profitability_for_project(
         self,

@@ -147,25 +147,20 @@ export function useTimeEntries(taskId?: string) {
     },
   });
 
-  // Get total time for task
-  const {
-    data: totalTime = { total_minutes: 0 },
-    refetch: refetchTotalTime,
-  } = useQuery({
-    queryKey: ["time-entries", "total", taskId],
-    queryFn: async () => {
-      if (!taskId) return { total_minutes: 0 };
-      const response = await api.get<{ total_minutes: number }>(
-        `/api/v1/time-entries/task/${taskId}/total`
-      );
-      return response.data;
-    },
-    enabled: !!taskId,
-  });
+  // Calculate total time from the time entries array (more reliable than separate API call)
+  const totalTime = timeEntries?.reduce(
+    (sum, entry) => sum + (entry.duration_minutes || 0),
+    0
+  ) || 0;
 
   // Calculate total hours and format time
-  const totalHours = totalTime.total_minutes / 60;
-  const formattedTime = formatDuration(totalTime.total_minutes);
+  const totalHours = totalTime / 60;
+  const formattedTime = formatDuration(totalTime);
+
+  // Refetch function for data updates
+  const refetchTotalTime = () => {
+    queryClient.invalidateQueries({ queryKey: ["time-entries", taskId] });
+  };
 
   return {
     timeEntries,
