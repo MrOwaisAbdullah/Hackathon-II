@@ -2,10 +2,11 @@
 
 /** ProjectDrawer - Side panel for editing project details.
  *
- * This component follows the same pattern as TaskDrawer:
- * - Slides in from the right
+ * This component follows the exact same design pattern as TaskDrawer:
+ * - Slides in from the right with spring animation
+ * - Same styling, colors, animations as TaskDrawer
  * - Editable fields for name, description, status
- * - Save/Cancel actions
+ * - Save/Cancel actions with change detection
  */
 
 import { useState, useEffect } from "react";
@@ -34,6 +35,7 @@ interface ProjectDrawerProps {
     name: string;
     description?: string;
     status: ProjectStatus;
+    created_at?: string;
   };
 }
 
@@ -99,7 +101,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
             <div className="flex h-full flex-col">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-border p-4">
-                <h2 className="text-lg font-semibold">Edit Project</h2>
+                <h2 className="text-lg font-semibold">Project Details</h2>
                 <button
                   onClick={onClose}
                   className="rounded p-2 hover:bg-muted"
@@ -117,10 +119,11 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <Building2 className="w-4 h-4" />
-                        Project Name
+                        Name
                       </label>
                       <input
                         type="text"
+                        name="name"
                         value={editedName}
                         onChange={(e) => setEditedName(e.target.value)}
                         className="w-full px-3 py-2 border-2 border-input rounded-xl bg-background focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80"
@@ -136,18 +139,18 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                       <textarea
                         value={editedDescription}
                         onChange={(e) => setEditedDescription(e.target.value)}
-                        placeholder="Add a project description..."
+                        placeholder="Add a detailed description..."
                         rows={4}
                         className="w-full px-3 py-2 border-2 border-input rounded-xl bg-background focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80 resize-none"
                       />
                     </div>
 
-                    {/* Status - Editable */}
+                    {/* Status - Full Width (Editable) */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                      <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         Status
-                      </label>
+                      </div>
                       <Select
                         value={editedStatus || ProjectStatus.ACTIVE}
                         onValueChange={(value) => setEditedStatus(value as ProjectStatus)}
@@ -164,17 +167,19 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                       </Select>
                     </div>
 
-                    {/* Created Date - Read-only */}
+                    {/* Created Date - Full Width (Read-only) */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">
+                      <div className="text-sm font-medium text-muted-foreground">
                         Created
-                      </label>
+                      </div>
                       <div className="px-3 py-2 bg-muted/30 rounded-lg text-sm">
-                        {new Date(project.id?.startsWith('0') ? Date.now() : project.created_at || Date.now()).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric"
-                        })}
+                        {project.created_at
+                          ? new Date(project.created_at).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : "Recently"}
                       </div>
                     </div>
                   </div>

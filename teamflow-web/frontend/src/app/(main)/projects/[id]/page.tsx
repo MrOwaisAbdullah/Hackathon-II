@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Calendar, Building2, CheckCircle, Clock, Users } from "lucide-react";
@@ -11,14 +11,15 @@ import { cn } from "@/lib/utils";
 export default function ProjectDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
-  const { data: project, isLoading, error } = useProject(params.id);
+  const { id } = use(params);
+  const { data: project, isLoading, error } = useProject(id);
   const { data: tasks = [] } = useTasks();
 
   // Filter tasks for this project
-  const projectTasks = tasks.filter((task) => task.project_id === params.id);
+  const projectTasks = tasks.filter((task) => task.project_id === id);
   const completedTasks = projectTasks.filter((t) => t.status === "DONE").length;
   const progress = projectTasks.length > 0
     ? Math.round((completedTasks / projectTasks.length) * 100)
