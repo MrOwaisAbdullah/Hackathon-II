@@ -222,23 +222,26 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                           <span>Edit Project</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleStatusToggle(project)}
-                          className="cursor-pointer"
-                        >
-                          {project.status === 'active' ? (
-                            <>
-                              <Calendar className="w-4 h-4 mr-2 text-amber-600" />
-                              <span>Put On Hold</span>
-                            </>
-                          ) : (
-                            <>
-                              <Calendar className="w-4 h-4 mr-2 text-emerald-600" />
-                              <span>Activate</span>
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                        {/* Status Toggle - only show for active/on_hold projects */}
+                        {(project.status === 'active' || project.status === 'on_hold') && (
+                          <DropdownMenuItem
+                            onClick={() => handleStatusToggle(project)}
+                            className="cursor-pointer"
+                          >
+                            {project.status === 'active' ? (
+                              <>
+                                <Calendar className="w-4 h-4 mr-2 text-amber-600" />
+                                <span>Put On Hold</span>
+                              </>
+                            ) : (
+                                <>
+                                  <FolderOpen className="w-4 h-4 mr-2 text-emerald-600" />
+                                  <span>Activate</span>
+                                </>
+                              )}
+                          </DropdownMenuItem>
+                        )}
+                        {(project.status === 'active' || project.status === 'on_hold') && <DropdownMenuSeparator />}
                         <DropdownMenuItem
                           onClick={() => setDeleteConfirm(project.id)}
                           className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"

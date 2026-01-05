@@ -179,26 +179,28 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
               <span>Edit Project</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStatusToggle();
-              }}
-              className="cursor-pointer"
-            >
-              {project.status === 'active' ? (
-                <>
-                  <Calendar className="w-4 h-4 mr-2 text-amber-600" />
-                  <span>Put On Hold</span>
-                </>
-              ) : (
-                <>
-                  <FolderOpen className="w-4 h-4 mr-2 text-emerald-600" />
-                  <span>Activate</span>
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {/* Status Toggle - only show for active/on_hold projects */}
+            {(project.status === 'active' || project.status === 'on_hold') && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusToggle();
+                }}
+                className="cursor-pointer"
+              >
+                {project.status === 'active' ? (
+                  <>
+                    <Calendar className="w-4 h-4 mr-2 text-amber-600" />
+                    <span>Put On Hold</span>
+                  </>
+                ) : (
+                  <>
+                    <FolderOpen className="w-4 h-4 mr-2 text-emerald-600" />
+                    <span>Activate</span>
+                  </>
+                )}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
