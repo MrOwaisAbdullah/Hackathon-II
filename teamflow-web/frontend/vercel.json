@@ -3,15 +3,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "outputDirectory": ".next",
-  "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@backend-api-url"
-  },
-  "rewrites": [
-    {
-      "source": "/v1/:path*",
-      "destination": "@backend-api-url/api/v1/:path*"
-    }
-  ]
+  "outputDirectory": ".next"
 }
