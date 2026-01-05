@@ -20,7 +20,7 @@ interface Project {
   id: string;
   name: string;
   client: string;
-  status: 'active' | 'completed' | 'on-hold';
+  status: 'active' | 'completed' | 'on_hold';
   dueDate: string;
   progress: number;
 }
@@ -50,7 +50,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
   }, []);
 
   const getStatusStyle = (status: Project['status']) => {
-    const styles = {
+    const styles: Record<Project['status'], any> = {
       active: {
         light: { backgroundColor: '#dcfce7', color: '#14532d' },
         dark: { backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#4ade80' },
@@ -93,7 +93,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
 
   // Handle status toggle
   const handleStatusToggle = async (project: Project) => {
-    const newStatus = project.status === 'active' ? 'on-hold' : 'active';
+    const newStatus = project.status === 'active' ? 'on_hold' : 'active';
     try {
       await updateProject.mutateAsync({
         id: project.id,

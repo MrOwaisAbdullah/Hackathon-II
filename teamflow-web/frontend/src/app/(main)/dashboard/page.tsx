@@ -91,7 +91,7 @@ export default function DashboardPage() {
           id: project.id,
           name: project.name,
           client: project.description || 'No description',
-          status: project.status === 'active' ? 'active' as const : 'on-hold' as const,
+          status: project.status as 'active' | 'on_hold' | 'completed',
           dueDate: project.created_at ? new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBD',
           progress
         };
