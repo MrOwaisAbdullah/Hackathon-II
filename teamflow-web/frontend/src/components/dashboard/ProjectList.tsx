@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, Calendar, ArrowRight, Edit, Trash2, ExternalLink, CheckCircle } from 'lucide-react';
+import { MoreHorizontal, Calendar, ArrowRight, Edit, Trash2, ExternalLink, CheckCircle, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 import {
   DropdownMenu,
