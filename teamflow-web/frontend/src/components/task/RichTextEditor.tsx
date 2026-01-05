@@ -6,11 +6,11 @@
  * - Markdown support for formatting
  * - Toolbar with formatting buttons
  * - Auto-expanding textarea
- * - Always in edit mode (preview renders on cards)
+ * - Preview mode toggle
  */
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bold,
   Italic,
@@ -19,6 +19,8 @@ import {
   Heading2,
   Link,
   Minus,
+  Eye,
+  Edit,
 } from "lucide-react";
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -58,6 +60,7 @@ export function RichTextEditor({
     start: number;
     end: number;
   } | null>(null);
+  const [isPreview, setIsPreview] = useState(false);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -147,45 +150,96 @@ export function RichTextEditor({
       <motion.div
         initial={{ opacity: 0, y: -5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-1 p-1 bg-muted/30 border border-border rounded-t-lg flex-wrap"
+        className="flex items-center justify-between gap-1 p-1 bg-muted/30 border border-border rounded-t-lg"
       >
-        {toolbarButtons.map((button) => (
-          <motion.button
-            key={button.label}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={button.action}
-            disabled={disabled}
-            type="button"
-            className={`
-              p-2 rounded hover:bg-muted/50 transition-colors
-              ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-            title={`${button.label} (${button.shortcut})`}
-            aria-label={button.label}
-          >
-            <button.icon className="w-4 h-4 text-muted-foreground" />
-          </motion.button>
-        ))}
-      </motion.div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {toolbarButtons.map((button) => (
+            <motion.button
+              key={button.label}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={button.action}
+              disabled={disabled || isPreview}
+              type="button"
+              className={`
+                p-2 rounded hover:bg-muted/50 transition-colors
+                ${(disabled || isPreview) ? "opacity-50 cursor-not-allowed" : ""}
+              `}
+              title={`${button.label} (${button.shortcut})`}
+              aria-label={button.label}
+            >
+              <button.icon className="w-4 h-4 text-muted-foreground" />
+            </motion.button>
+          ))}
+        </div>
 
-      {/* Editor */}
-      <div className="relative min-h-[120px] border border-t-0 border-border rounded-b-lg bg-card">
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onSelect={handleSelectionChange}
-          onKeyUp={handleSelectionChange}
+        {/* Preview Toggle Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsPreview(!isPreview)}
           disabled={disabled}
-          placeholder={placeholder}
+          type="button"
           className={`
-            w-full min-h-[120px] p-3 bg-transparent resize-none
-            focus:outline-none text-sm
+            flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors
+            ${isPreview
+              ? "bg-accent text-accent-foreground"
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            }
             ${disabled ? "opacity-50 cursor-not-allowed" : ""}
           `}
-          aria-label="Task description"
-        />
+          title={isPreview ? "Switch to edit mode" : "Switch to preview mode"}
+        >
+          {isPreview ? (
+            <>
+              <Edit className="w-3.5 h-3.5" />
+              Edit
+            </>
+          ) : (
+            <>
+              <Eye className="w-3.5 h-3.5" />
+              Preview
+            </>
+          )}
+        </motion.button>
+      </motion.div>
+
+      {/* Editor / Preview */}
+      <div className="relative min-h-[120px] border border-t-0 border-border rounded-b-lg bg-card">
+        <AnimatePresence mode="wait">
+          {isPreview ? (
+            <motion.div
+              key="preview"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="p-3 prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{
+                __html: renderMarkdown(value) || '<p class="text-muted-foreground italic">Nothing to preview</p>',
+              }}
+            />
+          ) : (
+            <motion.textarea
+              key="editor"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              ref={textareaRef}
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onSelect={handleSelectionChange}
+              onKeyUp={handleSelectionChange}
+              disabled={disabled}
+              placeholder={placeholder}
+              className={`
+                w-full min-h-[120px] p-3 bg-transparent resize-none
+                focus:outline-none text-sm
+                ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+              `}
+              aria-label="Task description"
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
