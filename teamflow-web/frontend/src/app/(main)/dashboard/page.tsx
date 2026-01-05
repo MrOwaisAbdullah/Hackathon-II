@@ -111,99 +111,101 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="space-y-8 pb-8">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <motion.h1
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-3xl font-bold tracking-tight"
-        >
-          Dashboard
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-muted-foreground"
-        >
-          Agency overview and performance metrics.
-        </motion.p>
-      </div>
-
-      {/* T153: Stats Grid with skeleton loading */}
-      {statsLoading ? (
-        <StatCardSkeleton />
-      ) : statsData ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Active Projects"
-            value={statsData.activeProjects.toString()}
-            icon={Briefcase}
-            trend={{ value: statsData.trends?.activeProjects || 0, isPositive: true }}
-            color="bg-primary"
-            delay={0}
-          />
-          <StatCard
-            title="Tasks Completed"
-            value={statsData.tasksCompleted.toString()}
-            icon={CheckCircle}
-            trend={{ value: statsData.trends?.tasksCompleted || 0, isPositive: true }}
-            color="bg-emerald-500"
-            delay={1}
-          />
-          <StatCard
-            title="Team Utilization"
-            value={`${statsData.teamUtilization}%`}
-            icon={Users}
-            trend={{ value: statsData.trends?.teamUtilization || 0, isPositive: false }}
-            color="bg-blue-500"
-            delay={2}
-          />
-          <StatCard
-            title="Revenue (YTD)"
-            value={`$${(statsData.revenue / 1000).toFixed(1)}k`}
-            icon={DollarSign}
-            trend={{ value: statsData.trends?.revenue || 0, isPositive: true }}
-            color="bg-purple-500"
-            delay={3}
-          />
+    <>
+      <div className="space-y-8 pb-8">
+        {/* Header */}
+        <div className="flex flex-col gap-1">
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-3xl font-bold tracking-tight"
+          >
+            Dashboard
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-muted-foreground"
+          >
+            Agency overview and performance metrics.
+          </motion.p>
         </div>
-      ) : null}
 
-      {/* Visualizations Grid with skeleton loading */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* T153: Chart skeleton */}
-          {chartLoading ? (
-            <ChartSkeleton />
-          ) : (
-            <TaskDistributionChart
-              data={chartData || []}
-              totalTasks={totalTasks}
+        {/* T153: Stats Grid with skeleton loading */}
+        {statsLoading ? (
+          <StatCardSkeleton />
+        ) : statsData ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="Active Projects"
+              value={statsData.activeProjects.toString()}
+              icon={Briefcase}
+              trend={{ value: statsData.trends?.activeProjects || 0, isPositive: true }}
+              color="bg-primary"
+              delay={0}
             />
-          )}
-          {/* T153: Projects skeleton */}
-          {projectsLoading ? (
-            <ListSkeleton count={4} />
-          ) : (
-            <ProjectList projects={projectsList} onEdit={openDrawer} />
-          )}
-        </div>
-        <div className="lg:col-span-1">
-          <WorkflowProgress
-            steps={workflowSteps}
-          />
+            <StatCard
+              title="Tasks Completed"
+              value={statsData.tasksCompleted.toString()}
+              icon={CheckCircle}
+              trend={{ value: statsData.trends?.tasksCompleted || 0, isPositive: true }}
+              color="bg-emerald-500"
+              delay={1}
+            />
+            <StatCard
+              title="Team Utilization"
+              value={`${statsData.teamUtilization}%`}
+              icon={Users}
+              trend={{ value: statsData.trends?.teamUtilization || 0, isPositive: false }}
+              color="bg-blue-500"
+              delay={2}
+            />
+            <StatCard
+              title="Revenue (YTD)"
+              value={`$${(statsData.revenue / 1000).toFixed(1)}k`}
+              icon={DollarSign}
+              trend={{ value: statsData.trends?.revenue || 0, isPositive: true }}
+              color="bg-purple-500"
+              delay={3}
+            />
+          </div>
+        ) : null}
+
+        {/* Visualizations Grid with skeleton loading */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* T153: Chart skeleton */}
+            {chartLoading ? (
+              <ChartSkeleton />
+            ) : (
+              <TaskDistributionChart
+                data={chartData || []}
+                totalTasks={totalTasks}
+              />
+            )}
+            {/* T153: Projects skeleton */}
+            {projectsLoading ? (
+              <ListSkeleton count={4} />
+            ) : (
+              <ProjectList projects={projectsList} onEdit={openDrawer} />
+            )}
+          </div>
+          <div className="lg:col-span-1">
+            <WorkflowProgress
+              steps={workflowSteps}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Project Drawer */}
+      {/* Project Drawer - Outside main container */}
       <ProjectDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}
         project={selectedProject}
       />
-    </div>
+    </>
   );
 }

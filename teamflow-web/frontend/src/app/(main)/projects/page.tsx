@@ -50,63 +50,65 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-center justify-between mb-8"
-      >
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Projects</h1>
-          <p className="text-muted-foreground">Manage your agency projects</p>
-        </div>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus size={20} />
-            New Project
-          </Button>
-        </motion.div>
-      </motion.div>
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-lime-500" />
-        </div>
-      )}
-
-      {/* Projects Grid */}
-      {!isLoading && projects && (
+    <>
+      <div className="p-8">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="grid gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex items-center justify-between mb-8"
         >
-          {projects.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-muted-foreground mb-4">No projects yet. Create your first project to get started.</p>
-            </div>
-          ) : (
-            projects.map((project: Project, index: number) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <ProjectCard
-                  project={project}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              </motion.div>
-            ))
-          )}
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Projects</h1>
+            <p className="text-muted-foreground">Manage your agency projects</p>
+          </div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus size={20} />
+              New Project
+            </Button>
+          </motion.div>
         </motion.div>
-      )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 size={32} className="animate-spin text-lime-500" />
+          </div>
+        )}
+
+        {/* Projects Grid */}
+        {!isLoading && projects && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="grid gap-4"
+          >
+            {projects.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-muted-foreground mb-4">No projects yet. Create your first project to get started.</p>
+              </div>
+            ) : (
+              projects.map((project: Project, index: number) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <ProjectCard
+                    project={project}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        )}
+      </div>
 
       {/* Project Form Modal - Only for creating */}
       {showForm && (
@@ -118,12 +120,12 @@ export default function ProjectsPage() {
         />
       )}
 
-      {/* Project Drawer - For editing */}
+      {/* Project Drawer - For editing - Outside main container */}
       <ProjectDrawer
         isOpen={isDrawerOpen}
         onClose={closeDrawer}
         project={selectedProject}
       />
-    </div>
+    </>
   );
 }
