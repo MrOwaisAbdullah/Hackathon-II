@@ -100,10 +100,12 @@ export default function DashboardPage() {
         return {
           id: project.id,
           name: project.name,
-          client: project.description || 'No description',
+          description: project.description,
+          client: 'Teamflow Agency', // Default client name
           status: project.status as 'active' | 'on_hold' | 'completed',
           dueDate: project.created_at ? new Date(project.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBD',
-          progress
+          progress,
+          created_at: project.created_at,
         };
       })
     : [];

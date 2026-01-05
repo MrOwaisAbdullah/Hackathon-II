@@ -15,14 +15,17 @@ import {
 import { useUpdateProject, useDeleteProject } from '@/lib/query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { renderMarkdown } from '@/lib/markdown';
 
 interface Project {
   id: string;
   name: string;
+  description?: string;
   client: string;
   status: 'active' | 'completed' | 'on_hold';
   dueDate: string;
   progress: number;
+  created_at?: string;
 }
 
 interface ProjectListProps {
@@ -258,6 +261,16 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                     <h4 className="font-bold text-sm mb-2 text-foreground leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-accent transition-colors">
                       {project.name}
                     </h4>
+                    {project.description && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs text-muted-foreground line-clamp-2 mb-2 leading-relaxed prose prose-xs max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(project.description)
+                        }}
+                      />
+                    )}
                     <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{project.client}</p>
                   </Link>
 
