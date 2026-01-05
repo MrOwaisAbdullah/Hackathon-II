@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RichTextEditor } from "@/components/task/RichTextEditor";
 
 interface ProjectDrawerProps {
   isOpen: boolean;
@@ -130,17 +131,15 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                       />
                     </div>
 
-                    {/* Description - Editable */}
+                    {/* Description - Rich Text Editor */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground">
                         Description
                       </label>
-                      <textarea
+                      <RichTextEditor
                         value={editedDescription}
-                        onChange={(e) => setEditedDescription(e.target.value)}
+                        onChange={setEditedDescription}
                         placeholder="Add a detailed description..."
-                        rows={4}
-                        className="w-full px-3 py-2 border-2 border-input rounded-xl bg-background focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80 resize-none"
                       />
                     </div>
 

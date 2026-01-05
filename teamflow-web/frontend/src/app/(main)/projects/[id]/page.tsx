@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Calendar, Building2, CheckCircle, Clock, Users } fr
 import { useProject, useTasks } from "@/lib/query";
 import { ProjectStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { renderMarkdown } from "@/lib/markdown";
 
 export default function ProjectDetailPage({
   params,
@@ -159,7 +160,12 @@ export default function ProjectDetailPage({
               <Building2 size={16} />
               Description
             </h2>
-            <p className="text-foreground leading-relaxed">{project.description}</p>
+            <div
+              className="text-foreground leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+              dangerouslySetInnerHTML={{
+                __html: renderMarkdown(project.description)
+              }}
+            />
           </div>
         </motion.div>
       )}

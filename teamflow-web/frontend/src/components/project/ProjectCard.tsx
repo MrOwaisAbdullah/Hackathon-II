@@ -16,6 +16,7 @@ import {
 import { useUpdateProject } from '@/lib/query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { renderMarkdown } from '@/lib/markdown';
 
 interface ProjectCardProps {
   project: Project;
@@ -224,13 +225,14 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
 
       {/* Description */}
       {project.description && (
-        <motion.p
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed"
-        >
-          {project.description}
-        </motion.p>
+          className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed prose prose-xs max-w-none dark:prose-invert"
+          dangerouslySetInnerHTML={{
+            __html: renderMarkdown(project.description)
+          }}
+        />
       )}
 
       {/* Footer: Created Date */}
