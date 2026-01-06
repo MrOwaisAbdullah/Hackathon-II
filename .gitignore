@@ -18,6 +18,7 @@ lib/
 lib64/
 # But keep our package's lib directory
 !teamflow_console/lib/
+!teamflow-web/frontend/src/lib/
 parts/
 sdist/
 var/
