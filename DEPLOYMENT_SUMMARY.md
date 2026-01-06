@@ -183,8 +183,11 @@ git push origin 002-fullstack-web-crm
 2. Click on the "Deploy TeamFlow Fullstack Application" workflow run
 3. Watch the progress:
    - **deploy-frontend**: Builds and deploys to Vercel
-   - **deploy-backend**: Clones HF Space, copies files, pushes changes
+   - **deploy-backend**: Clones HF Space, copies files, triggers restart
+   - The workflow will **automatically restart** the HuggingFace Space
    - Wait ~5-10 minutes for HuggingFace Space to rebuild
+
+**Important**: GitHub Actions will automatically trigger a rebuild of your HuggingFace Space using the API. You should see the message "✅ Space restart triggered successfully!" in the workflow logs.
 
 ---
 

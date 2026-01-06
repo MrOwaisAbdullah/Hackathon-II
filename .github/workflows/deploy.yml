@@ -150,6 +150,49 @@ jobs:
           # Push to HuggingFace
           git push origin main
 
+      - name: Trigger HuggingFace Space Rebuild
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+        run: |
+          echo "🔄 Triggering HuggingFace Space rebuild..."
+
+          # Install HuggingFace Hub if not already installed
+          pip install huggingface_hub --quiet
+
+          # Trigger a restart using the HuggingFace Hub API
+          python3 << 'EOF'
+          import os
+          import time
+          from huggingface_hub import HfApi
+
+          hf_token = os.environ.get("HF_TOKEN")
+          space_name = os.environ.get("HF_SPACE_NAME")
+
+          if not hf_token or not space_name:
+              print(f"❌ Missing credentials: HF_TOKEN={'✓' if hf_token else '✗'}, HF_SPACE_NAME={'✓' if space_name else '✗'}")
+              exit(1)
+
+          try:
+              api = HfApi(token=hf_token)
+
+              # Get space info to verify it exists
+              space = api.get_space_repo(repo_id=space_name, repo_type="space")
+              print(f"✅ Found space: {space_name}")
+
+              # Trigger a restart (this forces a rebuild)
+              print(f"🔄 Triggering restart for {space_name}...")
+              api.restart_space(repo_id=space_name, repo_type="space", token=hf_token)
+
+              print(f"✅ Space restart triggered successfully!")
+              print(f"⏳ Space will rebuild in the background (this takes 5-10 minutes)")
+
+          except Exception as e:
+              print(f"❌ Failed to trigger restart: {e}")
+              # Don't fail the workflow - files were already pushed
+              print(f"📝 Note: Files were successfully pushed, you may need to manually restart the space")
+          EOF
+
       - name: Wait for deployment
         run: |
           echo "Waiting for HuggingFace Space to rebuild..."
