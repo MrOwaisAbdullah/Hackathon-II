@@ -558,6 +558,90 @@ async_engine = create_async_engine(
 
 **Critical for Neon PostgreSQL**: Reduce `pool_recycle` to 1800 (30 min) or less, and always use `pool_pre_ping=True`.
 
+### 18. Vercel Monorepo Build Configuration
+**Problem**: Vercel build fails with infinite loop or module resolution errors when building from subdirectory
+
+**Issue A: Infinite npm install loop**
+```json
+// ❌ Wrong: Root package.json with install script
+{
+  "name": "monorepo",
+  "scripts": {
+    "install": "cd frontend && npm install"  // INFINITE LOOP!
+  }
+}
+```
+**Cause**: When Vercel builds from `frontend/` subdirectory (set via Root Directory setting), it runs `npm install` which triggers the root's install script, which runs `npm install` again, creating infinite loop.
+
+**Solution**: Either remove root `package.json` entirely OR remove the `install` script:
+```json
+// ✅ Correct: No install script at root
+{
+  "name": "monorepo",
+  "scripts": {
+    "build": "cd frontend && npm run build",
+    "vercel-build": "cd frontend && npm run build"
+    // NO "install" script!
+  }
+}
+```
+
+**Issue B: Module resolution failures**
+```
+Module not found: Can't resolve '@/lib/api'
+Import map: aliased to relative './src/lib/api' inside of [project]/teamflow-web/frontend
+```
+**Cause**: Root `.gitignore` has `lib/` pattern that ignores ALL `lib/` directories, including `frontend/src/lib/`. Files not tracked in git = not available during Vercel build.
+
+**Solution**: Add exceptions for required lib directories:
+```gitignore
+# Root .gitignore
+
+# Python lib directories
+lib/
+lib64/
+
+# But keep specific package lib directories
+!teamflow_console/lib/
+!teamflow-web/frontend/src/lib/  # ADD THIS EXCEPTION
+```
+
+Then force-add the ignored files:
+```bash
+git add -f teamflow-web/frontend/src/lib/
+git commit -m "Add lib files to git"
+```
+
+**Issue C: Workspace configuration conflicts**
+```json
+// ❌ Wrong: Workspace config conflicts with Vercel root directory setting
+{
+  "workspaces": ["teamflow-web/frontend"]
+}
+```
+**Cause**: When Vercel Root Directory is set to `teamflow-web/frontend`, having workspace config at root creates conflicts in how dependencies are resolved.
+
+**Solution**: When using Vercel with manual root directory setting, avoid workspace configuration at root. Let Vercel build the subdirectory independently.
+
+**Best Practice for Vercel Monorepo Deployment:**
+1. Set "Root Directory" in Vercel project settings to your app subdirectory (e.g., `teamflow-web/frontend`)
+2. Do NOT create root `package.json` with install scripts or workspace configuration
+3. Ensure all required files are tracked in git (check with `git ls-files`)
+4. Use the subdirectory's own `package.json` for all build configuration
+
+**Files Affected**: Root `package.json`, root `.gitignore`, Vercel project settings
+
+**Verification Commands:**
+```bash
+# Check if files are tracked in git
+git ls-files path/to/lib/
+
+# Test build locally from subdirectory
+cd teamflow-web/frontend
+npm install
+npm run build
+```
+
 ---
 
 ## HuggingFace Spaces Deployment: Complete Guide
@@ -727,6 +811,13 @@ async_engine = create_async_engine(
 - [ ] Check all environment variables are documented
 - [ ] Validate API endpoints with health checks
 - [ ] Test CORS configuration in browser dev tools
+
+**For Vercel Monorepo Deployments:**
+- [ ] Verify no root `package.json` with `install` script (causes infinite loop)
+- [ ] Check `.gitignore` doesn't ignore required `src/lib/` directories
+- [ ] Verify all source files are tracked in git: `git ls-files src/`
+- [ ] Test build from subdirectory locally: `cd frontend && npm install && npm run build`
+- [ ] Confirm Vercel Root Directory setting matches app location (e.g., `teamflow-web/frontend`)
 
 ### Deployment
 - [ ] Ensure secrets are configured in GitHub
