@@ -190,6 +190,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
         "group relative overflow-hidden rounded-xl border bg-card p-3 md:p-4 shadow-sm w-full min-w-0",
         "transition-all duration-200 ease-out",
         "hover:shadow-lg hover:border-lime-500/30",
+        "cursor-grab active:cursor-grabbing",
         (isDragging || isDndDragging) && "opacity-50 shadow-2xl ring-2 ring-lime-500 scale-105 z-50"
       )}
     >
