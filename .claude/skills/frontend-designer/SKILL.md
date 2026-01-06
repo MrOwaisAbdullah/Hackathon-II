@@ -141,3 +141,198 @@ export function SSRSafeComponent() {
 2. **NEVER** use Zustand persist middleware for SSR components
 3. **ALWAYS** use `useEffect` for browser APIs
 4. **ALWAYS** render static placeholders before client-side mount
+
+---
+
+## TypeScript Best Practices for Production Builds
+
+**CRITICAL**: TypeScript strict mode catches bugs at compile time. Follow these practices to ensure successful production builds on Vercel, Netlify, or any platform.
+
+### Rule 1: Eliminate All Implicit `any` Types
+
+**Problem**: TypeScript's strict mode forbids implicit `any`. Build will FAIL.
+
+```typescript
+// ❌ WRONG - Implicit any in parameters
+function processTask(task) {  // Error: Parameter 'task' implicitly has 'any' type
+  return task.id;
+}
+
+const filterItems = items.filter(item => item.active);  // Error: 'item' implicitly 'any'
+
+// ✅ CORRECT - Explicit types
+function processTask(task: Task) {
+  return task.id;
+}
+
+const filterItems = items.filter((item: Item) => item.active);
+// OR use type inference from array
+const filterItems = items.filter(item => item.active);  // OK if 'items' is typed
+```
+
+### Rule 2: Remove All Unused Imports and Variables
+
+**Problem**: TypeScript strict mode (`noUnusedLocals: true`, `noUnusedParameters: true`) will FAIL builds.
+
+```typescript
+// ❌ WRONG - Unused imports
+import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";  // Never used
+
+export function TaskList() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  useEffect(() => {
+    fetchTasks();
+  }, []);  // useEffect imported but never used
+  return <div>{tasks.map(t => <div key={t.id}>{t.title}</div>)}</div>;
+}
+
+// ✅ CORRECT - Remove unused imports
+import { useState, useEffect } from "react";
+
+export function TaskList() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+  return <div>{tasks.map(t => <div key={t.id}>{t.title}</div>)}</div>;
+}
+```
+
+### Rule 3: Fix Type Mismatches in Enum Usage
+
+**Problem**: Using string literals where enums are expected causes build failures.
+
+```typescript
+// ❌ WRONG - String literal instead of enum value
+const getStatusStyle = (status: string) => {
+  if (status === "archived") return "gray";  // Type error
+};
+
+// ✅ CORRECT - Use enum type
+const getStatusStyle = (status: TaskStatus) => {
+  const styles: Record<TaskStatus, string> = {
+    [TaskStatus.TODO]: "blue",
+    [TaskStatus.DOING]: "yellow",
+    [TaskStatus.DONE]: "green",
+    [TaskStatus.ARCHIVED]: "gray",  // Must include all enum values
+  };
+  return styles[status];
+};
+```
+
+### Rule 4: Handle Dynamic Component Rendering Correctly
+
+**Problem**: JSX doesn't allow dynamic component tags like `<ComponentName />`.
+
+```typescript
+// ❌ WRONG - JSX treats ComponentName as literal HTML tag
+const statusIcon = CheckCircle;
+return <div><statusIcon className="w-4 h-4" /></div>;  // Error
+
+// ✅ CORRECT - Use React.createElement or uppercase variable
+const statusIcon = CheckCircle;
+return <div>{React.createElement(statusIcon, { className: "w-4 h-4" })}</div>;
+
+// OR use uppercase (React convention for components)
+const StatusIcon = CheckCircle;
+return <div><StatusIcon className="w-4 h-4" /></div>;
+```
+
+### Rule 5: Destructure Hooks Correctly
+
+**Problem**: Accessing nested properties that don't exist on hook returns.
+
+```typescript
+// ❌ WRONG - Incorrect property access
+const { timer, timeEntries } = useTimeTracking();
+const elapsed = timer.timer.elapsedSeconds;  // Error: Property 'timer' doesn't exist
+const totalTime = timeEntries.totalMinutes;  // Error: Property 'totalMinutes' doesn't exist
+
+// ✅ CORRECT - Destructure correctly
+const { timer, timeEntries, totalTime } = useTimeTracking();
+const elapsed = timer.elapsedSeconds;  // timer IS the TimerState
+```
+
+### Rule 6: Use Type-Only Imports Correctly
+
+**Problem**: Importing types as values when they should be type-only.
+
+```typescript
+// ❌ WRONG - Using type-only import as value
+import type { UserRole } from "@/types";
+
+if (user.role === UserRole.ADMIN) {  // Error: 'UserRole' cannot be used as a value
+  // ...
+}
+
+// ✅ CORRECT - Regular import for values used at runtime
+import { UserRole } from "@/types";
+
+if (user.role === UserRole.ADMIN) {
+  // ...
+}
+```
+
+### Rule 7: Fix Function Signature Mismatches
+
+**Problem**: Calling functions with wrong number of arguments.
+
+```typescript
+// ❌ WRONG - Too many arguments
+const timeAgo = formatDistanceToNow(new Date(), { addSuffix: true });
+// Error: Expected 1-2 arguments, but got 2 (or similar)
+
+// ✅ CORRECT - Check function signature
+const timeAgo = formatDistanceToNow(new Date());  // Often just needs the date
+```
+
+### Pre-Build Checklist (Run Before Every Commit)
+
+```bash
+# 1. Run TypeScript compiler in strict mode
+cd frontend
+npx tsc --noEmit --strict
+
+# 2. Run the linter
+npm run lint
+
+# 3. Fix ALL errors before committing
+# TypeScript errors = build failures in production
+```
+
+### Common Build-Failing Errors and Fixes
+
+| Error Message | Cause | Fix |
+|---------------|-------|-----|
+| `Parameter 'x' implicitly has 'any'` | Missing type annotation | Add explicit type: `(x: Type)` |
+| `has no export 'X'` | Wrong import path or non-existent export | Check import path and verify export exists |
+| `Property 'X' does not exist` | Type mismatch or wrong property access | Check type definition and fix property name |
+| `is declared but its value is never read` | Unused variable/import | Remove unused code |
+| `cannot be used as a value` | Type-only import used as value | Change to regular import |
+| `JSX element 'component'` | Dynamic component rendering issue | Use `React.createElement()` or uppercase variable |
+
+### Best Practices Summary
+
+1. **Always** run `npx tsc --noEmit` before committing
+2. **Never** use `any` type - use `unknown` or proper generics instead
+3. **Remove** all unused imports and variables
+4. **Type all** function parameters explicitly
+5. **Use** `Record<Type, T>` for type-safe object mappings
+6. **Import** enums as values, not types
+7. **Test** builds locally: `npm run build` must succeed
+8. **Enable** strict mode in `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+```
+
+**Remember**: If it compiles locally with strict mode, it will build successfully on Vercel/Netlify. TypeScript errors are your friend - they catch bugs before users do.
