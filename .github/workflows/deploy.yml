@@ -104,8 +104,35 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          # Validate required secrets
+          if [ -z "$HF_TOKEN" ]; then
+            echo "❌ Error: HF_TOKEN secret is not set"
+            echo "Please set HF_TOKEN in GitHub repository secrets"
+            exit 1
+          fi
+
+          if [ -z "$HF_SPACE_NAME" ]; then
+            echo "❌ Error: HF_SPACE_NAME secret is not set"
+            echo "Please set HF_SPACE_NAME in GitHub repository secrets"
+            echo "Format: username/space-name (e.g., 'MrOwaisAbdullah/teamflow-backend')"
+            exit 1
+          fi
+
+          echo "📦 Cloning HuggingFace Space: $HF_SPACE_NAME"
+
           # Clone the space
           git clone https://hf:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE_NAME} hf-space
+
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to clone HuggingFace Space"
+            echo "Possible issues:"
+            echo "1. Space doesn't exist: https://huggingface.co/spaces/$HF_SPACE_NAME"
+            echo "2. HF_TOKEN doesn't have access to the space"
+            echo "3. HF_SPACE_NAME format is incorrect (should be 'username/space-name')"
+            exit 1
+          fi
+
+          echo "✅ Successfully cloned HuggingFace Space"
 
           # Copy backend files to space (excluding .venv and other unnecessary files)
           rsync -av --exclude='.venv' --exclude='.venv_linux' --exclude='.pytest_cache' \

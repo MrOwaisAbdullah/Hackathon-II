@@ -312,6 +312,42 @@ After successful deployment:
 | **Build timeout** | HuggingFace Spaces may take 5-10 minutes on first build |
 | **HF_TOKEN permission denied** | Ensure token has **Write** permissions |
 | **GitHub Actions fails** | Check that all secrets are set correctly |
+| **Repository not found** | Space doesn't exist or `HF_SPACE_NAME` is wrong (see below) |
+
+### Common Error: "Repository not found" from HuggingFace
+
+**Error Message:**
+```
+fatal: repository 'https://huggingface.co/spaces/' not found
+```
+
+**This means one of three things:**
+
+1. **`HF_SPACE_NAME` secret is not set** (most common)
+   - Go to: GitHub repo → Settings → Secrets and variables → Actions
+   - Add secret: `HF_SPACE_NAME` = `YOUR_USERNAME/teamflow-backend`
+   - Example: `MrOwaisAbdullah/teamflow-backend`
+
+2. **Space doesn't exist on HuggingFace**
+   - Visit: `https://huggingface.co/spaces/YOUR_USERNAME/teamflow-backend`
+   - If 404, you need to create the space first (see Phase 1, Step 2)
+
+3. **Space name format is incorrect**
+   - Must be: `username/space-name` (with forward slash)
+   - Wrong: `teamflow-backend` or `https://huggingface.co/spaces/...`
+   - Right: `MrOwaisAbdullah/teamflow-backend`
+
+**Quick Fix:**
+```bash
+# 1. Check if your space exists
+open https://huggingface.co/spaces/YOUR_USERNAME/teamflow-backend
+
+# 2. If it exists, get the correct name from the URL
+# Format is: huggingface.co/spaces/USERNAME/SPACE_NAME
+
+# 3. Set HF_SPACE_NAME in GitHub Secrets
+# Value: USERNAME/SPACE_NAME (from step 2)
+```
 
 ---
 
