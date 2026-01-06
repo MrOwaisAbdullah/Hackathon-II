@@ -16,6 +16,7 @@ export enum TaskStatus {
   DOING = "DOING",
   REVIEW = "REVIEW",
   DONE = "DONE",
+  ARCHIVED = "ARCHIVED",
 }
 
 /** Task priority */

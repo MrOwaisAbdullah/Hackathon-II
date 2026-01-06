@@ -77,7 +77,7 @@ export function ChartSkeleton({ className = "" }: ChartSkeletonProps) {
       <div className="flex items-end justify-between gap-2 h-48">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-2">
-            <Skeleton className="w-full h-full min-h-[100px]" style={{ height: `${60 + Math.random() * 80}px` }} />
+            <Skeleton className="w-full h-full min-h-[100px]" />
           </div>
         ))}
       </div>

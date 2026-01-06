@@ -2,10 +2,10 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flag, MoreHorizontal, Clock, User, Edit2, Trash2, Archive, CheckCircle, Eye, ArrowRight, Circle } from "lucide-react";
+import { Flag, MoreHorizontal, Clock, Edit2, Trash2, Archive, CheckCircle, Eye, Circle } from "lucide-react";
 import type { Task } from "@/types";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -218,9 +218,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
             className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide"
             style={statusStyle}
           >
-            {statusIcon && typeof statusIcon !== "string" && (
-              <statusIcon className="w-3 h-3" />
-            )}
+            {statusIcon && typeof statusIcon !== "string" && React.createElement(statusIcon, { className: "w-3 h-3" })}
             {status.label}
           </motion.div>
         </div>

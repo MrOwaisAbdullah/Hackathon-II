@@ -282,17 +282,6 @@ const EmptyState = () => (
 // Main component
 export function UpcomingDeadlines({ tasks = [], projects = [] }: UpcomingDeadlinesProps) {
   const deadlines = processDeadlines(tasks, projects);
-  const [isDark, setIsDark] = React.useState(false);
-
-  React.useEffect(() => {
-    const checkDark = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDark();
-    const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <motion.div

@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserAvatarProps {
@@ -15,7 +14,6 @@ interface UserAvatarProps {
 
 export function UserAvatar({
   name = 'User',
-  email = '',
   className,
   size = 'md',
   showRing = false,

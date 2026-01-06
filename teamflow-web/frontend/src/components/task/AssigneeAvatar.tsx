@@ -57,7 +57,7 @@ export function AssigneeAvatar({
         "from-amber-500 to-amber-600",
         "from-rose-500 to-rose-600",
         "from-cyan-500 to-cyan-600",
-      ][getColorIndex(name || email)]
+      ][getColorIndex(name || email || '')]
     : "";
 
   if (!name && !email) {

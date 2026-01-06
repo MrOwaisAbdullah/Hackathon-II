@@ -29,7 +29,7 @@ export function TimeLoggingForm({
   onSuccess,
   onCancel,
 }: TimeLoggingFormProps) {
-  const { timer, timeEntries, submitTimerEntry, createTimeEntry, isCreating } =
+  const { timer, timeEntries, submitTimerEntry, createTimeEntry, isCreating, start, stop, reset } =
     useTimeTracking(taskId);
 
   // Manual entry state
@@ -77,13 +77,10 @@ export function TimeLoggingForm({
   // Handle timer toggle
   const handleTimerToggle = () => {
     if (!timer) return;
-    const timerState = timer.timer;
-    if (!timerState) return;
-
-    if (timerState.isRunning) {
-      timer.stop();
+    if (timer.isRunning) {
+      stop();
     } else {
-      timer.start(taskId);
+      start(taskId);
     }
   };
 
@@ -98,7 +95,7 @@ export function TimeLoggingForm({
   };
 
   // Safely get timer state
-  const timerState = timer?.timer;
+  const timerState = timer;
 
   return (
     <div className="space-y-4">
@@ -158,7 +155,7 @@ export function TimeLoggingForm({
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={timer.reset}
+              onClick={reset}
               className="px-3 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
             >
               <X className="w-4 h-4" />
@@ -277,13 +274,13 @@ export function TimeLoggingForm({
       </form>
 
       {/* Recent Time Entries */}
-      {timeEntries.timeEntries && timeEntries.timeEntries.length > 0 && (
+      {timeEntries && timeEntries.length > 0 && (
         <div className="space-y-2 pt-4 border-t border-border">
           <h4 className="text-sm font-medium text-muted-foreground">
             Recent Entries
           </h4>
           <div className="space-y-2">
-            {timeEntries.timeEntries.slice(0, 3).map((entry) => (
+            {timeEntries.slice(0, 3).map((entry: any) => (
               <div
                 key={entry.id}
                 className="flex items-center justify-between p-2 bg-muted/30 rounded-lg text-sm"

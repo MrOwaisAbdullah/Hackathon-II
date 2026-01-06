@@ -3,14 +3,13 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useDeleteMyAccount, useExportMyData } from "@/lib/query";
-import { Download, Trash2, Loader2, AlertTriangle, Upload, User, Camera } from "lucide-react";
+import { useDeleteMyAccount } from "@/lib/query";
+import { Download, Trash2, Loader2, AlertTriangle, Upload, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
   const router = useRouter();
   const deleteMyAccount = useDeleteMyAccount();
-  const exportMyData = useExportMyData();
 
   const [settings, setSettings] = useState({
     notifications: true,

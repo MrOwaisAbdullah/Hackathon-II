@@ -169,7 +169,7 @@ export function useTimeEntries(taskId?: string) {
     createTimeEntry: createTimeEntry.mutateAsync,
     updateTimeEntry: updateTimeEntry.mutateAsync,
     deleteTimeEntry: deleteTimeEntry.mutateAsync,
-    totalTime: totalTime.total_minutes,
+    totalTime: totalTime,
     totalHours,
     formattedTime,
     refetchTotalTime,

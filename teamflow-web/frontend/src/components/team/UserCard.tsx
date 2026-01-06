@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { MoreHorizontal, Edit, Trash2, Shield, User as UserIcon } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Shield } from 'lucide-react';
 import type { User } from '@/types';
 import { UserRole } from '@/types';
 import {
@@ -110,9 +110,9 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
             {/* Avatar */}
             <div
               className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: getAvatarColor(user.name) }}
+              style={{ backgroundColor: getAvatarColor(user.name || 'User') }}
             >
-              <span className="text-white font-bold text-sm">{getInitials(user.name)}</span>
+              <span className="text-white font-bold text-sm">{getInitials(user.name || 'User')}</span>
             </div>
 
             {/* Content */}
@@ -153,7 +153,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
 
               {/* Meta Info */}
               <div className="mt-3 text-xs text-muted-foreground">
-                Added {new Date(user.created_at).toLocaleDateString()}
+                Added {new Date(user.created_at || '').toLocaleDateString()}
               </div>
             </div>
           </div>

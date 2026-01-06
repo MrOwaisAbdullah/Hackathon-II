@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { MoreHorizontal, Edit, Trash2, Calendar, CheckCircle, ExternalLink, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 import type { Project, ProjectStatus } from '@/types';
@@ -128,9 +128,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
           style={finalStatusStyle}
         >
-          {statusIcon && typeof statusIcon !== "string" && (
-            <statusIcon className="w-3 h-3" />
-          )}
+          {statusIcon && typeof statusIcon !== "string" && React.createElement(statusIcon, { className: "w-3 h-3" })}
           {getStatusLabel(project.status)}
         </motion.div>
 

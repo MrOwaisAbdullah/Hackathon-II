@@ -87,7 +87,7 @@ export function UserForm({ user, onClose, onSuccess }: UserFormProps) {
 
     try {
       if (isEditing && user) {
-        await updateProject.mutateAsync({ id: user.id, data: formData });
+        await updateProject.mutateAsync({ id: user.id!, data: formData });
         onSuccess?.();
       } else {
         const result = await createProject.mutateAsync(formData as UserCreate);

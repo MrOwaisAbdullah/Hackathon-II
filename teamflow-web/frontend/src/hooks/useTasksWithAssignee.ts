@@ -4,6 +4,9 @@ import { useMemo } from "react";
 import { useTasks, useUsers } from "@/lib/query";
 import type { Task } from "@/types";
 
+// We need Task for the return type annotation
+export type EnrichedTask = Task & { assignee: { id: string; name: string; email: string } | undefined };
+
 /**
  * Hook that enriches tasks with assignee user data.
  *

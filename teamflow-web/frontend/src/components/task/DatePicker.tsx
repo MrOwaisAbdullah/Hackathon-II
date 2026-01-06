@@ -233,7 +233,7 @@ export function DatePicker({ value, onChange, disabled = false, className = "" }
                         isToday && !isSelected && "border-2 border-accent text-accent"
                       )}
                       aria-label={day ? `${monthNames[viewMonth]} ${day}, ${viewYear}` : ""}
-                      aria-pressed={isSelected}
+                      aria-pressed={isSelected ? true : undefined}
                     >
                       {day || ""}
                     </button>

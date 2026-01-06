@@ -6,6 +6,7 @@ import { Plus, Clock, Filter, X, Save } from "lucide-react";
 import { useTimeEntries, useTasks, useProjects, useCreateTimeEntry } from "@/lib/query";
 import { useState } from "react";
 import { toast } from "sonner";
+import type { Project, Task } from "@/types";
 
 // Helper function to format relative time without date-fns
 const formatDistanceToNow = (date: Date): string => {
@@ -54,15 +55,15 @@ export default function TimeEntriesPage() {
 
   // Helper to get task name by ID
   const getTaskName = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
+    const task = tasks.find((t: Task) => t.id === taskId);
     return task?.title || "Unknown Task";
   };
 
   // Helper to get project name by task ID
   const getProjectName = (taskId: string) => {
-    const task = tasks.find((t) => t.id === taskId);
+    const task = tasks.find((t: Task) => t.id === taskId);
     if (!task?.project_id) return "No Project";
-    const project = projects.find((p) => p.id === task.project_id);
+    const project = projects.find((p: Project) => p.id === task.project_id);
     return project?.name || "Unknown Project";
   };
 
@@ -75,7 +76,7 @@ export default function TimeEntriesPage() {
 
     // Project filter
     if (filters.projectFilter !== "all") {
-      const task = tasks.find((t) => t.id === entry.task_id);
+      const task = tasks.find((t: Task) => t.id === entry.task_id);
       if (task?.project_id !== filters.projectFilter) {
         return false;
       }
@@ -273,7 +274,7 @@ export default function TimeEntriesPage() {
                       <td className="px-6 py-4 text-muted-foreground text-sm">
                         {entry.entry_date
                           ? new Date(entry.entry_date).toLocaleDateString()
-                          : formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })
+                          : formatDistanceToNow(new Date(entry.created_at))
                         }
                       </td>
                     </motion.tr>

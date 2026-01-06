@@ -238,7 +238,7 @@ test.describe("Mobile Responsiveness", () => {
       await expect(drawer).toBeVisible();
 
       // Navigation links should be visible
-      await expect(page.locator('text="Dashboard"').or(page.locator('text="Board"))).toBeVisible();
+      await expect(page.locator('text="Dashboard"').or(page.locator('text="Board"'))).toBeVisible();
     });
 
     test("should navigate to different pages from drawer", async ({ page }) => {

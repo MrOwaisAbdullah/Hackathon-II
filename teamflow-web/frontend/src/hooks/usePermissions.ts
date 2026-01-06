@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useAuth } from "./useAuth";
-import type { UserRole } from "@/types";
+import { UserRole } from "@/types";
 
 /**
  * Permission check hook for role-based UI control.

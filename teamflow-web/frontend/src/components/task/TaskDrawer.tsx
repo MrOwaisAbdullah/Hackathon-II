@@ -35,7 +35,7 @@ import {
   Clock,
   ChevronDown as ChevronDownIcon,
 } from "lucide-react";
-import type { TaskPriority } from "@/types/task";
+import type { TaskPriority } from "@/types";
 
 interface TaskDrawerProps {
   isOpen: boolean;

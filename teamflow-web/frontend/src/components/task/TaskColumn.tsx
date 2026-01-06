@@ -10,7 +10,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { motion } from "framer-motion";
 import type { Task, TaskStatus } from "@/types";
-import { TaskCard } from "./TaskCard";
+import { TaskCard } from "../board/TaskCard";
 
 interface TaskColumnProps {
   status: TaskStatus;
@@ -20,17 +20,19 @@ interface TaskColumnProps {
 }
 
 const statusColors: Record<TaskStatus, string> = {
-  todo: "bg-blue-500",
-  doing: "bg-yellow-500",
-  review: "bg-purple-500",
-  done: "bg-green-500",
+  TODO: "bg-blue-500",
+  DOING: "bg-yellow-500",
+  REVIEW: "bg-purple-500",
+  DONE: "bg-green-500",
+  ARCHIVED: "bg-gray-500",
 };
 
 const statusBgColors: Record<TaskStatus, string> = {
-  todo: "bg-blue-500/10",
-  doing: "bg-yellow-500/10",
-  review: "bg-purple-500/10",
-  done: "bg-green-500/10",
+  TODO: "bg-blue-500/10",
+  DOING: "bg-yellow-500/10",
+  REVIEW: "bg-purple-500/10",
+  DONE: "bg-green-500/10",
+  ARCHIVED: "bg-gray-500/10",
 };
 
 export function TaskColumn({
@@ -68,7 +70,7 @@ export function TaskColumn({
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} />
+            <TaskCard key={task.id} task={task} onEdit={() => onTaskClick(task)} />
           ))}
         </div>
       </SortableContext>

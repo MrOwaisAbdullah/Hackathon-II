@@ -15,7 +15,6 @@ import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useProjectProfitability } from "@/lib/query";
 import { TrendingUp, TrendingDown, DollarSign, Clock, CheckCircle } from "lucide-react";
-import type { ProjectProfitability } from "@/types/task";
 
 export function ProfitabilityReport() {
   const [isDark, setIsDark] = useState(false);
@@ -61,19 +60,19 @@ export function ProfitabilityReport() {
     }
 
     const totalRevenue = profitabilityData.reduce(
-      (sum, p) => sum + p.total_revenue,
+      (sum: number, p: any) => sum + p.total_revenue,
       0
     );
     const totalCost = profitabilityData.reduce(
-      (sum, p) => sum + p.total_cost,
+      (sum: number, p: any) => sum + p.total_cost,
       0
     );
     const totalProfit = profitabilityData.reduce(
-      (sum, p) => sum + p.profit,
+      (sum: number, p: any) => sum + p.profit,
       0
     );
     const totalHours = profitabilityData.reduce(
-      (sum, p) => sum + p.total_hours,
+      (sum: number, p: any) => sum + p.total_hours,
       0
     );
     const avgMargin =
@@ -209,7 +208,7 @@ export function ProfitabilityReport() {
           </div>
         ) : (
           <div className="space-y-3">
-            {profitabilityData.map((project, index) => (
+            {profitabilityData.map((project: any, index: number) => (
               <motion.div
                 key={project.project_id}
                 initial={{ opacity: 0, x: -10 }}

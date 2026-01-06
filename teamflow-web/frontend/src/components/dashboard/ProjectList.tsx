@@ -16,17 +16,7 @@ import { useUpdateProject, useDeleteProject } from '@/lib/query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { renderMarkdown } from '@/lib/markdown';
-
-interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  client: string;
-  status: 'active' | 'completed' | 'on_hold';
-  dueDate: string;
-  progress: number;
-  created_at?: string;
-}
+import type { Project } from '@/types';
 
 interface ProjectListProps {
   projects: Project[];
@@ -69,6 +59,11 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
         dark: { backgroundColor: 'rgba(20, 83, 45, 0.3)', color: '#4ade80' },
         icon: CheckCircle,
       },
+      archived: {
+        light: { backgroundColor: '#f3f4f6', color: '#374151' },
+        dark: { backgroundColor: 'rgba(75, 85, 99, 0.3)', color: '#9ca3af' },
+        icon: null,
+      },
     };
     return styles[status] || styles.on_hold;
   };
@@ -81,18 +76,12 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
         return 'On Hold';
       case 'completed':
         return 'Completed';
+      case 'archived':
+        return 'Archived';
       default:
         return status;
     }
   };
-
-  // Date badge style - theme aware
-  const dateBadgeStyle = {
-    light: { backgroundColor: '#f3f4f6', color: '#6b7280' },
-    dark: { backgroundColor: 'rgba(55, 65, 81, 0.5)', color: '#9ca3af' },
-  };
-
-  const finalDateStyle = isDark ? dateBadgeStyle.dark : dateBadgeStyle.light;
 
   // Handle status toggle
   const handleStatusToggle = async (project: Project) => {
@@ -141,7 +130,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
         </div>
 
         <div className="grid gap-3">
-          {projects.map((project, index) => {
+          {projects.map((project) => {
             const statusStyle = getStatusStyle(project.status);
             const finalStatusStyle = isDark ? statusStyle.dark : statusStyle.light;
             const statusIcon = statusStyle.icon;
@@ -176,9 +165,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                       className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
                       style={finalStatusStyle}
                     >
-                      {statusIcon && typeof statusIcon !== "string" && (
-                        <statusIcon className="w-3 h-3" />
-                      )}
+                      {statusIcon && typeof statusIcon !== "string" && React.createElement(statusIcon, { className: "w-3 h-3" })}
                       {getStatusLabel(project.status)}
                     </motion.div>
 
@@ -265,43 +252,13 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-xs text-muted-foreground line-clamp-2 mb-2 leading-relaxed prose prose-xs max-w-none dark:prose-invert"
+                        className="text-xs text-muted-foreground line-clamp-2 leading-relaxed prose prose-xs max-w-none dark:prose-invert"
                         dangerouslySetInnerHTML={{
                           __html: renderMarkdown(project.description)
                         }}
                       />
                     )}
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{project.client}</p>
                   </Link>
-
-                  {/* Footer: Progress + Date */}
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
-                    {/* Progress Bar */}
-                    <div className="hidden sm:flex flex-col items-end gap-1 min-w-[120px]">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${project.progress || 0}%` }}
-                            transition={{ duration: 1, delay: 0.5 + (index * 0.05) }}
-                            className="h-full bg-accent rounded-full"
-                          />
-                        </div>
-                        <span className="text-[10px] font-bold w-8 text-right text-foreground tabular-nums">{project.progress || 0}%</span>
-                      </div>
-                    </div>
-
-                    {/* Date Badge */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="hidden sm:flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-md"
-                      style={finalDateStyle}
-                    >
-                      <Calendar size={14} strokeWidth={2} />
-                      <span className="tabular-nums">{project.dueDate}</span>
-                    </motion.div>
-                  </div>
                 </div>
               </motion.div>
             );

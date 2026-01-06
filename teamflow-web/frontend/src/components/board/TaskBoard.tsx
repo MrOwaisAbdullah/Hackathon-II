@@ -16,10 +16,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { TaskColumn } from "./TaskColumn";
 import { TaskCard } from "./TaskCard";
 import { UserFilter, UserFilterValue } from "./UserFilter";
-import { useUpdateTask, useAssignTask } from "@/lib/query";
+import { useUpdateTask } from "@/lib/query";
 import { useTasksWithAssignee } from "@/hooks/useTasksWithAssignee";
 import type { Task } from "@/types";
-import { Plus, RefreshCw, WifiOff, AlertCircle } from "lucide-react";
+import { Plus, RefreshCw, WifiOff } from "lucide-react";
 import { TaskForm } from "../task/TaskForm";
 import { TaskDrawer } from "../task/TaskDrawer";
 import { triggerConfetti } from "@/lib/confetti";
@@ -36,9 +36,8 @@ const COLUMNS: { id: string; title: string }[] = [
 
 export function TaskBoard() {
   const queryClient = useQueryClient();
-  const { tasks = [], isLoading, error, isRefetching } = useTasksWithAssignee();
+  const { tasks = [], isLoading } = useTasksWithAssignee();
   const updateTask = useUpdateTask();
-  const assignTask = useAssignTask();
   const isOnline = useOnline(); // T230a: Track network status
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -47,7 +46,6 @@ export function TaskBoard() {
   const [userFilter, setUserFilter] = useState<UserFilterValue>("all");
   const [drawerTaskId, setDrawerTaskId] = useState<string | undefined>();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [dragStartPosition, setDragStartPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Filter tasks based on user selection
   const filteredTasks = useMemo(() => {
@@ -91,7 +89,6 @@ export function TaskBoard() {
     if (task) {
       setActiveTask(task);
       // T230a: Store initial position for snap-back animation on network loss
-      setDragStartPosition({ x: 0, y: 0 }); // Simplified - dnd-kit handles visual position
     }
   };
 
@@ -107,14 +104,12 @@ export function TaskBoard() {
     // T230a: Check if offline - cancel drag with snap-back
     if (!isOnline) {
       setActiveTask(null);
-      setDragStartPosition(null);
       // dnd-kit automatically handles snap-back to original position
       return;
     }
 
     if (!over) {
       setActiveTask(null);
-      setDragStartPosition(null);
       return;
     }
 
@@ -126,14 +121,12 @@ export function TaskBoard() {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) {
       setActiveTask(null);
-      setDragStartPosition(null);
       return;
     }
 
     // Check if dropped on a team member (assignment)
     if (overData?.type === "team-members" || overData?.action === "assign") {
       setActiveTask(null);
-      setDragStartPosition(null);
       // Assign to user - the userId should be in the over data or clicked separately
       // For now, the team member list handles click-to-assign
       return;
@@ -159,7 +152,6 @@ export function TaskBoard() {
 
       // Now clear activeTask - the UI will show the task in the new column
       setActiveTask(null);
-      setDragStartPosition(null);
 
       // Then call the mutation in the background
       updateTask.mutate({
@@ -168,27 +160,6 @@ export function TaskBoard() {
       });
     } else {
       // No change needed - clear immediately
-      setActiveTask(null);
-      setDragStartPosition(null);
-    }
-  };
-
-  // Handle task assignment
-  const handleAssignTask = (userId: string | null) => {
-    if (activeTask) {
-      const taskId = activeTask.id;
-      if (userId) {
-        assignTask.mutate({
-          taskId,
-          assigneeId: userId,
-        });
-      } else {
-        // Unassign - update with null assignee_id
-        updateTask.mutate({
-          id: taskId,
-          data: { assignee_id: null },
-        });
-      }
       setActiveTask(null);
     }
   };
@@ -215,17 +186,6 @@ export function TaskBoard() {
             </div>
           </div>
         ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-destructive mb-2">Failed to load tasks</p>
-        <p className="text-sm text-muted-foreground">
-          Please check your connection and try again
-        </p>
       </div>
     );
   }
@@ -261,7 +221,7 @@ export function TaskBoard() {
                 aria-label="Refresh tasks"
                 title="Refresh tasks"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                <RefreshCw className="w-4 h-4" />
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
