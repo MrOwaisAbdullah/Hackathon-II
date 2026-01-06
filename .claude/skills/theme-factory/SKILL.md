@@ -39,6 +39,7 @@ The following 10 themes are available, each showcased in `theme-showcase.pdf`:
 8. **Tech Innovation** - Bold and modern tech aesthetic
 9. **Botanical Garden** - Fresh and organic garden colors
 10. **Midnight Galaxy** - Dramatic and cosmic deep tones
+11. **Eco Modern** - High-contrast black & white with vibrant lime accents
 
 ## Theme Details
 

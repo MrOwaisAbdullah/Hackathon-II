@@ -335,6 +335,138 @@ LEFT JOIN user_preferences up ON u.id = up.user_id;
 5. **Token Expiry**: 7-day maximum for access tokens
 6. **Rate Limiting**: Apply to auth endpoints
 
+---
+
+## Common Deployment Issues
+
+### Issue 1: "Connection refused" to localhost
+
+**Error Message:**
+```
+psycopg2.OperationalError: connection to server at "localhost" (::1), port 5432 failed: Connection refused
+```
+
+**Cause**: `DATABASE_URL` environment variable is not set or defaults to `localhost`. Application is using the default value from config instead of the actual Neon database URL.
+
+**Solution**: Set `DATABASE_URL` in deployment platform environment variables:
+
+**HuggingFace Spaces:**
+1. Go to Space Settings > Variables
+2. Add: `DATABASE_URL = postgresql://user:pass@ep-xxx.aws.neon.tech/dbname?sslmode=require`
+3. Click Save
+4. Restart the Space
+
+**Vercel:**
+1. Go to Project Settings > Environment Variables
+2. Add: `DATABASE_URL` with your Neon connection string
+3. Redeploy
+
+**Environment Variable Format:**
+```env
+# CORRECT - Full Neon connection string with SSL
+DATABASE_URL=postgresql://username:password@ep-cool-name.us-east-2.aws.neon.tech/teamflow?sslmode=require
+
+# WRONG - Missing SSL mode (will fail in production)
+DATABASE_URL=postgresql://username:password@ep-cool-name.us-east-2.aws.neon.tech/teamflow
+
+# WRONG - Localhost (default fallback, will fail)
+DATABASE_URL=postgresql://user:pass@localhost:5432/teamflow
+```
+
+### Issue 2: "No module named 'psycopg2'"
+
+**Cause**: Missing sync PostgreSQL driver. Async engines use `asyncpg`, but some operations (migrations, table creation) need sync driver.
+
+**Solution:**
+```bash
+# Add both drivers
+uv add asyncpg psycopg2-binary
+```
+
+### Issue 3: Connection pool exhaustion
+
+**Error Message:**
+```
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection is closed
+```
+
+**Cause**: Neon free tier closes idle connections after 5 minutes. Pool giving stale connections.
+
+**Solution**: Configure engine with proper pool settings:
+```python
+async_engine = create_async_engine(
+    DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
+    echo=False,
+    pool_pre_ping=True,  # CRITICAL: Verify connections before use
+    pool_recycle=1800,   # 30 min (Neon idle timeout is 5 min)
+    pool_size=3,         # Smaller for async
+    max_overflow=5,
+    pool_use_lifo=True,  # Use most recent connections first
+)
+```
+
+### Issue 4: Alembic migrations fail with async driver
+
+**Error Message:**
+```
+sqlalchemy.exc.MovedIn20Error: The 'asyncpg' dialect is not supported in Alembic migrations
+```
+
+**Cause**: Alembic requires sync engine for migrations, async engines don't work.
+
+**Solution**: Create separate sync engine:
+```python
+# For Alembic migrations
+sync_engine = create_engine(DATABASE_URL)  # NOT asyncpg!
+
+# For queries
+async_engine = create_async_engine(
+    DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+)
+```
+
+### Issue 5: Database URL validation fails
+
+**Error Message:**
+```
+ValueError: Database URL must use postgresql:// scheme
+```
+
+**Cause**: Connection string uses wrong protocol or missing prefix.
+
+**Solution**: Ensure proper URL format:
+```env
+# Must start with postgresql://
+DATABASE_URL=postgresql://user:pass@host:5432/dbname?sslmode=require
+
+# NOT postgres:// or pg://
+```
+
+### Environment Variables Checklist
+
+Before deploying, ensure these are set:
+
+| Variable | Required? | Format | Example |
+|----------|-----------|--------|---------|
+| `DATABASE_URL` | ✅ Yes | `postgresql://...?sslmode=require` | Neon connection string |
+| `SECRET_KEY` | ✅ Yes | 32+ char random string | Use `openssl rand -hex 32` |
+| `JWT_SECRET_KEY` | ✅ Yes | 32+ char random string | Same as SECRET_KEY or separate |
+| `ENVIRONMENT` | ⚪ No | `production` or `development` | Defaults to `development` |
+| `FRONTEND_URL` | ⚪ No | Comma-separated URLs | `https://yourapp.vercel.app` |
+
+### Quick Verification Commands
+
+```bash
+# Test connection from local machine
+psql $DATABASE_URL -c "SELECT 1;"
+
+# Check if environment variable is set
+echo $DATABASE_URL
+
+# Verify SSL mode in connection string
+echo $DATABASE_URL | grep sslmode
+```
+
 ## References
 
 For advanced patterns and specific scenarios, see:

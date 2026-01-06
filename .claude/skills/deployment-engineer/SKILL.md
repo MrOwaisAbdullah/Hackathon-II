@@ -642,6 +642,59 @@ npm install
 npm run build
 ```
 
+### 19. HuggingFace Spaces Auto-Rebuild Issue
+**Problem**: Files are successfully pushed to HuggingFace Space via git, but the Space doesn't automatically rebuild. Requires manual restart.
+
+**Error Pattern:**
+```
+Git push succeeds: "To https://huggingface.co/spaces/xxx/main"
+Space status: "Running" (old code)
+Must click: "Factory restart" or "Restart" button
+```
+
+**Cause**: HuggingFace Spaces don't automatically detect new commits when pushed via GitHub Actions. The files exist but the build isn't triggered.
+
+**Solution**: Use HuggingFace Hub API to trigger restart after pushing files:
+```python
+from huggingface_hub import HfApi
+
+api = HfApi(token=HF_TOKEN)
+api.restart_space(repo_id=SPACE_NAME, repo_type="space", token=HF_TOKEN)
+```
+
+**GitHub Actions Step:**
+```yaml
+- name: Trigger HuggingFace Space Rebuild
+  env:
+    HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+  run: |
+    pip install huggingface_hub --quiet
+
+    python3 << 'EOF'
+    from huggingface_hub import HfApi
+    import os
+
+    api = HfApi(token=os.environ["HF_TOKEN"])
+
+    # Trigger restart (this forces rebuild)
+    api.restart_space(
+        repo_id=os.environ["HF_SPACE_NAME"],
+        repo_type="space",
+        token=os.environ["HF_TOKEN"]
+    )
+    print("✅ Space restart triggered successfully!")
+    EOF
+```
+
+**Files Affected**: `.github/workflows/deploy.yml`
+
+**Key Points:**
+- Files are pushed via git (traditional method)
+- Then restart is triggered via API (modern method)
+- This ensures Space rebuilds automatically
+- No manual intervention needed
+
 ---
 
 ## HuggingFace Spaces Deployment: Complete Guide

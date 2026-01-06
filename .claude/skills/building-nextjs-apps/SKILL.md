@@ -78,6 +78,263 @@ export function SSRSafeComponent() {
 
 ---
 
+## Production Build Issues (Avoid These!)
+
+### Issue 1: TypeScript Build Failures on Vercel
+
+**Common Errors:**
+```
+Parameter 'task' implicitly has an 'any' type
+Module not found: Can't resolve '@/lib/api'
+Property 'X' does not exist on type 'Y'
+```
+
+**Solutions:**
+
+1. **Run TypeScript locally before deploying:**
+   ```bash
+   npx tsc --noEmit
+   ```
+
+2. **Fix all implicit any types:**
+   ```typescript
+   // ❌ Wrong
+   function processTask(task) { return task.id }
+
+   // ✅ Correct
+   function processTask(task: Task) { return task.id }
+   ```
+
+3. **Remove unused imports:**
+   ```typescript
+   // ❌ Wrong
+   import { useState, useEffect, useMemo } from "react";
+
+   // ✅ Correct
+   import { useState, useEffect } from "react";
+   ```
+
+4. **Check files are tracked in git:**
+   ```bash
+   # Verify lib files exist in git
+   git ls-files src/lib/
+
+   # If empty, check .gitignore
+   cat .gitignore | grep lib
+   ```
+
+### Issue 2: Monorepo Module Resolution
+
+**Error:**
+```
+Import map: aliased to relative './src/lib/api' inside of [project]/teamflow-web/frontend
+Module not found: Can't resolve '@/lib/api'
+```
+
+**Causes:**
+1. `.gitignore` has `lib/` pattern that ignores all lib directories
+2. Vercel root directory not set to `teamflow-web/frontend`
+3. Root `package.json` with `install` script causing infinite loop
+
+**Solutions:**
+
+1. **Fix .gitignore:**
+   ```gitignore
+   # Python lib directories
+   lib/
+   lib64/
+
+   # But keep specific package lib directories
+   !teamflow_console/lib/
+   !teamflow-web/frontend/src/lib/  # ADD THIS
+   ```
+
+2. **Force-add ignored files:**
+   ```bash
+   git add -f teamflow-web/frontend/src/lib/
+   git commit -m "Add lib files to git"
+   ```
+
+3. **Remove root package.json install script:**
+   ```json
+   {
+     "scripts": {
+       "build": "cd frontend && npm run build",
+       "vercel-build": "cd frontend && npm run build"
+       // NO "install" script!
+     }
+   }
+   ```
+
+### Issue 3: Dynamic Component Rendering
+
+**Error:**
+```
+Property 'statusIcon' does not exist on type 'JSX.IntrinsicElements'
+```
+
+**Cause:** JSX doesn't allow dynamic component tags like `<ComponentName />`.
+
+**Solution:**
+```typescript
+// ❌ Wrong
+const statusIcon = CheckCircle;
+return <div><statusIcon className="w-4 h-4" /></div>;
+
+// ✅ Correct - Use React.createElement
+const statusIcon = CheckCircle;
+return <div>{React.createElement(statusIcon, { className: "w-4 h-4" })}</div>;
+
+// ✅ Or use uppercase (React convention)
+const StatusIcon = CheckCircle;
+return <div><StatusIcon className="w-4 h-4" /></div>;
+```
+
+### Issue 4: Enum Type Mismatches
+
+**Error:**
+```
+Type 'string' is not assignable to type 'TaskStatus'
+This comparison appears to be unintentional because the types 'TaskStatus' and '"ARCHIVED"' have no overlap
+```
+
+**Solution:**
+```typescript
+// ❌ Wrong
+const getStatusStyle = (status: string) => {
+  if (status === "archived") return "gray";
+};
+
+// ✅ Correct - Use enum type with Record
+const getStatusStyle = (status: TaskStatus) => {
+  const styles: Record<TaskStatus, string> = {
+    [TaskStatus.TODO]: "blue",
+    [TaskStatus.DOING]: "yellow",
+    [TaskStatus.DONE]: "green",
+    [TaskStatus.ARCHIVED]: "gray",  // Must include all values
+  };
+  return styles[status];
+};
+```
+
+### Pre-Build Checklist
+
+Before committing or deploying:
+
+```bash
+# 1. Run TypeScript compiler
+npx tsc --noEmit
+
+# 2. Fix any errors (no implicit any, unused imports, etc.)
+
+# 3. Run linter
+npm run lint
+
+# 4. Test build locally
+npm run build
+
+# 5. Verify files are tracked
+git ls-files src/lib/ | grep -v node_modules
+
+# 6. Commit and push
+git add .
+git commit -m "Build passes locally"
+git push
+```
+
+---
+
+## Monorepo Deployment Patterns
+
+### Vercel with Manual Root Directory
+
+When deploying a Next.js app in a subdirectory (e.g., `teamflow-web/frontend`) to Vercel:
+
+**1. Set Root Directory in Vercel Dashboard:**
+- Go to Project Settings > General
+- Set "Root Directory" to: `teamflow-web/frontend`
+
+**2. Avoid root package.json conflicts:**
+```json
+// ❌ Wrong - Root package.json with workspace
+{
+  "workspaces": ["teamflow-web/frontend"],
+  "scripts": {
+    "install": "cd frontend && npm install"  // INFINITE LOOP!
+  }
+}
+
+// ✅ Correct - No root package.json OR minimal without install
+{
+  "scripts": {
+    "build": "cd frontend && npm run build"
+  }
+}
+```
+
+**3. Fix .gitignore at repository root:**
+```gitignore
+# Keep required lib directories
+!teamflow-web/frontend/src/lib/
+```
+
+### Turbopack Considerations
+
+Next.js 16 uses Turbopack by default in dev mode. For production:
+
+1. **Turbopack is faster** but some plugins may not be compatible
+2. **Module resolution** differs from webpack
+3. **Path aliases** (`@/`) work same as webpack
+4. **Cache behavior** is more aggressive
+
+If build fails with Turbopack:
+```json
+// next.config.ts
+const nextConfig: NextConfig = {
+  // experimental: {
+  //   turbo: undefined  // Disable Turbopack
+  // }
+};
+```
+
+---
+
+## Environment Variables Best Practices
+
+### Server vs Client Variables
+
+```typescript
+// ✅ Server-only (use in API routes, Server Components)
+const dbUrl = process.env.DATABASE_URL;
+
+// ✅ Client-accessible (use in Client Components)
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// ❌ Wrong - Server var in Client Component
+const dbUrl = process.env.DATABASE_URL;  // Undefined on client!
+```
+
+### Validation
+
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  env: {
+    // Validate required vars at build time
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "",
+  },
+
+  // Or use runtime validation
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
+  },
+};
+```
+
+---
+
 ## Next.js DevTools MCP
 
 Use the next-devtools-mcp server for runtime diagnostics and development automation.
