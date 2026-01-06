@@ -1,8 +1,8 @@
 {
-  "framework": "nextjs",
-  "installCommand": "cd teamflow-web/frontend && npm install",
-  "buildCommand": "cd teamflow-web/frontend && npm run build",
-  "outputDirectory": "teamflow-web/frontend/.next"
+  "buildCommand": "npm run build",
+  "outputDirectory": "teamflow-web/frontend/.next",
+  "installCommand": "npm install",
+  "framework": null
 }
 
 

@@ -1,0 +1,16 @@
+{
+  "name": "teamflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "teamflow-web/frontend"
+  ],
+  "scripts": {
+    "build": "cd teamflow-web/frontend && npm run build",
+    "install": "cd teamflow-web/frontend && npm install",
+    "vercel-build": "cd teamflow-web/frontend && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
