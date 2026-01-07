@@ -35,6 +35,28 @@ class Settings(BaseSettings):
         description="Environment (development, staging, production)",
     )
 
+    # Phase 3 AI Services (T003)
+    gemini_api_key: str = Field(
+        default="",
+        description="Gemini API key for AI model access",
+    )
+    openrouter_api_key: str = Field(
+        default="",
+        description="OpenRouter API key for embeddings and AI models",
+    )
+    qdrant_url: str = Field(
+        default="http://localhost:6333",
+        description="Qdrant Cloud URL",
+    )
+    qdrant_api_key: str = Field(
+        default="",
+        description="Qdrant Cloud API key",
+    )
+    log_level: str = Field(
+        default="info",
+        description="Logging level (debug, info, warning, error)",
+    )
+
     @property
     def cors_origins(self) -> List[str]:
         """Parse frontend_url into a list of CORS origins."""

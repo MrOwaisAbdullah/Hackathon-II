@@ -176,3 +176,22 @@ teamflow-web/backend/.coverage
 teamflow-web/backend/htmlcov/
 teamflow-web/backend/alembic/versions/*.pyc
 
+# Docker
+*.dockerfile
+docker-compose.override.yml
+
+# Qdrant (local development)
+qdrant/storage/
+*.qdrant
+
+# AI/ML Models and Data
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.pb
+*.onnx
+models/checkpoints/
+data/raw/
+data/processed/
+

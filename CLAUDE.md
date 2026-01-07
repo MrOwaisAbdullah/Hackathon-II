@@ -243,6 +243,8 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.13+ + typer (CLI framework), rich (terminal UI), pydantic (data validation) (001-console-task-distribution)
 - In-memory (Python dictionaries/lists) - no database for Phase I (001-console-task-distribution)
+- Python 3.13+, TypeScript 5+, Node.js 20+ (001-ai-chatbot)
+- Neon PostgreSQL (existing), Qdrant (new for RAG) (001-ai-chatbot)
 
 ## Recent Changes
 - 001-console-task-distribution: Added Python 3.13+ + typer (CLI framework), rich (terminal UI), pydantic (data validation)

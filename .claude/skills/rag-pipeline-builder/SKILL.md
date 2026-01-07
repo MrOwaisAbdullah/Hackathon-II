@@ -1,17 +1,26 @@
 ---
 name: rag-pipeline-builder
-description: Complete RAG (Retrieval-Augmented Generation) pipeline implementation with document ingestion, vector storage, semantic search, and response generation. Supports FastAPI backends with OpenAI and Qdrant. LangChain-free architecture.
+description: Complete RAG (Retrieval-Augmented Generation) pipeline implementation with document ingestion, vector storage, semantic search, and response generation. Supports FastAPI backends with OpenRouter/OpenAI and Qdrant. LangChain-free architecture.
 category: backend
-version: 2.0.0
+version: 2.1.0
 ---
 
 # RAG Pipeline Builder Skill
+
+## ⚠️ Production Lessons Learned
+
+**CRITICAL:** Read [LESSONS_LEARNED.md](./LESSONS_LEARNED.md) before implementing. Key issues:
+
+1. **Embedding Model Selection**: Use `openai/text-embedding-3-small` (NOT chat models)
+2. **Memory Safety**: Add infinite loop protection in chunking
+3. **Batch Upserts**: Limit to 100 points per batch for Qdrant
+4. **Cross-Platform Paths**: Try Windows, WSL, Linux paths
 
 ## Purpose
 
 Quickly scaffold and implement production-ready RAG systems with a **pure, lightweight stack** (No LangChain):
 - Intelligent document chunking (Recursive + Markdown aware)
-- Vector embeddings generation (OpenAI SDK)
+- Vector embeddings generation via OpenRouter (OpenAI-compatible)
 - Vector storage and retrieval (Qdrant Client)
 - Context-aware response generation
 - Streaming API endpoints (FastAPI)
@@ -19,9 +28,10 @@ Quickly scaffold and implement production-ready RAG systems with a **pure, light
 ## When to Use This Skill
 
 Use this skill when:
-- Building high-performance RAG systems without framework overhead.
-- Needing full control over the ingestion and retrieval logic.
-- Implementing semantic search for technical documentation.
+- Building high-performance RAG systems without framework overhead
+- Needing full control over the ingestion and retrieval logic
+- Implementing semantic search for technical documentation
+- Want to use OpenRouter for flexible model access
 
 ## Core Capabilities
 
@@ -46,25 +56,36 @@ class IntelligentChunker:
         # ... (uses standalone RecursiveTextSplitter)
 ```
 
-### 2. Embedding Generation (OpenAI SDK)
+### 2. Embedding Generation (OpenRouter + OpenAI SDK)
 
-Direct usage of `AsyncOpenAI` client for maximum control and performance.
+**IMPORTANT:** Use OpenRouter for flexible model access with OpenAI-compatible API.
 
 ```python
-from openai import AsyncOpenAI
+from openai import OpenAI
 
 class EmbeddingGenerator:
     def __init__(self, api_key: str):
-        self.client = AsyncOpenAI(api_key=api_key)
+        # Use OpenRouter as OpenAI-compatible endpoint
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        # Direct API call with batching logic
+        # Use openai/text-embedding-3-small (1536 dim, $0.02/1M)
         response = await self.client.embeddings.create(
-            model="text-embedding-3-small",
-            input=batch,
+            model="openai/text-embedding-3-small",
+            input=texts,
         )
         return [item.embedding for item in response.data]
 ```
+
+**Model Options:**
+- `openai/text-embedding-3-small` - 1536 dim, $0.02/1M (RECOMMENDED)
+- `openai/text-embedding-3-large` - 3072 dim, $0.13/1M
+- `openai/text-embedding-ada-002` - 1536 dim, $0.10/1M
+
+**Note:** Free models (e.g., `mistralai/devstral-2512:free`) do NOT support embeddings.
 
 ### 3. Qdrant Integration (Native Client)
 
@@ -98,22 +119,42 @@ async def chat_endpoint(request: ChatRequest):
 
 ## Usage Instructions
 
-### 1. Install Lightweight Dependencies
+### 1. Install Dependencies
 
 ```bash
-pip install -r templates/requirements.txt
+pip install openai qdrant-client fastapi uvicorn
 ```
 
 *(Note: `langchain` is NOT required)*
 
-### 2. Ingest Documents
+### 2. Environment Configuration
 
+```bash
+# .env file
+OPENROUTER_API_KEY=sk-or-v1-...
+QDRANT_URL=https://your-cluster.qdrant.io
+QDRANT_API_KEY=your-api-key
+```
+
+### 3. Ingest Documents
+
+**Recommended:** Use production-tested v2 script
+```bash
+# With environment variables
+export OPENROUTER_API_KEY=sk-or-v1-...
+export QDRANT_URL=https://your-cluster.qdrant.io
+export QDRANT_API_KEY=your-api-key
+
+python scripts/ingest_documents_v2.py
+```
+
+**Original:**
 ```bash
 # Ingest markdown files using the pure-python ingestor
 python scripts/ingest_documents.py docs/ --openai-key $OPENAI_API_KEY
 ```
 
-### 3. Start API Server
+### 4. Start API Server
 
 ```bash
 uvicorn templates.fastapi-endpoint-template:app --reload
@@ -130,12 +171,23 @@ Removing LangChain provides:
 ## Output Format
 
 When this skill is invoked, provide:
-1.  **Complete Pipeline Code** (LangChain-free)
-2.  **Configuration File** (.env.example)
-3.  **Ingestion Script** (scripts/ingest_documents.py)
-4.  **FastAPI Endpoints** (api/routes/chat.py)
-5.  **Testing Script** (scripts/test_rag.py)
+1. **Production Lessons**: Reference [LESSONS_LEARNED.md](./LESSONS_LEARNED.md)
+2. **Complete Pipeline Code** (LangChain-free, with safety checks)
+3. **Configuration File** (.env.example with OPENROUTER_API_KEY)
+4. **Ingestion Script** (scripts/ingest_documents_v2.py recommended)
+5. **FastAPI Endpoints** (templates/fastapi-endpoint-template.py)
+6. **Testing Script** (scripts/test_rag.py)
 
 ## Time Savings
 
-**With this skill:** ~45 minutes to generate a highly optimized, custom RAG pipeline without framework lock-in.
+**With this skill:** ~30 minutes to generate a production-ready, battle-tested RAG pipeline without framework lock-in.
+
+## Production Checklist
+
+- [ ] Read [LESSONS_LEARNED.md](./LESSONS_LEARNED.md)
+- [ ] Set up OpenRouter API key
+- [ ] Configure Qdrant Cloud credentials
+- [ ] Test embedding model with single request
+- [ ] Use ingest_documents_v2.py for ingestion
+- [ ] Verify chunk counts and dimensions
+- [ ] Test semantic search with sample queries

@@ -1,0 +1,56 @@
+Hackathon II, Phase 2 is complete.
+
+I built TeamFlow CRM.
+
+What it does:
+ 👉 Drag-and-drop task board
+ 👉 User management & task assignment
+ 👉 Time tracking & profitability analytics
+ 👉 Project management with priorities & due dates
+ 👉 Mobile responsive design
+
+Tech stack:
+ • Frontend: Next.js 16 + shadcn/ui
+ • Backend: FastAPI + SQLModel
+ • Database: Neon PostgreSQL
+ • Hosting: Vercel + HuggingFace Spaces
+ • CI/CD: GitHub Actions
+
+Every push auto-deploys. No manual steps.
+
+Phase 1: Console CLI
+Phase 2: Fullstack web CRM
+Phase 3: AI-powered chatbot (coming next)
+
+Production lessons learned:
+
+HuggingFace auto-rebuild issue
+ • Problem: Files pushed but Space stayed asleep
+ • Solution: API-triggered restart after push
+
+Database connection errors
+ • Problem: Connection refused to localhost
+ • Solution: Actually set DATABASE_URL in env vars
+
+TypeScript build failures
+ • Problem: Worked locally, broke on Vercel
+ • Solution: Fix implicit any, unused imports, dynamic components
+
+All documented in skills for next time.
+
+What makes this different from a basic todo app?
+It's for teams, not just individuals.
+
+Who's doing what? What's blocked? Are we profitable?
+
+Phase 3 vision: Talk to TeamFlow, it creates tasks and tracks time.
+
+Console CLI → web CRM → AI assistant.
+
+Building in public means showing the broken parts too.
+
+Ever deployed to production? What broke?
+
+👇
+
+#Hackathon #Fullstack #NextJS #FastAPI #BuildingInPublic #DeveloperJourney #CRM

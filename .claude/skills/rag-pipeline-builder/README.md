@@ -1,6 +1,16 @@
 # RAG Pipeline Builder Skill
 
-A comprehensive Claude Agent skill for building production-ready Retrieval-Augmented Generation (RAG) systems with FastAPI backends, OpenAI embeddings, and Qdrant vector storage.
+A comprehensive Claude Agent skill for building production-ready Retrieval-Augmented Generation (RAG) systems with FastAPI backends, OpenAI embeddings (via OpenRouter), and Qdrant vector storage.
+
+## 📚 Production Experience
+
+**⚠️ IMPORTANT:** Before implementing, read **[LESSONS_LEARNED.md](./LESSONS_LEARNED.md)** for critical issues encountered in production including:
+- Wrong embedding model selection (chat vs embedding models)
+- Memory errors in chunking loops
+- Qdrant upsert timeouts with large batches
+- Cross-platform path issues
+
+**Key Takeaway:** Use `openai/text-embedding-3-small` (1536 dim) via OpenRouter at $0.02/1M tokens. **Free models do NOT support embeddings.**
 
 ## 🚀 Quick Start
 
@@ -36,8 +46,35 @@ docker run -p 6333:6333 qdrant/qdrant:latest
 docker-compose -f templates/docker-compose.yml up -d qdrant
 ```
 
+### 3. Verify API Configuration
+
+```bash
+# Test OpenRouter API and embedding model
+export OPENROUTER_API_KEY=sk-or-v1-...
+python scripts/test_openrouter.py
+```
+
+Expected output:
+```
+✅ All tests passed!
+   Model: openai/text-embedding-3-small
+   Embedding dimension: 1536
+```
+
 ### 4. Ingest Documents
 
+**Recommended:** Use production-tested v2 script with all fixes
+```bash
+# Set environment variables
+export OPENROUTER_API_KEY=sk-or-v1-...
+export QDRANT_URL=https://your-cluster.qdrant.io
+export QDRANT_API_KEY=your-api-key
+
+# Run ingestion
+python scripts/ingest_documents_v2.py
+```
+
+**Alternative:** Original script
 ```bash
 # Ingest markdown files from a directory
 python scripts/ingest_documents.py docs/ --openai-key $OPENAI_API_KEY
@@ -68,9 +105,12 @@ docker-compose -f templates/docker-compose.yml up
 ```
 rag-pipeline-builder/
 ├── SKILL.md                           # Main skill documentation
+├── LESSONS_LEARNED.md                 # ⚠️ Production issues and fixes (READ THIS!)
 ├── scripts/
 │   ├── chunking_example.py            # Advanced document chunking
-│   ├── ingest_documents.py            # Document ingestion pipeline
+│   ├── ingest_documents.py            # Document ingestion pipeline (original)
+│   ├── ingest_documents_v2.py         # ⭐ Production-tested with all fixes
+│   ├── test_openrouter.py             # Verify API key and model
 │   └── test_rag.py                   # Comprehensive testing suite
 ├── templates/
 │   ├── fastapi-endpoint-template.py   # Production FastAPI endpoints
@@ -113,13 +153,15 @@ rag-pipeline-builder/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OPENAI_API_KEY` | Required | OpenAI API key |
+| `OPENROUTER_API_KEY` | Required | OpenRouter API key (for embeddings) |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant instance URL |
-| `QDRANT_API_KEY` | Optional | Qdrant API key |
-| `CHUNK_SIZE` | `1000` | Token count per chunk |
+| `QDRANT_API_KEY` | Optional | Qdrant Cloud API key |
+| `CHUNK_SIZE` | `1000` | Character count per chunk |
 | `CHUNK_OVERLAP` | `200` | Overlap between chunks |
 | `TOP_K_CHUNKS` | `5` | Chunks to retrieve |
 | `SIMILARITY_THRESHOLD` | `0.7` | Minimum similarity score |
+
+**Note:** `OPENROUTER_API_KEY` replaces `OPENAI_API_KEY` for flexible model access. Get your key at [openrouter.ai](https://openrouter.ai).
 
 ### RAG Pipeline Settings
 
@@ -222,10 +264,14 @@ docker-compose -f templates/docker-compose.yml up -d --scale rag-api=3
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
+| **400 - does not support embeddings** | Used chat model instead of embedding model | Use `openai/text-embedding-3-small` |
+| **MemoryError during chunking** | Infinite loop when overlap causes backward movement | Add progress checks, skip overlap if needed |
+| **Qdrant WriteTimeout** | Too many points in single upsert batch | Batch in groups of 100 points |
+| **Found 0 documents** | Hardcoded path doesn't match platform | Try multiple path formats (Windows/WSL/Linux) |
+| **Dimension mismatch** | Collection created with different model | Delete and recreate collection |
 | **Low relevance scores** | Poor chunking strategy | Adjust `CHUNK_SIZE` and `CHUNK_OVERLAP` |
 | **Slow retrieval** | Too many vectors | Add filters, reduce `TOP_K_CHUNKS` |
 | **API rate limits** | Too many OpenAI calls | Use batching, increase `RATE_LIMIT_DELAY` |
-| **Memory errors** | Large documents | Increase `CHUNK_SIZE`, reduce batch size |
 | **Connection errors** | Qdrant not running | Check `QDRANT_URL`, start Qdrant service |
 
 ## 🔍 API Usage

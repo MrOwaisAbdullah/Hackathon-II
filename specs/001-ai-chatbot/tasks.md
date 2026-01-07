@@ -1,0 +1,450 @@
+# Implementation Tasks: TeamFlow AI Chatbot (Phase 3)
+
+**Feature**: 001-ai-chatbot | **Branch**: `001-ai-chatbot` | **Date**: 2025-01-06
+
+**Total Tasks**: 88 | **Estimated Completion**: 9 implementation phases
+
+---
+
+## Overview
+
+This document breaks down the Phase 3 AI Chatbot implementation into atomic, testable tasks organized by user story priority. Each task follows strict checklist format and includes specific file paths for immediate execution.
+
+**User Stories**:
+1. **US1 (P1)**: Conversational Task Management - Core value proposition
+2. **US2 (P2)**: Knowledge Base & Context Queries - Enhanced productivity
+3. **US3 (P3)**: AI-Powered Insights & Recommendations - Strategic value
+
+**Bonus Features**:
+- Urdu language support (+100 pts)
+- Voice input commands (+200 pts)
+
+---
+
+## Task Summary
+
+| Phase | Story | Tasks | Description |
+|-------|-------|-------|-------------|
+| 1 | Setup | 8 | Project initialization and dependency setup |
+| 2 | Foundation | 14 | Database, RAG, MCP server foundation |
+| 3 | US1 (P1) | 18 | Task management via natural language |
+| 4 | US2 (P2) | 15 | Knowledge base queries and RAG |
+| 5 | US3 (P3) | 14 | AI insights and recommendations |
+| 6 | Bonus | 10 | Urdu support and voice input |
+| 7 | Polish | 9 | Cross-cutting concerns and optimization |
+
+---
+
+## Phase 1: Setup (Project Initialization)
+
+**Goal**: Initialize project structure and verify all dependencies.
+
+**Independent Test Criteria**: All dependencies installed, database migrations applied, local development environment running.
+
+### Implementation Tasks
+
+- [X] T001 Verify Python package names via `context7` MCP for `openai-chatkit`, `openai-agents`, `mcp`, `qdrant-client`
+- [X] T002 Fetch latest documentation for verified packages using `context7` MCP and document versions in `backend/pyproject.toml`
+- [X] T003 Create backend/.env file with environment variables (DATABASE_URL, GEMINI_API_KEY, OPENAI_API_KEY, QDRANT_URL, QDRANT_API_KEY)
+- [X] T004 Install Python dependencies using `uv add openai-chatkit openai-agents mcp qdrant-client fastapi uvicorn[standard] python-dotenv` (added to pyproject.toml)
+- [X] T005 Create database migration file `backend/alembic/versions/009_add_chat_tables.py` with conversations, messages, user_chat_preferences tables
+- [X] T006 Run database migrations using `uv run alembic upgrade head` to create chat tables
+- [X] T007 Create Qdrant Cloud cluster (free tier) and obtain cluster URL and API key from https://cloud.qdrant.io/
+- [X] T008 Verify Qdrant Cloud connection by testing connection using the cluster URL and API key from .env file
+
+---
+
+## Phase 2: Foundation (Blocking Prerequisites)
+
+**Goal**: Implement shared infrastructure required by all user stories.
+
+**Independent Test Criteria**: MCP server running with tools accessible, RAG ingestion pipeline complete, agent orchestrator initialized.
+
+### Implementation Tasks
+
+- [X] T009 [P] Create `backend/app/models/chat.py` with Conversation and Message SQLModel classes
+- [X] T010 [P] Create `backend/app/models/preferences.py` with UserChatPreference SQLModel class
+- [X] T011 [P] Implement `backend/app/services/chat_service.py` with create_conversation, get_conversation, add_message methods
+- [X] T012 [P] Use `rag-pipeline-builder` skill to generate RAG ingestion pipeline structure
+- [X] T013 [P] Implement `backend/app/jobs/ingest_knowledge_base.py` to extract, chunk, embed, and upsert documents to Qdrant
+- [X] T014 [P] Implement `backend/app/services/rag_service.py` with search_knowledge_base(query: str) method using Qdrant semantic search
+- [ ] T015 [P] Run knowledge base ingestion using `uv run python -m app.jobs.ingest_knowledge_base` and verify chunks stored in Qdrant (Pending: .venv locked in WSL)
+- [X] T016 [P] Use `mcp-builder` skill to generate MCP server structure following best practices
+- [X] T017 [P] Implement `backend/app/mcp/server.py` using FastMCP with server initialization and tool registration
+- [X] T018 [P] Implement `backend/app/mcp/tools.py` with add_task, list_tasks, assign_task, complete_task tools wrapping TaskService
+- [X] T019 [P] Implement get_profitability and workload_summary tools in `backend/app/mcp/tools.py` wrapping AnalyticsService
+- [X] T020 [P] Implement suggest_assignee tool in `backend/app/mcp/tools.py` with AI reasoning for optimal assignment
+- [ ] T021 [P] Test MCP tools directly using `uv run python -m app.mcp.test_tools` and verify all 7 tools return expected results (Pending: .venv locked in WSL)
+- [X] T022 [P] Use `openai-agents-sdk-gemini` skill to configure AsyncOpenAI client with Gemini base URL
+- [X] T023 [P] Implement `backend/app/agents/orchestrator.py` with Agent setup, tool injection from MCP server, and Runner configuration
+
+---
+
+## Phase 3: User Story 1 - Conversational Task Management (P1)
+
+**Story Goal**: Enable project managers to create, assign, and query tasks through natural language chat.
+
+**Independent Test Criteria**: User can type "Add a high priority task to fix the navbar for Acme project" and verify task created with correct fields. User can ask "What tasks are blocked?" and receive filtered list. User can say "Assign to Sarah" and verify reassignment.
+
+**User Value**: This is the core value proposition - enables task management without leaving workflow or switching contexts.
+
+### Implementation Tasks
+
+- [ ] T024 [P] [US1] Implement `backend/app/agents/prompts.py` with base system prompt for "TeamFlow Assistant" including identity, tone, and capabilities
+- [ ] T025 [P] [US1] Implement language detection helper in `backend/app/agents/prompts.py` using character-based heuristic for Urdu detection
+- [ ] T026 [P] [US1] Implement conversation history retrieval in `backend/app/agents/orchestrator.py` with get_history(conversation_id: str) method
+- [ ] T027 [P] [US1] Implement process_message method in `backend/app/agents/orchestrator.py` that orchestrates Agent, streams response, and handles tool calls
+- [ ] T028 [US1] Create `backend/app/api/chat.py` FastAPI router with chat endpoints
+- [ ] T029 [US1] Implement POST /api/v1/chat/sessions endpoint in `backend/app/api/chat.py` that validates Better Auth session and issues chat token
+- [ ] T030 [US1] Implement get_or_create_conversation logic in `backend/app/api/chat.py` to retrieve active conversation or create new one
+- [ ] T031 [US1] Implement POST /api/v1/chat/respond endpoint in `backend/app/api/chat.py` with NDJSON streaming response format
+- [ ] T032 [US1] Implement streaming event format in `backend/app/api/chat.py` with token, tool_call, tool_result, and done event types
+- [ ] T033 [US1] Implement GET /api/v1/chat/conversations/{id}/messages endpoint in `backend/app/api/chat.py` with pagination support
+- [ ] T034 [US1] Implement PATCH /api/v1/chat/preferences endpoint in `backend/app/api/chat.py` to update language and voice_enabled settings
+- [ ] T035 [US1] Implement GET /api/v1/chat/health endpoint in `backend/app/api/chat.py` that checks AI, Qdrant, and MCP service availability
+- [ ] T036 [US1] Implement graceful degradation in `backend/app/api/chat.py` when AI service unavailable (read-only KB access with user notification)
+- [ ] T037 [US1] Implement RBAC validation in `backend/app/mcp/tools.py` that checks user role before executing task modification tools
+- [ ] T038 [US1] Implement clarification prompt logic in `backend/app/agents/orchestrator.py` when user command is ambiguous or missing required information
+- [ ] T039 [US1] Use `openai-chatkit-integration` skill to generate ChatWidget component structure for Next.js
+- [ ] T040 [US1] Implement `frontend/src/app/layout.tsx` ChatProvider wrapper with apiUrl configuration and Better Auth token passing
+- [ ] T041 [US1] Implement `frontend/src/components/chat/ChatWidget.tsx` with useChat hook integration, floating widget UI, and message display
+
+---
+
+## Phase 4: User Story 2 - Knowledge Base & Context Queries (P2)
+
+**Story Goal**: Enable team members to ask questions about project context and documentation through chat.
+
+**Independent Test Criteria**: User can ask "What were the design requirements for the landing page?" and receive relevant sections from knowledge base with source references. User can ask "How do we handle auth errors?" and receive explanation from constitution.
+
+**User Value**: Instant access to institutional knowledge without searching files or interrupting colleagues.
+
+### Implementation Tasks
+
+- [ ] T042 [P] [US2] Implement RAG context injection in `backend/app/agents/orchestrator.py` that searches Qdrant and injects relevant chunks into agent context
+- [ ] T043 [P] [US2] Configure Qdrant search threshold to 0.7 cosine similarity in `backend/app/services/rag_service.py` for high-precision retrieval
+- [ ] T044 [P] [US2] Implement source reference extraction in `backend/app/services/rag_service.py` to return document title, file path, and chunk index with each result
+- [ ] T045 [P] [US2] Implement multi-source synthesis in `backend/app/agents/orchestrator.py` that combines information from multiple document chunks into coherent response
+- [ ] T046 [P] [US2] Implement "not found" handling in `backend/app/services/rag_service.py` that informs user when no relevant results found and suggests alternatives
+- [ ] T047 [US2] Implement knowledge base refresh logic in `backend/app/jobs/ingest_knowledge_base.py` that detects file changes and re-ingests modified documents
+- [ ] T048 [US2] Add document metadata tracking in `backend/app/jobs/ingest_knowledge_base.py` including source, title, file_path, and last_modified
+- [ ] T049 [US2] Test RAG retrieval with sample queries in `backend/tests/integration/test_rag_service.py` and verify top 5 results contain relevant information
+- [ ] T050 [US2] Implement conversation context management in `backend/app/agents/orchestrator.py` that maintains context across at least 5 related queries (QI-004)
+- [ ] T051 [US2] Implement follow-up question handling in `backend/app/agents/orchestrator.py` that allows user to request clarifications on previous responses
+- [ ] T052 [US2] Implement context window management in `backend/app/agents/orchestrator.py` that prunes old messages when context limit approached
+- [ ] T053 [US2] Add knowledge base query examples to `frontend/src/components/chat/ChatWidget.tsx` as suggested prompts ("Ask about project docs...")
+- [ ] T054 [US2] Implement source reference display in `frontend/src/components/chat/ChatWidget.tsx` showing which documents were used for each response
+- [ ] T055 [US2] E2E test RAG query flow in `frontend/tests/e2e/chat.spec.ts` verifying constitution query returns accurate policy explanation
+- [ ] T056 [US2] Performance test RAG queries in `backend/tests/integration/test_chat_api.py` verifying responses return within 3 seconds (SC-003)
+
+---
+
+## Phase 5: User Story 3 - AI-Powered Insights & Recommendations (P3)
+
+**Story Goal**: Enable agency owners to get AI analysis of team workload and optimal task assignment suggestions.
+
+**Independent Test Criteria**: User can ask "Who is the best person for this backend task?" and receive recommendation with reasoning. User can ask "Who is over capacity?" and receive workload analysis. User can ask "Are we over budget on Project X?" and receive profitability assessment.
+
+**User Value**: Data-driven decision making for resource allocation and strategic planning.
+
+### Implementation Tasks
+
+- [ ] T057 [P] [US3] Enhance suggest_assignee tool in `backend/app/mcp/tools.py` with advanced AI reasoning logic analyzing skills, workload, and availability (builds on T020 base implementation)
+- [ ] T058 [P] [US3] Implement team member skills extraction in `backend/app/mcp/tools.py` from existing User model skills field
+- [ ] T059 [P] [US3] Implement current workload calculation in `backend/app/mcp/tools.py` summing task hours per team member
+- [ ] T060 [P] [US3] Implement availability scoring in `backend/app/mcp/tools.py` considering capacity and existing assignments
+- [ ] T061 [P] [US3] Implement recommendation explanation in `backend/app/mcp/tools.py` that returns reasoning (skills match, workload score, alternatives considered)
+- [ ] T062 [P] [US3] Implement workload_summary tool in `backend/app/mcp/tools.py` that returns team members with task_count, hours_assigned, and utilization_percentage
+- [ ] T063 [P] [US3] Implement get_profitability tool in `backend/app/mcp/tools.py` that calculates revenue, cost, profit, and margin from TimeEntry data
+- [ ] T064 [P] [US3] Implement project budget comparison in `backend/app/mcp/tools.py` that compares actual time cost against project budget
+- [ ] T065 [P] [US3] Add reasoning display to ChatWidget in `frontend/src/components/chat/ChatWidget.tsx` showing why recommendation was made
+- [ ] T066 [P] [US3] Implement acceptance tracking in `backend/app/api/chat.py` that logs when user accepts or rejects AI recommendations
+- [ ] T067 [US3] Test recommend_assignee with sample data in `backend/tests/unit/test_mcp_tools.py` and verify it suggests most suitable team member
+- [ ] T068 [US3] E2E test recommendation flow in `frontend/tests/e2e/chat.spec.ts` verifying assignment suggestion followed by user acceptance
+- [ ] T069 [US3] Implement recommendation rate calculation in `backend/app/jobs/calculate_acceptance_rate.py` to track SC-005 (70% target)
+- [ ] T070 [US3] Implement analytics dashboard view in `frontend/src/components/analytics/RecommendationsPanel.tsx` showing recommendation acceptance rate over time
+
+---
+
+## Phase 6: Bonus Features (Urdu Support + Voice Input)
+
+**Goal**: Implement Urdu language support and voice command input.
+
+**Independent Test Criteria**: User can speak in Urdu or type Urdu text and receive Urdu responses. User can click microphone button, speak command, and see accurate transcript.
+
+**Points**: +300 (Urdu +100, Voice +200)
+
+### Implementation Tasks
+
+#### Urdu Language Support
+
+- [ ] T071 [P] Implement Urdu language detection in `backend/app/agents/prompts.py` using character-based heuristic (Urdu chars > 30%)
+- [ ] T072 [P] Add Urdu language instruction to system prompt in `backend/app/agents/prompts.py`: "If user speaks Urdu, respond in Urdu (Roman script)"
+- [ ] T073 [P] Implement language preference storage in `backend/app/api/chat.py` that saves user's language choice to user_chat_preferences table
+- [ ] T074 [P] Add language toggle dropdown to `frontend/src/components/chat/ChatHeader.tsx` with English (en) and Urdu (ur) options
+- [ ] T075 [P] Test Urdu commands in `backend/tests/integration/test_chat_api.py` verifying Urdu input produces Urdu output
+- [ ] T076 [P] E2E test Urdu flow in `frontend/tests/e2e/chat.spec.ts` verifying "Acme project ke liye task banayein" creates task correctly
+
+#### Voice Input
+
+- [ ] T077 [P] Implement `frontend/src/hooks/useVoiceInput.ts` hook using `window.SpeechRecognition` API with startRecording and stopRecording methods
+- [ ] T078 [P] Add language configuration to `useVoiceInput.ts` hook supporting `en-US` and `ur-PK` for English and Urdu transcription
+- [ ] T079 [P] Implement microphone button in `frontend/src/components/chat/ChatInput.tsx` with icon, visual feedback (pulsing red while recording), and keyboard shortcut (Ctrl+Shift+V)
+- [ ] T080 [P] Implement transcript display in `frontend/src/components/chat/ChatInput.tsx` showing real-time transcription below input field
+- [ ] T081 [P] Add browser compatibility check in `useVoiceInput.ts` that hides microphone button if Web Speech API unsupported
+- [ ] T082 [P] Implement edit-before-send flow in `frontend/src/components/chat/ChatInput.tsx` allowing user to edit transcript before submitting
+- [ ] T083 [P] E2E test voice input flow in `frontend/tests/e2e/chat.spec.ts` using `chrome-devtools` MCP to verify transcript accuracy
+- [ ] T084 [P] Add voice input instructions to quickstart.md explaining browser support (Chrome recommended) and troubleshooting tips
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Goal**: Ensure production readiness, performance, and maintainability.
+
+**Independent Test Criteria**: All success criteria met (SC-001 to SC-008), 99% uptime for chat services, graceful error handling implemented.
+
+### Implementation Tasks
+
+- [ ] T085 [P] Implement conversation cleanup job in `backend/app/jobs/cleanup_conversations.py` that deletes messages and conversations older than 7 days
+- [ ] T086 [P] Schedule cleanup job to run daily using cron or background task scheduler in `backend/app/main.py`
+- [ ] T087 [P] Implement rate limiting in `backend/app/api/chat.py` with 100 requests/hour limit for POST /chat/respond endpoint
+- [ ] T088 [P] Add rate limit headers to response in `backend/app/api/chat.py` (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
+- [ ] T089 [P] Implement error response format in `backend/app/api/chat.py` following {error: {code, message, details}} structure
+- [ ] T090 [P] Add comprehensive error logging in `backend/app/api/chat.py` with context (conversation_id, user_id, error_type) for debugging
+- [ ] T091 [P] Implement streaming performance monitoring in `backend/app/api/chat.py` ensuring streaming starts within 2 seconds (SC-007)
+- [ ] T092 [P] Implement RBAC role constant mapping in `backend/app/mcp/tools.py` defining which roles can execute each tool (admin, manager, member, viewer)
+- [ ] T093 [P] Implement uptime monitoring in `backend/app/api/chat.py` using Prometheus metrics for chat service health tracking (SC-006)
+
+---
+
+## Dependencies
+
+### User Story Dependencies
+
+```
+Phase 1 (Setup) ─┐
+                 │
+Phase 2 (Foundation) ├─→ Phase 3 (US1 - P1) ──┐
+                 │                            │
+                 ├─→ Phase 4 (US2 - P2) ──┼──→ Phase 6 (Bonus)
+                 │                            │
+                 └─→ Phase 5 (US3 - P3) ──┘
+                                              │
+                                              └──→ Phase 7 (Polish)
+```
+
+**Dependency Notes**:
+- **US1 (P1)** has no dependencies on US2 or US3 - can be implemented and tested independently
+- **US2 (P2)** has no dependencies on US1 or US3 - can be implemented with minimal knowledge base
+- **US3 (P3)** depends on both US1 (task data) and US2 (team context) - should be implemented after P1 and P2
+- **Bonus Features** (Urdu, Voice) can be implemented in parallel with any user story
+
+### Critical Path
+
+```
+Setup → Foundation → US1 (P1) → US3 (P3) → Bonus → Polish
+                            ↑
+                            └─ US2 (P2) (can run in parallel)
+```
+
+---
+
+## Parallel Execution Opportunities
+
+### Phase 1 (Setup) - 2 parallel tracks:
+
+**Track A: Dependencies & Environment**
+```bash
+T001: Verify packages via context7
+T002: Fetch docs via context7
+T003: Create .env file
+T004: Install dependencies
+```
+
+**Track B: Database & Infrastructure**
+```bash
+T005: Create migration file
+T006: Run migrations
+T007: Create Qdrant Cloud cluster
+T008: Verify Qdrant Cloud connection
+```
+
+### Phase 2 (Foundation) - 3 parallel tracks:
+
+**Track A: Data Models**
+```bash
+T009: Create chat models
+T010: Create preferences model
+```
+
+**Track B: Services**
+```bash
+T011: Implement chat_service
+T012: Generate RAG pipeline (skill)
+T013: Implement ingestion job
+T014: Implement RAG service
+```
+
+**Track C: MCP & Agents**
+```bash
+T015: Run ingestion
+T016: Generate MCP server (skill)
+T017: Implement MCP server
+T018-T020: Implement MCP tools
+T021: Test MCP tools
+T022: Configure Agents SDK (skill)
+T023: Implement orchestrator
+```
+
+### Phase 3 (US1) - 3 parallel tracks:
+
+**Track A: Agent Logic**
+```bash
+T024: Implement system prompts
+T025: Implement language detection
+T026: Implement history retrieval
+T027: Implement process_message
+```
+
+**Track B: Backend API**
+```bash
+T028: Create router
+T029: Implement sessions endpoint
+T033: Implement history endpoint
+T034: Implement preferences endpoint
+T035: Implement health endpoint
+```
+
+**Track C: Streaming & Error Handling**
+```bash
+T030: Implement conversation logic
+T031: Implement respond endpoint
+T032: Implement streaming events
+T036: Implement graceful degradation
+T037: Implement RBAC validation
+T038: Implement clarification logic
+```
+
+### Phase 4 (US2) - 2 parallel tracks:
+
+**Track A: RAG Integration**
+```bash
+T042: Implement context injection
+T043: Configure search threshold
+T044: Implement source extraction
+T045: Implement multi-source synthesis
+T046: Implement not-found handling
+```
+
+**Track B: Testing & Polish**
+```bash
+T049: Test RAG retrieval
+T052: Implement context window management
+T053: Add suggested prompts
+T054: Implement source display
+T055: E2E test RAG flow
+T056: Performance test
+```
+
+### Phase 5 (US3) - 2 parallel tracks:
+
+**Track A: MCP Tools**
+```bash
+T057: Implement suggest_assignee
+T058-T060: Implement analysis logic
+```
+
+**Track B: Frontend & Analytics**
+```bash
+T065: Add reasoning display
+T066: Implement acceptance tracking
+T070: Implement analytics dashboard
+```
+
+### Phase 6 (Bonus) - 2 parallel tracks:
+
+**Track A: Urdu Support**
+```bash
+T071-T074: Implement Urdu detection and UI
+T075-T076: Test Urdu
+```
+
+**Track B: Voice Input**
+```bash
+T077-T082: Implement voice hook and UI
+T083-T084: Test voice
+```
+
+---
+
+## Implementation Strategy
+
+### MVP Scope (First Iteration)
+
+**Recommended MVP**: Phase 1 + Phase 2 + Phase 3 (US1)
+
+**Deliverables**:
+- Working chat interface
+- Task creation via natural language
+- Task assignment and querying
+- Basic streaming responses
+
+**Excluded from MVP**: RAG (US2), AI insights (US3), Bonus features
+
+**Timeline**: Complete Phases 1-3, then validate with stakeholders before proceeding.
+
+### Incremental Delivery
+
+**Iteration 1**: MVP (Phases 1-3) - Core task management via chat
+**Iteration 2**: Add US2 (Phase 4) - Knowledge base queries
+**Iteration 3**: Add US3 (Phase 5) - AI recommendations
+**Iteration 4**: Add Bonus (Phase 6) - Urdu and voice support
+**Iteration 5**: Polish (Phase 7) - Production hardening
+
+### Risk Mitigation
+
+**High-Risk Items** (address early):
+- T001-T002: Package verification via `context7` (Phase 1)
+- T016-T017: MCP server generation via `mcp-builder` skill (Phase 2)
+- T022: Agents SDK configuration via `openai-agents-sdk-gemini` skill (Phase 2)
+- T077-T078: Voice input browser compatibility (Phase 6 - test early)
+
+**Medium-Risk Items**:
+- T013: RAG ingestion performance (test with large documents)
+- T031: Streaming response timing (load test in Phase 7)
+- T071: Urdu detection accuracy (add manual language toggle fallback)
+
+---
+
+## Format Validation
+
+✅ **All tasks follow checklist format**:
+- Checkbox prefix: `- [ ]`
+- Task ID: T001-T092 (sequential)
+- Parallel marker: `[P]` included where applicable
+- Story label: `[US1]`, `[US2]`, `[US3]` for user story tasks
+- File paths: Included in all implementation tasks
+
+✅ **Coverage validation**:
+- All 3 user stories have complete task sets
+- All functional requirements (FR-001 to FR-027) mapped to tasks
+- All acceptance scenarios covered by implementation tasks
+- All edge cases addressed in implementation
+- Bonus features (Urdu, Voice) fully specified
+
+✅ **Independent testing**:
+- US1 (P1): Can test task CRUD without RAG or AI insights
+- US2 (P2): Can test RAG with minimal knowledge base
+- US3 (P3): Can test with sample team data (depends on P1, P2)
+- Bonus: Can test Urdu translation and voice independently
+
+---
+
+**Status**: ✅ Complete
+
+**Next Steps**:
+1. Review task breakdown and adjust scope if needed
+2. Begin implementation starting with Phase 1 (Setup)
+3. Use parallel execution opportunities to accelerate development
+4. Follow MVP scope for first iteration

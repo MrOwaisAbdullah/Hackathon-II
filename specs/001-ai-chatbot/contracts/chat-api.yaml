@@ -1,0 +1,352 @@
+# Chat API Contracts (OpenAPI 3.0)
+
+**Feature**: 001-ai-chatbot | **Version**: 1.0.0 | **Date**: 2025-01-06
+
+---
+
+## Overview
+
+This document defines the REST API contracts for the Phase 3 AI Chatbot feature. All endpoints use JSON for requests/responses and support streaming responses for chat interactions.
+
+---
+
+## Base URL
+
+```
+https://api.teamflow.crm/api/v1
+```
+
+---
+
+## Authentication
+
+All endpoints require Better Auth session cookie or JWT token.
+
+```
+Authorization: Bearer <jwt_token>
+Cookie: better-auth.session_token=<session_token>
+```
+
+---
+
+## Endpoints
+
+### 1. Create Chat Session
+
+**Endpoint**: `POST /chat/sessions`
+
+**Description**: Authenticate user and create a new chat session or retrieve active session.
+
+**Request**:
+```http
+POST /api/v1/chat/sessions
+Authorization: Bearer <jwt_token>
+```
+
+**Response** (200 OK):
+```json
+{
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "user": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "email": "john@example.com",
+      "role": "manager"
+    },
+    "preferences": {
+      "language": "en",
+      "voice_enabled": false
+    }
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized`: Invalid or missing session
+- `500 Internal Server Error`: Session creation failed
+
+---
+
+### 2. Send Chat Message (Streaming)
+
+**Endpoint**: `POST /chat/respond`
+
+**Description**: Send a message to the AI assistant and receive a streaming response in NDJSON format.
+
+**Request**:
+```http
+POST /api/v1/chat/respond
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Create a task to fix the navbar bug",
+  "stream": true
+}
+```
+
+**Streaming Response** (NDJSON):
+```
+{"type": "token", "content": "I"}
+{"type": "token", "content": "'ll"}
+{"type": "token", "content": " create"}
+{"type": "token", "content": " that"}
+{"type": "tool_call", "tool": "add_task", "parameters": {"title": "Fix navbar bug", "priority": "MEDIUM"}}
+{"type": "tool_result", "tool": "add_task", "result": {"task_id": 123}}
+{"type": "token", "content": "Task"}
+{"type": "token", "content": " created"}
+{"type": "done"}
+```
+
+**Non-Streaming Response** (if `stream: false`):
+```json
+{
+  "data": {
+    "message": "I'll create that task. Task 'Fix navbar bug' created with ID 123.",
+    "tool_calls": [
+      {
+        "tool": "add_task",
+        "parameters": {"title": "Fix navbar bug", "priority": "MEDIUM"},
+        "result": {"task_id": 123}
+      }
+    ],
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: Invalid message format
+- `401 Unauthorized`: Invalid chat token
+- `500 Internal Server Error`: AI service unavailable
+
+---
+
+### 3. Get Conversation History
+
+**Endpoint**: `GET /chat/conversations/{conversation_id}/messages`
+
+**Description**: Retrieve all messages in a conversation.
+
+**Request**:
+```http
+GET /api/v1/chat/conversations/{conversation_id}/messages?limit=50&offset=0
+Authorization: Bearer <jwt_token>
+```
+
+**Response** (200 OK):
+```json
+{
+  "data": [
+    {
+      "id": "msg_001",
+      "role": "user",
+      "content": "Create a task to fix the navbar",
+      "created_at": "2025-01-06T10:00:00Z"
+    },
+    {
+      "id": "msg_002",
+      "role": "assistant",
+      "content": "I'll create that task with ID 123.",
+      "tool_calls": [
+        {
+          "tool": "add_task",
+          "parameters": {"title": "Fix navbar", "priority": "MEDIUM"},
+          "result": {"task_id": 123}
+        }
+      ],
+      "created_at": "2025-01-06T10:00:05Z"
+    }
+  ],
+  "meta": {
+    "total": 2,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+---
+
+### 4. Update User Preferences
+
+**Endpoint**: `PATCH /chat/preferences`
+
+**Description**: Update user chat preferences (language, voice enabled).
+
+**Request**:
+```http
+PATCH /api/v1/chat/preferences
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+{
+  "language": "ur",
+  "voice_enabled": true
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "data": {
+    "user_id": "123e4567-e89b-12d3-a456-426614174000",
+    "language": "ur",
+    "voice_enabled": true
+  }
+}
+```
+
+---
+
+### 5. Health Check
+
+**Endpoint**: `GET /chat/health`
+
+**Description**: Check if chat services are available (AI, Qdrant, MCP).
+
+**Request**:
+```http
+GET /api/v1/chat/health
+```
+
+**Response** (200 OK):
+```json
+{
+  "status": "healthy",
+  "services": {
+    "ai": "available",
+    "qdrant": "available",
+    "mcp": "available"
+  },
+  "version": "1.0.0"
+}
+```
+
+**Degraded Response** (503 Service Unavailable):
+```json
+{
+  "status": "degraded",
+  "services": {
+    "ai": "unavailable",
+    "qdrant": "available",
+    "mcp": "available"
+  },
+  "message": "AI service rate-limited. Knowledge base queries still available."
+}
+```
+
+---
+
+## Data Types
+
+### ChatToken
+
+```typescript
+{
+  token: string;              // JWT for ChatKit
+  conversation_id: string;    // UUID
+  user: {
+    id: string;
+    email: string;
+    role: 'admin' | 'manager' | 'member' | 'viewer';
+  };
+  preferences: {
+    language: 'en' | 'ur';
+    voice_enabled: boolean;
+  };
+}
+```
+
+### ChatMessage
+
+```typescript
+{
+  id: string;                 // UUID
+  conversation_id: string;    // UUID
+  role: 'user' | 'assistant' | 'system';
+  content: string;            // Markdown text
+  tool_calls?: ToolCall[];    // Assistant messages only
+  created_at: string;         // ISO 8601
+}
+```
+
+### ToolCall
+
+```typescript
+{
+  tool: string;               // e.g., "add_task", "assign_task"
+  parameters: Record<string, any>;
+  result?: {
+    status: 'success' | 'error';
+    [key: string]: any;
+  };
+}
+```
+
+### StreamingEvent
+
+```typescript
+// Token event
+{ type: 'token'; content: string; }
+
+// Tool call event
+{ type: 'tool_call'; tool: string; parameters: Record<string, any>; }
+
+// Tool result event
+{ type: 'tool_result'; tool: string; result: Record<string, any>; }
+
+// Done event
+{ type: 'done'; }
+```
+
+---
+
+## Error Format
+
+All error responses follow this format:
+
+```json
+{
+  "error": {
+    "code": "CHAT_SESSION_EXPIRED",
+    "message": "Chat session has expired. Please refresh.",
+    "details": {
+      "conversation_id": "550e8400-e29b-41d4-a716-446655440000"
+    }
+  }
+}
+```
+
+**Error Codes**:
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `CHAT_SESSION_EXPIRED` | 401 | Chat token older than 7 days |
+| `AI_SERVICE_UNAVAILABLE` | 503 | AI model rate-limited or down |
+| `CONVERSATION_NOT_FOUND` | 404 | Conversation doesn't exist or access denied |
+| `INVALID_MESSAGE_FORMAT` | 400 | Message validation failed |
+| `TOOL_EXECUTION_ERROR` | 500 | MCP tool threw an exception |
+
+---
+
+## Rate Limiting
+
+| Endpoint | Limit | Window |
+|----------|-------|--------|
+| `POST /chat/respond` | 100 requests | 1 hour |
+| `GET /chat/conversations/*/messages` | 1000 requests | 1 hour |
+
+**Response Headers**:
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1704556800
+```
+
+---
+
+**Status**: ✅ Complete
+
+All API contracts defined. Ready for implementation.

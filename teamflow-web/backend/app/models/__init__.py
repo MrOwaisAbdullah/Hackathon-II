@@ -7,6 +7,26 @@ from app.models.agency import (
     AgencyRead,
     AgencyBase,
 )
+from app.models.chat import (
+    Conversation,
+    ConversationCreate,
+    ConversationRead,
+    ConversationUpdate,
+    ConversationBase,
+    Message,
+    MessageCreate,
+    MessageRead,
+    MessageBase,
+    MessageRole,
+)
+from app.models.preferences import (
+    UserChatPreference,
+    UserChatPreferenceCreate,
+    UserChatPreferenceRead,
+    UserChatPreferenceUpdate,
+    UserChatPreferenceBase,
+    ChatLanguage,
+)
 from app.models.project import (
     Project,
     ProjectCreate,
@@ -45,6 +65,24 @@ __all__ = [
     "AgencyCreate",
     "AgencyRead",
     "AgencyBase",
+    # Chat models (T009)
+    "Conversation",
+    "ConversationCreate",
+    "ConversationRead",
+    "ConversationUpdate",
+    "ConversationBase",
+    "Message",
+    "MessageCreate",
+    "MessageRead",
+    "MessageBase",
+    "MessageRole",
+    # Preference models (T010)
+    "UserChatPreference",
+    "UserChatPreferenceCreate",
+    "UserChatPreferenceRead",
+    "UserChatPreferenceUpdate",
+    "UserChatPreferenceBase",
+    "ChatLanguage",
     # User models
     "User",
     "UserCreate",
