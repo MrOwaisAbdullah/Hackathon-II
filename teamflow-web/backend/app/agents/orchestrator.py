@@ -41,6 +41,11 @@ class AgentOrchestrator:
     4. Processes user messages and streams responses
     5. Handles tool calls and their results
     6. Manages clarification prompts for ambiguous inputs
+
+    Enhanced for:
+    - T050: Context management across 5+ related queries
+    - T051: Follow-up question handling
+    - T052: Context window management with pruning
     """
 
     def __init__(
@@ -48,6 +53,8 @@ class AgentOrchestrator:
         chat_service: ChatService,
         model: str = "gemini-2.0-flash-exp",
         max_history_turns: int = 10,
+        max_context_tokens: int = 8000,  # T052: Context window limit
+        min_context_queries: int = 5,  # T050: Minimum related queries to maintain
     ):
         """Initialize the agent orchestrator.
 
@@ -55,10 +62,14 @@ class AgentOrchestrator:
             chat_service: Service for conversation/message persistence
             model: Gemini model to use (default: gemini-2.0-flash-exp)
             max_history_turns: Maximum conversation turns to include in context
+            max_context_tokens: Maximum context tokens before pruning (T052)
+            min_context_queries: Minimum related queries to maintain (T050)
         """
         self.chat_service = chat_service
         self.model = model
         self.max_history_turns = max_history_turns
+        self.max_context_tokens = max_context_tokens
+        self.min_context_queries = min_context_queries
         self._agent: Optional[Agent] = None
 
     def get_agent(self) -> Agent:
@@ -117,27 +128,58 @@ class AgentOrchestrator:
     async def _build_conversation_context(
         self,
         conversation_id: Optional[str],
-    ) -> tuple[list[dict], Language]:
+    ) -> tuple[list[dict], Language, list[dict]]:
         """
         Build conversation context for the agent.
+
+        Enhanced for:
+        - T050: Maintain context across at least 5 related queries
+        - T051: Detect and handle follow-up questions
+        - T052: Prune old messages when context limit approached
 
         Args:
             conversation_id: Optional conversation ID for history
 
         Returns:
-            Tuple of (conversation_history, detected_language)
+            Tuple of (conversation_history, detected_language, follow_up_context)
         """
         history = []
         language = "en"
+        follow_up_context = []  # T051: Track potential follow-up questions
 
         if conversation_id:
-            # Retrieve conversation history
-            messages = await self.get_history(conversation_id, limit=self.max_history_turns)
+            # T050: Retrieve conversation history with minimum query guarantee
+            messages = await self.get_history(
+                conversation_id,
+                limit=max(self.max_history_turns, self.min_context_queries)
+            )
 
             # Detect language from recent messages
             for msg in reversed(messages):  # Check newest first
                 if msg.content:
                     language = detect_language(msg.content)
+                    break
+
+            # T052: Estimate token count and prune if necessary
+            estimated_tokens = sum(len(msg.content or "") // 4 for msg in messages)
+            if estimated_tokens > self.max_context_tokens:
+                # Prune oldest messages while keeping minimum context (T050, T052)
+                keep_count = max(self.min_context_queries, self.max_context_tokens * 4 // 100)
+                messages = messages[-keep_count:]
+
+            # T051: Detect follow-up indicators in recent messages
+            recent_user_msgs = [m for m in messages if m.role == "user"][-3:]
+            follow_up_patterns = [
+                "what about", "how do i", "tell me more", "explain",
+                "and then", "but what", "why", "how does",
+                "kya", "kaisay", "batayein",  # Urdu
+            ]
+            for msg in recent_user_msgs:
+                if msg.content and any(p in msg.content.lower() for p in follow_up_patterns):
+                    follow_up_context.append({
+                        "is_follow_up": True,
+                        "previous_query": msg.content,
+                    })
                     break
 
             # Format for agent context
@@ -147,7 +189,7 @@ class AgentOrchestrator:
                     "content": msg.content,
                 })
 
-        return history, language
+        return history, language, follow_up_context
 
     def _needs_clarification(self, user_message: str, context: dict) -> tuple[bool, str]:
         """
@@ -245,7 +287,7 @@ class AgentOrchestrator:
                 yield {"type": "conversation_created", "data": {"id": conversation_id}}
 
             # Build conversation context
-            history, language = await self._build_conversation_context(conversation_id)
+            history, language, follow_up_context = await self._build_conversation_context(conversation_id)
 
             # Check for clarification needs
             needs_clarification, clarification_prompt = self._needs_clarification(
@@ -357,6 +399,12 @@ class AgentOrchestrator:
 
         This is used for User Story 2 (Knowledge Base Queries).
 
+        Enhanced for:
+        - T042: RAG context injection with proper formatting
+        - T044: Source reference extraction
+        - T045: Multi-source synthesis
+        - T046: "Not found" handling with suggestions
+
         Args:
             user_message: The user's input
             conversation_id: Optional conversation ID
@@ -364,28 +412,52 @@ class AgentOrchestrator:
             use_knowledge_base: Whether to query Qdrant for context
 
         Yields:
-            Stream events
+            Stream events including:
+                - rag_sources: Source references for display
+                - suggestion: Query suggestions if no results found
         """
         if use_knowledge_base:
             # Import RAG service
             from app.services.rag_service import rag_service
 
-            # Search knowledge base
-            search_results = await rag_service.search_knowledge_base(
+            # Search knowledge base with 0.7 threshold (T043)
+            search_results = rag_service.search_knowledge_base(
                 query=user_message,
-                limit=3,
+                limit=5,
+                score_threshold=0.7,  # T043: Configure threshold to 0.7
             )
 
-            if search_results:
-                # Add RAG context to message
-                kb_context = "\n\n**Relevant Knowledge Base Articles:**\n"
-                for i, result in enumerate(search_results, 1):
-                    kb_context += f"\n{i. {result.payload.get('title', 'Unknown')}"
-                    kb_context += f"\n   Source: {result.payload.get('source', 'N/A')}"
-                    kb_context += f"\n   {result.payload.get('text', '')[:200]}...\n"
+            # Format RAG context with source references (T042, T044, T045)
+            rag_context = rag_service.format_rag_context(
+                search_results=search_results,
+                query=user_message,
+            )
 
-                enhanced_message = user_message + kb_context
+            # Emit source references for frontend display (T044)
+            if rag_context["sources"]:
+                yield {
+                    "type": "rag_sources",
+                    "data": {"sources": rag_context["sources"]},
+                }
+
+            if rag_context["has_results"]:
+                # Inject formatted context into agent message
+                enhanced_message = f"{user_message}\n\n{rag_context['context_text']}"
                 async for event in self.process_message(enhanced_message, conversation_id, user_id):
+                    yield event
+                return
+            else:
+                # T046: "Not found" handling with suggestions
+                suggestions = rag_context.get("suggestions", [])
+                yield {
+                    "type": "no_results",
+                    "data": {
+                        "message": "I couldn't find relevant information in the knowledge base.",
+                        "suggestions": suggestions,
+                    },
+                }
+                # Still try to answer from general knowledge
+                async for event in self.process_message(user_message, conversation_id, user_id):
                     yield event
                 return
 

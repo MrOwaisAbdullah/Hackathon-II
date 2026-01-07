@@ -5,7 +5,7 @@ LangChain-free implementation using:
 - Qdrant client for vector similarity search
 - Configurable search threshold (0.7 cosine similarity)
 """
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 from openai import OpenAI
 from qdrant_client import QdrantClient
@@ -188,3 +188,104 @@ class RAGService:
                 "status": "unavailable",
                 "error": str(e),
             }
+
+    def format_rag_context(
+        self,
+        search_results: List["SearchResult"],
+        query: str,
+    ) -> Dict[str, Any]:
+        """Format RAG search results for agent context injection.
+
+        This implements T042 (RAG context injection), T044 (source reference extraction),
+        and T045 (multi-source synthesis).
+
+        Args:
+            search_results: List of SearchResult objects
+            query: Original query for context
+
+        Returns:
+            Dict with:
+                - context_text: Formatted context block for agent
+                - sources: List of source references for display
+                - has_results: Whether any relevant results were found
+                - suggestions: Alternative query suggestions if no results
+        """
+        if not search_results:
+            # T046: "Not found" handling with suggestions
+            return {
+                "context_text": "",
+                "sources": [],
+                "has_results": False,
+                "suggestions": self._generate_query_suggestions(query),
+            }
+
+        # Group results by source for multi-source synthesis (T045)
+        sources_map: Dict[str, List[SearchResult]] = {}
+        for result in search_results:
+            source = result.source
+            if source not in sources_map:
+                sources_map[source] = []
+            sources_map[source].append(result)
+
+        # Build context with source references (T044)
+        context_lines = ["**Relevant Knowledge Base:**\n"]
+        sources_list = []
+
+        for source, results in sources_map.items():
+            # Add source header
+            context_lines.append(f"\n### From: {source}")
+
+            for result in results:
+                # Add chunk with metadata
+                context_lines.append(
+                    f"\n**{result.title}** (chunk {result.chunk_index + 1}/{result.total_chunks})"
+                )
+                context_lines.append(f"{result.text}")
+
+                # Collect source reference for display
+                sources_list.append({
+                    "title": result.title,
+                    "source": result.source,
+                    "chunk_index": result.chunk_index,
+                    "score": result.score,
+                })
+
+        return {
+            "context_text": "\n".join(context_lines),
+            "sources": sources_list,
+            "has_results": True,
+            "suggestions": [],
+        }
+
+    def _generate_query_suggestions(self, query: str) -> List[str]:
+        """Generate alternative query suggestions when no results found (T046).
+
+        Args:
+            query: Original query that returned no results
+
+        Returns:
+            List of suggested alternative queries
+        """
+        suggestions = [
+            "Try rephrasing your question with different keywords",
+            "Search for specific terms like 'auth', 'database', 'API'",
+            "Ask about a specific document or feature",
+        ]
+
+        # Context-aware suggestions based on query content
+        query_lower = query.lower()
+
+        if "task" in query_lower or "project" in query_lower:
+            suggestions.insert(0, "Try asking about specific task management features")
+        elif "error" in query_lower or "bug" in query_lower:
+            suggestions.insert(0, "Try specifying the error type or component")
+        elif "auth" in query_lower or "login" in query_lower:
+            suggestions.insert(0, "Try asking about Better Auth or session management")
+        elif "design" in query_lower or "ui" in query_lower:
+            suggestions.insert(0, "Try asking about frontend components or styling")
+
+        return suggestions
+
+
+# Singleton instance with default settings
+rag_service = RAGService()

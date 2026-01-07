@@ -4,12 +4,16 @@ LangChain-free implementation using:
 - RecursiveTextSplitter for intelligent chunking
 - OpenRouter API for embeddings (via OpenAI SDK)
 - Qdrant client for vector storage
+- Document metadata tracking with last_modified (T048)
+- Incremental refresh logic for changed files (T047)
 """
 import os
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Optional
 from uuid import uuid4
+from datetime import datetime
+import hashlib
 
 from openai import OpenAI
 from qdrant_client import QdrantClient
@@ -162,8 +166,19 @@ class KnowledgeBaseIngestor:
             )
             print(f"✅ Created collection: {self.collection_name} (dimension: {self.embedding_dim})")
 
-    def _read_markdown_files(self, base_dir: Path) -> List[dict]:
-        """Read all markdown files from the knowledge base directories."""
+    def _read_markdown_files(self, base_dir: Path, refresh: bool = False) -> List[dict]:
+        """Read all markdown files from the knowledge base directories.
+
+        T048: Add document metadata tracking including source, title, file_path, and last_modified.
+        T047: If refresh=True, only return files that have been modified since last ingestion.
+
+        Args:
+            base_dir: Base directory to search for markdown files
+            refresh: If True, only return changed files (incremental update)
+
+        Returns:
+            List of document dicts with metadata
+        """
         documents = []
         md_patterns = ["*.md", "README*"]
 
@@ -174,6 +189,11 @@ class KnowledgeBaseIngestor:
             base_dir / "CLAUDE.md",
             base_dir / "README.md",
         ]
+
+        # Track existing documents for incremental refresh (T047)
+        existing_docs: Dict[str, dict] = {}
+        if refresh:
+            existing_docs = self._get_existing_documents()
 
         for kb_path in kb_dirs:
             if not kb_path.exists():
@@ -189,18 +209,90 @@ class KnowledgeBaseIngestor:
             for file_path in files:
                 try:
                     content = file_path.read_text(encoding="utf-8")
-                    if content.strip():
-                        documents.append({
-                            "source": str(file_path.relative_to(base_dir)),
-                            "title": file_path.stem,
-                            "content": content,
-                            "file_path": str(file_path),
-                        })
+                    if not content.strip():
+                        continue
+
+                    # Get file metadata (T048)
+                    file_stat = file_path.stat()
+                    last_modified = datetime.fromtimestamp(file_stat.st_mtime)
+                    content_hash = hashlib.md5(content.encode()).hexdigest()
+
+                    # For incremental refresh (T047), skip unchanged files
+                    if refresh:
+                        source_key = str(file_path.relative_to(base_dir))
+                        if source_key in existing_docs:
+                            existing_doc = existing_docs[source_key]
+                            # Check if file has changed
+                            if (existing_doc.get("content_hash") == content_hash and
+                                existing_doc.get("last_modified") == last_modified.isoformat()):
+                                continue  # Skip unchanged file
+
+                    documents.append({
+                        "source": str(file_path.relative_to(base_dir)),
+                        "title": file_path.stem,
+                        "content": content,
+                        "file_path": str(file_path),
+                        "last_modified": last_modified.isoformat(),  # T048: Track last modified time
+                        "content_hash": content_hash,  # T047: Hash for change detection
+                    })
                 except Exception as e:
                     print(f"⚠️  Failed to read {file_path}: {e}")
 
-        print(f"📚 Found {len(documents)} markdown documents")
+        print(f"📚 Found {len(documents)} markdown documents" +
+              (f" (incremental refresh)" if refresh else f" (full scan)"))
         return documents
+
+    def _get_existing_documents(self) -> Dict[str, dict]:
+        """Get existing documents from Qdrant for incremental refresh (T047).
+
+        Returns:
+            Dict mapping source -> document metadata
+        """
+        try:
+            # Scroll through all points to extract source documents
+            existing_docs: Dict[str, dict] = {}
+
+            # Use scroll API to get all points
+            results = self.qdrant_client.scroll(
+                collection_name=self.collection_name,
+                limit=10000,  # Get all points
+                with_payload=["source", "last_modified", "content_hash"],
+            )[0]
+
+            for point in results:
+                source = point.payload.get("source", "")
+                if source and source not in existing_docs:
+                    # Store metadata from first chunk of each document
+                    existing_docs[source] = {
+                        "last_modified": point.payload.get("last_modified"),
+                        "content_hash": point.payload.get("content_hash"),
+                    }
+
+            return existing_docs
+        except Exception as e:
+            print(f"⚠️  Failed to get existing documents: {e}")
+            return {}
+
+    def _delete_document_chunks(self, source: str):
+        """Delete all chunks for a specific document (T047 refresh support).
+
+        Args:
+            source: Source file identifier
+        """
+        try:
+            self.qdrant_client.delete(
+                collection_name=self.collection_name,
+                points_selector=Filter(
+                    must=[
+                        FieldCondition(
+                            key="source",
+                            match=MatchValue(value=source),
+                        )
+                    ]
+                ),
+            )
+        except Exception as e:
+            print(f"⚠️  Failed to delete chunks for {source}: {e}")
 
     def _generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a batch of texts using OpenRouter."""
@@ -216,32 +308,47 @@ class KnowledgeBaseIngestor:
             print(f"    ❌ Embedding API error: {e}")
             raise
 
-    def ingest(self, base_dir: Path):
-        """Main ingestion pipeline."""
+    def ingest(self, base_dir: Path, refresh: bool = False):
+        """Main ingestion pipeline.
+
+        T047: Support incremental refresh for changed files.
+        T048: Store document metadata (last_modified, content_hash) with each chunk.
+
+        Args:
+            base_dir: Base directory containing documentation
+            refresh: If True, only re-ingest modified documents (incremental update)
+        """
+        mode = "Incremental Refresh" if refresh else "Full Ingestion"
         print(f"\n{'='*60}")
-        print(f"TeamFlow Knowledge Base Ingestion")
+        print(f"TeamFlow Knowledge Base {mode}")
         print(f"{'='*60}\n")
 
         # Setup collection
         self._setup_collection()
 
-        # Read documents
-        documents = self._read_markdown_files(base_dir)
+        # Read documents (with refresh logic if enabled)
+        documents = self._read_markdown_files(base_dir, refresh=refresh)
 
         if not documents:
-            print("❌ No documents found. Exiting.")
+            print("ℹ️  No new or modified documents found.")
             return
 
         # Process documents
         all_points = []
         chunk_id = 0
         doc_count = 0
+        deleted_count = 0
 
         print(f"\n🔄 Processing {len(documents)} documents...")
 
         for doc in documents:
             doc_count += 1
             print(f"\n[{doc_count}/{len(documents)}] 📄 {doc['title']}", end="")
+
+            # For refresh mode, delete existing chunks first (T047)
+            if refresh and doc.get("source"):
+                self._delete_document_chunks(doc["source"])
+                deleted_count += 1
 
             # Chunk document
             chunks = self.chunker.chunk_document(doc["content"])
@@ -250,7 +357,7 @@ class KnowledgeBaseIngestor:
             # Generate embeddings for chunks
             embeddings = self._generate_embeddings(chunks)
 
-            # Create points for Qdrant
+            # Create points for Qdrant with metadata (T048)
             for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 point = PointStruct(
                     id=str(uuid4()),
@@ -261,6 +368,10 @@ class KnowledgeBaseIngestor:
                         "title": doc["title"],
                         "chunk_index": i,
                         "total_chunks": len(chunks),
+                        # T048: Add document metadata
+                        "last_modified": doc.get("last_modified"),
+                        "content_hash": doc.get("content_hash"),
+                        "file_path": doc.get("file_path"),
                     },
                 )
                 all_points.append(point)
@@ -269,6 +380,8 @@ class KnowledgeBaseIngestor:
         # Batch upsert to Qdrant (in batches to avoid timeout)
         print(f"\n{'='*60}")
         print(f"💾 Storing {len(all_points)} chunks in Qdrant...")
+        if refresh and deleted_count > 0:
+            print(f"🗑️  Replaced {deleted_count} existing documents")
         print(f"{'='*60}")
 
         batch_size = 100  # Process in batches of 100 points
@@ -296,7 +409,7 @@ class KnowledgeBaseIngestor:
         # Verify ingestion
         collection_info = self.qdrant_client.get_collection(self.collection_name)
         print(f"\n{'='*60}")
-        print(f"✅ Ingestion Complete!")
+        print(f"✅ {mode} Complete!")
         print(f"{'='*60}")
         print(f"📊 Collection: {self.collection_name}")
         print(f"📦 Total vectors: {collection_info.points_count}")
@@ -304,8 +417,12 @@ class KnowledgeBaseIngestor:
         print(f"{'='*60}\n")
 
 
-def main():
-    """Run knowledge base ingestion."""
+def main(refresh: bool = False):
+    """Run knowledge base ingestion.
+
+    Args:
+        refresh: If True, only re-ingest modified documents (T047)
+    """
     # Get configuration - auto-detect base directory
     # Try multiple possible base locations for cross-platform compatibility
     possible_bases = [
@@ -342,7 +459,7 @@ def main():
         openrouter_api_key=settings.openrouter_api_key,
     )
 
-    ingestor.ingest(base_dir)
+    ingestor.ingest(base_dir, refresh=refresh)
 
 
 if __name__ == "__main__":

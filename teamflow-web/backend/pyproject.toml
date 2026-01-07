@@ -23,6 +23,7 @@ dependencies = [
     "email-validator>=2.3.0",
     "python-json-logger>=2.0.7",  # T155: Structured logging
     "openai>=2.14.0",
+    "openai-agents>=0.6.5",  # OpenAI Agents SDK for agentic workflows
     "qdrant-client>=1.16.2",
 ]
 

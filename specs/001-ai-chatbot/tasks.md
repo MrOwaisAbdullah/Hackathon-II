@@ -90,24 +90,24 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 
 ### Implementation Tasks
 
-- [ ] T024 [P] [US1] Implement `backend/app/agents/prompts.py` with base system prompt for "TeamFlow Assistant" including identity, tone, and capabilities
-- [ ] T025 [P] [US1] Implement language detection helper in `backend/app/agents/prompts.py` using character-based heuristic for Urdu detection
-- [ ] T026 [P] [US1] Implement conversation history retrieval in `backend/app/agents/orchestrator.py` with get_history(conversation_id: str) method
-- [ ] T027 [P] [US1] Implement process_message method in `backend/app/agents/orchestrator.py` that orchestrates Agent, streams response, and handles tool calls
-- [ ] T028 [US1] Create `backend/app/api/chat.py` FastAPI router with chat endpoints
-- [ ] T029 [US1] Implement POST /api/v1/chat/sessions endpoint in `backend/app/api/chat.py` that validates Better Auth session and issues chat token
-- [ ] T030 [US1] Implement get_or_create_conversation logic in `backend/app/api/chat.py` to retrieve active conversation or create new one
-- [ ] T031 [US1] Implement POST /api/v1/chat/respond endpoint in `backend/app/api/chat.py` with NDJSON streaming response format
-- [ ] T032 [US1] Implement streaming event format in `backend/app/api/chat.py` with token, tool_call, tool_result, and done event types
-- [ ] T033 [US1] Implement GET /api/v1/chat/conversations/{id}/messages endpoint in `backend/app/api/chat.py` with pagination support
-- [ ] T034 [US1] Implement PATCH /api/v1/chat/preferences endpoint in `backend/app/api/chat.py` to update language and voice_enabled settings
-- [ ] T035 [US1] Implement GET /api/v1/chat/health endpoint in `backend/app/api/chat.py` that checks AI, Qdrant, and MCP service availability
-- [ ] T036 [US1] Implement graceful degradation in `backend/app/api/chat.py` when AI service unavailable (read-only KB access with user notification)
-- [ ] T037 [US1] Implement RBAC validation in `backend/app/mcp/tools.py` that checks user role before executing task modification tools
-- [ ] T038 [US1] Implement clarification prompt logic in `backend/app/agents/orchestrator.py` when user command is ambiguous or missing required information
-- [ ] T039 [US1] Use `openai-chatkit-integration` skill to generate ChatWidget component structure for Next.js
-- [ ] T040 [US1] Implement `frontend/src/app/layout.tsx` ChatProvider wrapper with apiUrl configuration and Better Auth token passing
-- [ ] T041 [US1] Implement `frontend/src/components/chat/ChatWidget.tsx` with useChat hook integration, floating widget UI, and message display
+- [X] T024 [P] [US1] Implement `backend/app/agents/prompts.py` with base system prompt for "TeamFlow Assistant" including identity, tone, and capabilities
+- [X] T025 [P] [US1] Implement language detection helper in `backend/app/agents/prompts.py` using character-based heuristic for Urdu detection
+- [X] T026 [P] [US1] Implement conversation history retrieval in `backend/app/agents/orchestrator.py` with get_history(conversation_id: str) method
+- [X] T027 [P] [US1] Implement process_message method in `backend/app/agents/orchestrator.py` that orchestrates Agent, streams response, and handles tool calls
+- [X] T028 [US1] Create `backend/app/api/chat.py` FastAPI router with chat endpoints
+- [X] T029 [US1] Implement POST /api/v1/chat/sessions endpoint in `backend/app/api/chat.py` that validates Better Auth session and issues chat token
+- [X] T030 [US1] Implement get_or_create_conversation logic in `backend/app/api/chat.py` to retrieve active conversation or create new one
+- [X] T031 [US1] Implement POST /api/v1/chat/respond endpoint in `backend/app/api/chat.py` with NDJSON streaming response format
+- [X] T032 [US1] Implement streaming event format in `backend/app/api/chat.py` with token, tool_call, tool_result, and done event types
+- [X] T033 [US1] Implement GET /api/v1/chat/conversations/{id}/messages endpoint in `backend/app/api/chat.py` with pagination support
+- [X] T034 [US1] Implement PATCH /api/v1/chat/preferences endpoint in `backend/app/api/chat.py` to update language and voice_enabled settings
+- [X] T035 [US1] Implement GET /api/v1/chat/health endpoint in `backend/app/api/chat.py` that checks AI, Qdrant, and MCP service availability
+- [X] T036 [US1] Implement graceful degradation in `backend/app/api/chat.py` when AI service unavailable (read-only KB access with user notification)
+- [X] T037 [US1] Implement RBAC validation in `backend/app/mcp/tools.py` that checks user role before executing task modification tools
+- [X] T038 [US1] Implement clarification prompt logic in `backend/app/agents/orchestrator.py` when user command is ambiguous or missing required information
+- [X] T039 [US1] Use `openai-chatkit-integration` skill to generate ChatWidget component structure for Next.js
+- [X] T040 [US1] Implement `frontend/src/app/layout.tsx` ChatProvider wrapper with apiUrl configuration and Better Auth token passing
+- [X] T041 [US1] Implement `frontend/src/components/chat/ChatWidget.tsx` with ChatKit integration, floating widget UI, and message display
 
 ---
 
@@ -121,21 +121,21 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 
 ### Implementation Tasks
 
-- [ ] T042 [P] [US2] Implement RAG context injection in `backend/app/agents/orchestrator.py` that searches Qdrant and injects relevant chunks into agent context
-- [ ] T043 [P] [US2] Configure Qdrant search threshold to 0.7 cosine similarity in `backend/app/services/rag_service.py` for high-precision retrieval
-- [ ] T044 [P] [US2] Implement source reference extraction in `backend/app/services/rag_service.py` to return document title, file path, and chunk index with each result
-- [ ] T045 [P] [US2] Implement multi-source synthesis in `backend/app/agents/orchestrator.py` that combines information from multiple document chunks into coherent response
-- [ ] T046 [P] [US2] Implement "not found" handling in `backend/app/services/rag_service.py` that informs user when no relevant results found and suggests alternatives
-- [ ] T047 [US2] Implement knowledge base refresh logic in `backend/app/jobs/ingest_knowledge_base.py` that detects file changes and re-ingests modified documents
-- [ ] T048 [US2] Add document metadata tracking in `backend/app/jobs/ingest_knowledge_base.py` including source, title, file_path, and last_modified
-- [ ] T049 [US2] Test RAG retrieval with sample queries in `backend/tests/integration/test_rag_service.py` and verify top 5 results contain relevant information
-- [ ] T050 [US2] Implement conversation context management in `backend/app/agents/orchestrator.py` that maintains context across at least 5 related queries (QI-004)
-- [ ] T051 [US2] Implement follow-up question handling in `backend/app/agents/orchestrator.py` that allows user to request clarifications on previous responses
-- [ ] T052 [US2] Implement context window management in `backend/app/agents/orchestrator.py` that prunes old messages when context limit approached
-- [ ] T053 [US2] Add knowledge base query examples to `frontend/src/components/chat/ChatWidget.tsx` as suggested prompts ("Ask about project docs...")
-- [ ] T054 [US2] Implement source reference display in `frontend/src/components/chat/ChatWidget.tsx` showing which documents were used for each response
-- [ ] T055 [US2] E2E test RAG query flow in `frontend/tests/e2e/chat.spec.ts` verifying constitution query returns accurate policy explanation
-- [ ] T056 [US2] Performance test RAG queries in `backend/tests/integration/test_chat_api.py` verifying responses return within 3 seconds (SC-003)
+- [X] T042 [P] [US2] Implement RAG context injection in `backend/app/agents/orchestrator.py` that searches Qdrant and injects relevant chunks into agent context
+- [X] T043 [P] [US2] Configure Qdrant search threshold to 0.7 cosine similarity in `backend/app/services/rag_service.py` for high-precision retrieval
+- [X] T044 [P] [US2] Implement source reference extraction in `backend/app/services/rag_service.py` to return document title, file path, and chunk index with each result
+- [X] T045 [P] [US2] Implement multi-source synthesis in `backend/app/agents/orchestrator.py` that combines information from multiple document chunks into coherent response
+- [X] T046 [P] [US2] Implement "not found" handling in `backend/app/services/rag_service.py` that informs user when no relevant results found and suggests alternatives
+- [X] T047 [US2] Implement knowledge base refresh logic in `backend/app/jobs/ingest_knowledge_base.py` that detects file changes and re-ingests modified documents
+- [X] T048 [US2] Add document metadata tracking in `backend/app/jobs/ingest_knowledge_base.py` including source, title, file_path, and last_modified
+- [X] T049 [US2] Test RAG retrieval with sample queries in `backend/tests/integration/test_rag_service.py` and verify top 5 results contain relevant information
+- [X] T050 [US2] Implement conversation context management in `backend/app/agents/orchestrator.py` that maintains context across at least 5 related queries (QI-004)
+- [X] T051 [US2] Implement follow-up question handling in `backend/app/agents/orchestrator.py` that allows user to request clarifications on previous responses
+- [X] T052 [US2] Implement context window management in `backend/app/agents/orchestrator.py` that prunes old messages when context limit approached
+- [X] T053 [US2] Add knowledge base query examples to `frontend/src/components/chat/ChatWidget.tsx` as suggested prompts ("Ask about project docs...")
+- [X] T054 [US2] Implement source reference display in `frontend/src/components/chat/ChatWidget.tsx` showing which documents were used for each response
+- [X] T055 [US2] E2E test RAG query flow in `frontend/tests/e2e/chat.spec.ts` verifying constitution query returns accurate policy explanation
+- [X] T056 [US2] Performance test RAG queries in `backend/tests/integration/test_chat_api.py` verifying responses return within 3 seconds (SC-003)
 
 ---
 

@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.api.endpoints import auth, analytics, projects, tasks, time_entries, users
+from app.api.endpoints import chat
 from app.core.config import settings
 from app.core.logging import get_logger, RequestLoggingMiddleware
 
@@ -53,6 +54,7 @@ app.include_router(projects.router, prefix=settings.api_v1_prefix)
 app.include_router(users.router, prefix=settings.api_v1_prefix)
 app.include_router(time_entries.router, prefix=settings.api_v1_prefix)
 app.include_router(analytics.router, prefix=settings.api_v1_prefix)
+app.include_router(chat.router, prefix=settings.api_v1_prefix)  # Phase 3: Chat endpoints
 
 
 @app.get("/health")

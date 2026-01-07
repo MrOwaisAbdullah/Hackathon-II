@@ -205,3 +205,7 @@ class ChatService:
         session.commit()
         session.refresh(preferences)
         return preferences
+
+
+# Singleton instance for dependency injection
+chat_service = ChatService()
