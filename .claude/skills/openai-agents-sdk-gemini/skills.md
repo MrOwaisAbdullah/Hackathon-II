@@ -499,6 +499,200 @@ def get_weather_validated(input_data: WeatherInput) -> str:
 - Implement rate limiting for API calls
 - Consider parallel execution for independent tasks
 
+## Critical Pitfalls & Solutions (From Real-World Implementation)
+
+### ❌ Pitfall #1: Not Using OpenAIChatCompletionsModel Wrapper
+
+**Problem:**
+```python
+# WRONG - Direct model string without wrapper
+agent = Agent(
+    name="assistant",
+    instructions="You are a helpful assistant",
+    model="mistralai/devstral-2512:free",  # ❌ Direct string
+)
+# Error: "Unknown prefix: mistralai" or similar
+```
+
+**Solution:**
+```python
+from agents import OpenAIChatCompletionsModel, set_default_openai_api
+from openai import AsyncOpenAI
+
+# Step 1: Configure API type for non-OpenAI providers
+set_default_openai_api("chat_completions")
+
+# Step 2: Create custom OpenAI client
+client = AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=settings.openrouter_api_key,
+)
+
+# Step 3: Wrap with OpenAIChatCompletionsModel
+model = OpenAIChatCompletionsModel(
+    openai_client=client,
+    model="mistralai/devstral-2512:free",
+)
+
+agent = Agent(
+    name="assistant",
+    instructions="You are a helpful assistant",
+    model=model,  # ✅ Pass wrapped model
+)
+```
+
+**Key Point:** Always wrap your `AsyncOpenAI` client with `OpenAIChatCompletionsModel` when using non-OpenAI providers (OpenRouter, Gemini, etc.).
+
+---
+
+### ❌ Pitfall #2: Forgetting to Set API Type
+
+**Problem:**
+```python
+# Default uses Responses API (not supported by OpenRouter)
+client = AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=settings.openrouter_api_key,
+)
+# Error: 404 Not Found or "method not supported"
+```
+
+**Solution:**
+```python
+from agents import set_default_openai_api
+
+# For OpenRouter, Gemini, and other non-OpenAI providers:
+set_default_openai_api("chat_completions")  # ✅ Must call before creating agent
+```
+
+---
+
+### ❌ Pitfall #3: Not Disabling Tracing
+
+**Problem:**
+```python
+# Default tries to connect to OpenAI for tracing
+# Error: Authentication error or timeout when not using OpenAI
+```
+
+**Solution:**
+```python
+from agents import set_tracing_disabled
+
+# Disable tracing when not using OpenAI
+set_tracing_disabled(True)
+```
+
+---
+
+### ❌ Pitfall #4: Wrong Model Type for Embeddings
+
+**Problem:**
+```python
+# WRONG - Using chat models for embeddings
+response = await client.embeddings.create(
+    model="mistralai/devstral-2512:free",  # ❌ Chat model
+    input=texts,
+)
+# Error: "Model does not support embeddings"
+```
+
+**Solution:**
+```python
+# Use dedicated embedding models
+response = await client.embeddings.create(
+    model="openai/text-embedding-3-small",  # ✅ Embedding model
+    input=texts,
+)
+```
+
+**Available Embedding Models via OpenRouter:**
+- `openai/text-embedding-3-small` - 1536 dim, $0.02/1M (RECOMMENDED)
+- `openai/text-embedding-3-large` - 3072 dim, $0.13/1M
+- `openai/text-embedding-ada-002` - 1536 dim, $0.10/1M
+
+**Note:** Free chat models (e.g., `mistralai/devstral-2512:free`) do NOT support embeddings.
+
+---
+
+### ❌ Pitfall #5: Passing String to Runner Without Context
+
+**Problem:**
+```python
+# WRONG - Agent doesn't have conversation context
+result = Runner.run_streamed(
+    agent,
+    "What can you do?",  # ❌ Just current message
+)
+# Agent responds poorly or not at all
+```
+
+**Solution:**
+```python
+from chatkit.agents import simple_to_agent_input  # If using ChatKit
+# OR manually build context
+
+# Load conversation history
+items_page = await store.load_thread_items(thread.id, ...)
+
+# Convert to agent input format
+input_items = await simple_to_agent_input(items_page.data)
+
+# Pass conversation history
+result = Runner.run_streamed(
+    agent,
+    input_items,  # ✅ Full conversation context
+)
+```
+
+---
+
+## Quick Setup Pattern (Correct)
+
+Here's the complete correct pattern for using OpenRouter with OpenAI Agents SDK:
+
+```python
+from agents import (
+    Agent,
+    Runner,
+    OpenAIChatCompletionsModel,
+    set_default_openai_api,
+    set_tracing_disabled,
+)
+from openai import AsyncOpenAI
+
+# Step 1: Disable tracing (not using OpenAI)
+set_tracing_disabled(True)
+
+# Step 2: Set API type for OpenRouter compatibility
+set_default_openai_api("chat_completions")
+
+# Step 3: Create custom OpenAI client
+client = AsyncOpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=settings.openrouter_api_key,
+)
+
+# Step 4: Wrap with OpenAIChatCompletionsModel
+model = OpenAIChatCompletionsModel(
+    openai_client=client,
+    model="mistralai/devstral-2512:free",
+)
+
+# Step 5: Create agent
+agent = Agent(
+    name="assistant",
+    instructions="You are a helpful assistant.",
+    model=model,
+)
+
+# Step 6: Run agent
+result = await Runner.run(agent, "Hello!")
+print(result.final_output)
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -508,9 +702,9 @@ def get_weather_validated(input_data: WeatherInput) -> str:
    ```python
    # Verify your API key is set correctly
    import os
-   api_key = os.getenv("GEMINI_API_KEY")
+   api_key = os.getenv("OPENROUTER_API_KEY")
    if not api_key:
-       raise ValueError("GEMINI_API_KEY not found in environment")
+       raise ValueError("OPENROUTER_API_KEY not found in environment")
    ```
 
 2. **Rate Limiting**

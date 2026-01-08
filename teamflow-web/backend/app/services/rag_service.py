@@ -68,7 +68,16 @@ class RAGService:
             model=self.embedding_model,
             input=[query],
         )
-        return response.data[0].embedding
+
+        # Validate response has data
+        if not response.data or len(response.data) == 0:
+            raise ValueError(f"No embedding data returned from API for query: {query[:50]}")
+
+        embedding = response.data[0].embedding
+        if not embedding or len(embedding) == 0:
+            raise ValueError(f"Empty embedding vector returned from API for query: {query[:50]}")
+
+        return embedding
 
     def search_knowledge_base(
         self,
@@ -91,17 +100,17 @@ class RAGService:
         # Generate query embedding
         query_embedding = self._embed_query(query)
 
-        # Search Qdrant
-        search_results = self.qdrant_client.search(
+        # Search Qdrant using query_points API (synchronous)
+        search_response = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_embedding,
+            query=query_embedding,
             limit=limit,
             score_threshold=threshold,
         )
 
         # Convert to SearchResult objects
         results = []
-        for result in search_results:
+        for result in search_response.points:
             if result.score >= threshold:
                 results.append(
                     SearchResult(
@@ -135,10 +144,10 @@ class RAGService:
         # Generate query embedding
         query_embedding = self._embed_query(query)
 
-        # Search with source filter
-        search_results = self.qdrant_client.search(
+        # Search with source filter using query_points API (synchronous)
+        search_response = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_embedding,
+            query=query_embedding,
             query_filter=Filter(
                 must=[
                     FieldCondition(
@@ -153,7 +162,7 @@ class RAGService:
 
         # Convert to SearchResult objects
         results = []
-        for result in search_results:
+        for result in search_response.points:
             results.append(
                 SearchResult(
                     text=result.payload.get("text", ""),

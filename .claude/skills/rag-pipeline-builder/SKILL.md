@@ -7,14 +7,51 @@ version: 2.1.0
 
 # RAG Pipeline Builder Skill
 
-## ⚠️ Production Lessons Learned
+## ⚠️ Production Lessons Learned (UPDATED)
 
 **CRITICAL:** Read [LESSONS_LEARNED.md](./LESSONS_LEARNED.md) before implementing. Key issues:
 
 1. **Embedding Model Selection**: Use `openai/text-embedding-3-small` (NOT chat models)
+   - Free models like `mistralai/devstral-2512:free` do NOT support embeddings
+   - Always use dedicated embedding models via OpenRouter
+
 2. **Memory Safety**: Add infinite loop protection in chunking
+   - Add `max_iterations` limit to prevent infinite loops
+   - Log progress during chunking for debugging
+
 3. **Batch Upserts**: Limit to 100 points per batch for Qdrant
+   - Larger batches may cause timeout errors
+   - Implement retry logic with exponential backoff
+
 4. **Cross-Platform Paths**: Try Windows, WSL, Linux paths
+   - Use `pathlib.Path` for cross-platform compatibility
+   - Handle both `/mnt/d/` (WSL) and `D:\` (Windows) formats
+
+5. **Agent SDK Integration**: When using RAG with OpenAI Agents SDK
+   - Use `OpenAIChatCompletionsModel` wrapper for OpenRouter
+   - Call `set_default_openai_api("chat_completions")` for compatibility
+   - Call `set_tracing_disabled(True)` when not using OpenAI
+
+6. **OpenRouter Configuration**:
+   ```python
+   from openai import AsyncOpenAI
+   from agents import OpenAIChatCompletionsModel, set_default_openai_api, set_tracing_disabled
+
+   # Configure for OpenRouter
+   set_tracing_disabled(True)
+   set_default_openai_api("chat_completions")
+
+   client = AsyncOpenAI(
+       base_url="https://openrouter.ai/api/v1",
+       api_key=settings.openrouter_api_key,
+   )
+
+   # For embeddings - use dedicated embedding model
+   response = await client.embeddings.create(
+       model="openai/text-embedding-3-small",
+       input=texts,
+   )
+   ```
 
 ## Purpose
 

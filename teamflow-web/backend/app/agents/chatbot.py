@@ -42,20 +42,19 @@ When users ask for help, guide them through available capabilities."""
 
 def create_chatbot_agent(
     instructions: str | None = None,
-    model: str = "gemini-2.0-flash-exp",
+    model: str = "mistralai/devstral-2512:free",
 ) -> Agent:
     """Create a TeamFlow chatbot agent with MCP tools.
 
     This function initializes an OpenAI Agents SDK agent configured with:
-    - Gemini 2.0 Flash model via OpenAI-compatible endpoint
+    - Mistral Devstral 2512 model via OpenRouter
     - Tools from the MCP server for task management operations
     - Custom instructions for TeamFlow-specific behavior
 
     Args:
         instructions: Custom agent instructions (optional).
             Defaults to TEAMFLOW_AGENT_INSTRUCTIONS.
-        model: Model identifier. Defaults to "gemini-2.0-flash-exp".
-            Other options: "gemini-2.0-flash-thinking-exp", "gemini-exp-1206"
+        model: Model identifier via OpenRouter. Defaults to "mistralai/devstral-2512:free".
 
     Returns:
         Configured Agent instance ready to run
@@ -66,14 +65,15 @@ def create_chatbot_agent(
         >>> async for chunk in result:
         ...     print(chunk, end="")
     """
-    # Initialize Gemini client (sets default for OpenAI Agents SDK)
-    initialize_gemini_client()
+    # Get the OpenRouter model (properly wrapped for Agents SDK)
+    from app.agents.client import get_openrouter_model
+    model_instance = get_openrouter_model(model_name=model)
 
     # Create agent with tools from MCP server
     agent = Agent(
         name="teamflow-ai",
         instructions=instructions or TEAMFLOW_AGENT_INSTRUCTIONS,
-        model=model,
+        model=model_instance,
         # Tools are registered via MCP server and injected at runtime
         # The MCP server provides: add_task, list_tasks, assign_task,
         # complete_task, get_profitability, workload_summary, suggest_assignee

@@ -2,14 +2,14 @@
 
 This module provides:
 - Agent initialization with OpenAI Agents SDK and Gemini
-- Tool injection from MCP server
+- Tool injection for task management and analytics
 - Conversation history retrieval and management
 - Message processing with streaming responses
 - Clarification prompts for ambiguous inputs
 
 Handles orchestration between:
 - OpenAI Agents SDK (Gemini 2.0 Flash)
-- MCP server tools (task management, analytics)
+- TeamFlow tools (task management, analytics)
 - ChatService (conversation persistence)
 - RAG service (knowledge base queries)
 """
@@ -25,7 +25,7 @@ from app.agents.prompts import (
     Language,
 )
 from app.agents.chatbot import create_chatbot_agent
-from app.mcp.server import mcp
+from app.agents.tools import TEAMFLOW_TOOLS
 from app.services.chat_service import ChatService
 from app.models.chat import Message
 
@@ -51,7 +51,7 @@ class AgentOrchestrator:
     def __init__(
         self,
         chat_service: ChatService,
-        model: str = "gemini-2.0-flash-exp",
+        model: str = "mistralai/devstral-2512:free",
         max_history_turns: int = 10,
         max_context_tokens: int = 8000,  # T052: Context window limit
         min_context_queries: int = 5,  # T050: Minimum related queries to maintain
@@ -60,7 +60,7 @@ class AgentOrchestrator:
 
         Args:
             chat_service: Service for conversation/message persistence
-            model: Gemini model to use (default: gemini-2.0-flash-exp)
+            model: Model to use via OpenRouter (default: mistralai/devstral-2512:free)
             max_history_turns: Maximum conversation turns to include in context
             max_context_tokens: Maximum context tokens before pruning (T052)
             min_context_queries: Minimum related queries to maintain (T050)
@@ -76,18 +76,18 @@ class AgentOrchestrator:
         """Get or create the Agent instance.
 
         Returns:
-            Configured Agent with MCP tools
+            Configured Agent with TeamFlow tools
         """
         if self._agent is None:
             # Initialize Gemini client (sets default for Agents SDK)
             initialize_gemini_client()
 
-            # Create agent with custom instructions
+            # Create agent with custom instructions and tools
             instructions = self._build_agent_instructions()
             self._agent = Agent(
                 name="teamflow-assistant",
                 instructions=instructions,
-                mcp_tools=mcp.get_tools(),  # Inject tools from MCP server
+                tools=TEAMFLOW_TOOLS,
                 model=self.model,
             )
 
@@ -106,6 +106,7 @@ class AgentOrchestrator:
     async def get_history(
         self,
         conversation_id: str,
+        user_id: str,
         limit: int = 10,
     ) -> list[Message]:
         """
@@ -113,21 +114,27 @@ class AgentOrchestrator:
 
         Args:
             conversation_id: UUID of the conversation
+            user_id: UUID of the user
             limit: Maximum number of recent messages to retrieve
 
         Returns:
             List of Message objects, newest first
         """
-        conversation = await self.chat_service.get_conversation(conversation_id)
+        conversation = await self.chat_service.get_conversation_internal(
+            conversation_id, user_id
+        )
         if not conversation:
             return []
 
-        messages = await self.chat_service.get_messages(conversation_id, limit=limit)
+        messages = await self.chat_service.get_messages_internal(
+            conversation_id, limit=limit
+        )
         return messages
 
     async def _build_conversation_context(
         self,
         conversation_id: Optional[str],
+        user_id: Optional[str] = None,
     ) -> tuple[list[dict], Language, list[dict]]:
         """
         Build conversation context for the agent.
@@ -139,6 +146,7 @@ class AgentOrchestrator:
 
         Args:
             conversation_id: Optional conversation ID for history
+            user_id: Optional user ID for authorization
 
         Returns:
             Tuple of (conversation_history, detected_language, follow_up_context)
@@ -147,10 +155,11 @@ class AgentOrchestrator:
         language = "en"
         follow_up_context = []  # T051: Track potential follow-up questions
 
-        if conversation_id:
+        if conversation_id and user_id:
             # T050: Retrieve conversation history with minimum query guarantee
             messages = await self.get_history(
                 conversation_id,
+                user_id,
                 limit=max(self.max_history_turns, self.min_context_queries)
             )
 
@@ -282,12 +291,14 @@ class AgentOrchestrator:
         try:
             # Get or create conversation
             if not conversation_id:
-                conversation = await self.chat_service.create_conversation(user_id)
-                conversation_id = conversation.id
+                conversation = await self.chat_service.create_conversation_internal(user_id)
+                conversation_id = str(conversation.id)
                 yield {"type": "conversation_created", "data": {"id": conversation_id}}
 
             # Build conversation context
-            history, language, follow_up_context = await self._build_conversation_context(conversation_id)
+            history, language, follow_up_context = await self._build_conversation_context(
+                conversation_id, user_id
+            )
 
             # Check for clarification needs
             needs_clarification, clarification_prompt = self._needs_clarification(
@@ -301,7 +312,7 @@ class AgentOrchestrator:
                 return
 
             # Save user message to conversation
-            await self.chat_service.add_message(
+            await self.chat_service.add_message_internal(
                 conversation_id=conversation_id,
                 role="user",
                 content=user_message,
@@ -323,11 +334,11 @@ class AgentOrchestrator:
                     yield event
             else:
                 # Non-streaming mode (for testing)
-                result = await Runner.run(agent, context_prompt)
+                result = await Runner.run(agent, input=context_prompt)
                 response_content = result.final_output
 
                 # Save assistant response
-                await self.chat_service.add_message(
+                await self.chat_service.add_message_internal(
                     conversation_id=conversation_id,
                     role="assistant",
                     content=response_content,
@@ -363,7 +374,7 @@ class AgentOrchestrator:
             Stream events
         """
         # Run the agent
-        result = await Runner.run(agent, message)
+        result = await Runner.run(agent, input=message)
 
         # Stream the response
         response_text = result.final_output or ""
@@ -379,13 +390,40 @@ class AgentOrchestrator:
 
         # Save complete response to conversation
         if response_text:
-            await self.chat_service.add_message(
+            await self.chat_service.add_message_internal(
                 conversation_id=conversation_id,
                 role="assistant",
                 content=response_text,
             )
 
         yield {"type": "done", "data": {}}
+
+    def _should_skip_rag_for_greeting(self, user_message: str) -> bool:
+        """Simple check to skip RAG for greetings to save tokens.
+
+        The Agent SDK's LLM is smart enough to decide when to use tools.
+        This is just a token-saving optimization for obvious greetings.
+
+        Args:
+            user_message: The user's input message
+
+        Returns:
+            True if this is obviously a greeting (skip RAG)
+        """
+        message_lower = user_message.lower().strip()
+
+        # Skip very short messages
+        if len(message_lower) < 8:
+            return True
+
+        # Skip common greetings
+        greetings = [
+            "hi", "hello", "hey", "good morning", "good afternoon",
+            "good evening", "how are you", "how's it going",
+            "thanks", "thank you", "bye", "goodbye",
+        ]
+        return any(greeting == message_lower or message_lower.startswith(greeting + " ")
+                   for greeting in greetings)
 
     async def process_with_rag(
         self,
@@ -397,71 +435,20 @@ class AgentOrchestrator:
         """
         Process message with optional RAG knowledge base integration.
 
-        This is used for User Story 2 (Knowledge Base Queries).
-
-        Enhanced for:
-        - T042: RAG context injection with proper formatting
-        - T044: Source reference extraction
-        - T045: Multi-source synthesis
-        - T046: "Not found" handling with suggestions
+        The Agent SDK's LLM decides when to use the search_knowledge_base tool.
+        This method only skips processing for obvious greetings to save tokens.
 
         Args:
             user_message: The user's input
             conversation_id: Optional conversation ID
             user_id: Optional user ID
-            use_knowledge_base: Whether to query Qdrant for context
+            use_knowledge_base: Whether RAG tools are available (always True when called)
 
         Yields:
-            Stream events including:
-                - rag_sources: Source references for display
-                - suggestion: Query suggestions if no results found
+            Stream events from agent processing
         """
-        if use_knowledge_base:
-            # Import RAG service
-            from app.services.rag_service import rag_service
-
-            # Search knowledge base with 0.7 threshold (T043)
-            search_results = rag_service.search_knowledge_base(
-                query=user_message,
-                limit=5,
-                score_threshold=0.7,  # T043: Configure threshold to 0.7
-            )
-
-            # Format RAG context with source references (T042, T044, T045)
-            rag_context = rag_service.format_rag_context(
-                search_results=search_results,
-                query=user_message,
-            )
-
-            # Emit source references for frontend display (T044)
-            if rag_context["sources"]:
-                yield {
-                    "type": "rag_sources",
-                    "data": {"sources": rag_context["sources"]},
-                }
-
-            if rag_context["has_results"]:
-                # Inject formatted context into agent message
-                enhanced_message = f"{user_message}\n\n{rag_context['context_text']}"
-                async for event in self.process_message(enhanced_message, conversation_id, user_id):
-                    yield event
-                return
-            else:
-                # T046: "Not found" handling with suggestions
-                suggestions = rag_context.get("suggestions", [])
-                yield {
-                    "type": "no_results",
-                    "data": {
-                        "message": "I couldn't find relevant information in the knowledge base.",
-                        "suggestions": suggestions,
-                    },
-                }
-                # Still try to answer from general knowledge
-                async for event in self.process_message(user_message, conversation_id, user_id):
-                    yield event
-                return
-
-        # Fallback to normal processing
+        # The agent has the search_knowledge_base tool and will decide when to use it
+        # Just delegate to normal processing
         async for event in self.process_message(user_message, conversation_id, user_id):
             yield event
 

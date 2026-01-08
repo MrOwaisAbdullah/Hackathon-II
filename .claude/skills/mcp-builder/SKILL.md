@@ -10,6 +10,169 @@ license: Complete terms in LICENSE.txt
 
 Create MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. The quality of an MCP server is measured by how well it enables LLMs to accomplish real-world tasks.
 
+## ⚠️ Critical Lessons Learned (From Real-World Implementation)
+
+### Integration with OpenAI Agents SDK
+
+When integrating MCP tools with the OpenAI Agents SDK:
+
+**1. FastMCP Makes It Easy (Python)**
+
+```python
+from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel
+
+# Create MCP server
+mcp = FastMCP("teamflow-tools")
+
+@mcp.tool()
+async def search_knowledge_base(query: str, limit: int = 5) -> str:
+    """
+    Search the knowledge base for relevant information.
+
+    Args:
+        query: Search query string
+        limit: Maximum number of results to return (default: 5)
+
+    Returns:
+        Formatted search results with sources
+    """
+    # Implementation here
+    return f"Found results for: {query}"
+
+# Tools are automatically available to agents
+```
+
+**2. Register Tools with Agent**
+
+```python
+from agents import Agent, function_tool
+from app.mcp.server import mcp
+
+# Option A: Extract tools from MCP server
+TEAMFLOW_TOOLS = list(mcp._tool_manager._tools.values())
+
+agent = Agent(
+    name="teamflow-assistant",
+    instructions="You are a helpful assistant with access to TeamFlow tools.",
+    tools=TEAMFLOW_TOOLS,  # Pass MCP tools directly
+)
+
+# Option B: Use @function_tool decorator with MCP logic underneath
+@function_tool
+async def search_docs(query: str) -> str:
+    """Search documentation using RAG pipeline."""
+    # Delegates to MCP tool internally
+    return await search_knowledge_base(query)
+```
+
+**3. Tool Design Best Practices**
+
+- **Clear Descriptions**: Help agents understand when to use each tool
+- **Structured Inputs**: Use Pydantic models for complex parameters
+- **Actionable Errors**: Guide agents toward solutions with specific error messages
+- **Pagination**: For large result sets, return paginated responses
+
+**Example of Good Tool Design:**
+
+```python
+from pydantic import BaseModel, Field
+from typing import List, Literal
+
+class SearchInput(BaseModel):
+    """Input for knowledge base search."""
+    query: str = Field(
+        min_length=2,
+        max_length=500,
+        description="Search query (prefer specific keywords over natural language)"
+    )
+    limit: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum number of results (1-20)"
+    )
+    scope: Literal["all", "docs", "code", "issues"] = Field(
+        default="all",
+        description="Search scope to narrow down results"
+    )
+
+@mcp.tool()
+async def search_knowledge_base_v2(input: SearchInput) -> str:
+    """
+    Search the knowledge base for relevant information.
+
+    This tool performs semantic search across indexed documents
+    and returns the most relevant chunks with source citations.
+
+    Usage Tips:
+    - Use specific technical terms for better results
+    - Search for code snippets with function names
+    - For API docs, search for endpoint names
+
+    Args:
+        input: Search parameters including query and filters
+
+    Returns:
+        Formatted results with each chunk including:
+        - Content text
+        - Source document
+        - Relevance score
+        - Metadata (type, path, etc.)
+    """
+    try:
+        results = await rag_service.search(
+            query=input.query,
+            limit=input.limit,
+            filter_scope=input.scope
+        )
+
+        if not results:
+            return f"No results found for query: '{input.query}'. "
+                   f"Try different keywords or check spelling."
+
+        formatted = []
+        for r in results:
+            formatted.append(f"- {r['content']}\n  Source: {r['source']}")
+
+        return "\n\n".join(formatted)
+
+    except Exception as e:
+        # Actionable error message
+        return f"Search failed: {str(e)}. "
+               f"Suggestion: Verify Qdrant connection and collection exists."
+```
+
+**4. Common Pitfalls**
+
+- **❌ Vague Tool Descriptions**: "Search stuff" → **✅** "Search knowledge base for technical documentation"
+- **❌ No Input Validation**: Accept any string → **✅** Use Pydantic with constraints
+- **❌ Generic Errors**: "Error occurred" → **✅** "Qdrant connection failed. Check QDRANT_URL env var."
+- **❌ No Usage Examples**: Just parameter list → **✅** Include "Usage Tips" in docstring
+
+**5. Testing MCP Tools with Agents**
+
+```python
+import asyncio
+from agents import Runner
+
+async def test_tool():
+    agent = Agent(
+        name="Test Agent",
+        instructions="Use the search_knowledge_base tool to answer questions.",
+        tools=[search_knowledge_base],
+    )
+
+    result = await Runner.run(
+        agent,
+        "How do I create a task in TeamFlow?"
+    )
+
+    print(result.final_output)
+
+asyncio.run(test_tool())
+```
+
 ---
 
 # Process

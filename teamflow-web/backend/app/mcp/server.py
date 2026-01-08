@@ -5,6 +5,7 @@ Uses FastMCP from the official MCP Python SDK (mcp.server.fastmcp).
 """
 from mcp.server.fastmcp import FastMCP
 from app.mcp.tools import (
+    register_knowledge_base_tools,
     register_task_tools,
     register_analytics_tools,
     register_recommendation_tools,
@@ -14,6 +15,7 @@ from app.mcp.tools import (
 mcp = FastMCP("TeamFlow")
 
 # Register all tool categories
+register_knowledge_base_tools(mcp)
 register_task_tools(mcp)
 register_analytics_tools(mcp)
 register_recommendation_tools(mcp)

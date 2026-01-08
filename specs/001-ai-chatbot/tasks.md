@@ -149,17 +149,17 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 
 ### Implementation Tasks
 
-- [ ] T057 [P] [US3] Enhance suggest_assignee tool in `backend/app/mcp/tools.py` with advanced AI reasoning logic analyzing skills, workload, and availability (builds on T020 base implementation)
-- [ ] T058 [P] [US3] Implement team member skills extraction in `backend/app/mcp/tools.py` from existing User model skills field
-- [ ] T059 [P] [US3] Implement current workload calculation in `backend/app/mcp/tools.py` summing task hours per team member
-- [ ] T060 [P] [US3] Implement availability scoring in `backend/app/mcp/tools.py` considering capacity and existing assignments
-- [ ] T061 [P] [US3] Implement recommendation explanation in `backend/app/mcp/tools.py` that returns reasoning (skills match, workload score, alternatives considered)
-- [ ] T062 [P] [US3] Implement workload_summary tool in `backend/app/mcp/tools.py` that returns team members with task_count, hours_assigned, and utilization_percentage
-- [ ] T063 [P] [US3] Implement get_profitability tool in `backend/app/mcp/tools.py` that calculates revenue, cost, profit, and margin from TimeEntry data
-- [ ] T064 [P] [US3] Implement project budget comparison in `backend/app/mcp/tools.py` that compares actual time cost against project budget
+- [X] T057 [P] [US3] Enhance suggest_assignee tool in `backend/app/mcp/tools.py` with advanced AI reasoning logic analyzing skills, workload, and availability (builds on T020 base implementation)
+- [X] T058 [P] [US3] Implement team member skills extraction in `backend/app/mcp/tools.py` from existing User model skills field
+- [X] T059 [P] [US3] Implement current workload calculation in `backend/app/mcp/tools.py` summing task hours per team member
+- [X] T060 [P] [US3] Implement availability scoring in `backend/app/mcp/tools.py` considering capacity and existing assignments
+- [X] T061 [P] [US3] Implement recommendation explanation in `backend/app/mcp/tools.py` that returns reasoning (skills match, workload score, alternatives considered)
+- [X] T062 [P] [US3] Implement workload_summary tool in `backend/app/mcp/tools.py` that returns team members with task_count, hours_assigned, and utilization_percentage
+- [X] T063 [P] [US3] Implement get_profitability tool in `backend/app/mcp/tools.py` that calculates revenue, cost, profit, and margin from TimeEntry data
+- [X] T064 [P] [US3] Implement project budget comparison in `backend/app/mcp/tools.py` that compares actual time cost against project budget
 - [ ] T065 [P] [US3] Add reasoning display to ChatWidget in `frontend/src/components/chat/ChatWidget.tsx` showing why recommendation was made
 - [ ] T066 [P] [US3] Implement acceptance tracking in `backend/app/api/chat.py` that logs when user accepts or rejects AI recommendations
-- [ ] T067 [US3] Test recommend_assignee with sample data in `backend/tests/unit/test_mcp_tools.py` and verify it suggests most suitable team member
+- [X] T067 [US3] Test recommend_assignee with sample data in `backend/tests/unit/test_mcp_tools.py` and verify it suggests most suitable team member
 - [ ] T068 [US3] E2E test recommendation flow in `frontend/tests/e2e/chat.spec.ts` verifying assignment suggestion followed by user acceptance
 - [ ] T069 [US3] Implement recommendation rate calculation in `backend/app/jobs/calculate_acceptance_rate.py` to track SC-005 (70% target)
 - [ ] T070 [US3] Implement analytics dashboard view in `frontend/src/components/analytics/RecommendationsPanel.tsx` showing recommendation acceptance rate over time

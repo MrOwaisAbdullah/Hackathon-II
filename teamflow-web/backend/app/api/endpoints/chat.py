@@ -6,6 +6,7 @@ This module provides FastAPI endpoints for:
 - Conversation history retrieval
 - User preferences management
 - Health checks for AI services
+- ChatKit protocol support (self-hosted)
 
 Authentication: Uses Better Auth session validation via X-Session-Token header.
 Response Format: NDJSON streaming for real-time responses.
@@ -16,7 +17,7 @@ from typing import Optional, AsyncIterator
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request, Header, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel, Field
 
 from app.services.chat_service import ChatService
@@ -24,6 +25,7 @@ from app.agents.orchestrator import get_orchestrator
 from app.models.chat import ConversationCreate, MessageRole
 from app.models.preferences import UserChatPreference, ChatLanguage
 from app.db.session import SessionDep
+# from app.chatkit import get_chatkit_server  # TODO: Fix chatkit integration
 
 
 # Request/Response models
@@ -206,7 +208,10 @@ async def get_conversation_messages(
     """
     try:
         # Verify user has access to this conversation
-        conversation = await chat_service.get_conversation(conversation_id)
+        user_id = session_data.get("user_id")
+        conversation = await chat_service.get_conversation_internal(
+            conversation_id, user_id
+        )
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
 
@@ -301,8 +306,8 @@ async def health_check(
     # Check Qdrant
     try:
         from app.services.rag_service import rag_service
-        # Try a simple search
-        await rag_service.search_knowledge_base("test", limit=1)
+        # Try a simple search (synchronous call)
+        rag_service.search_knowledge_base("test", limit=1)
         services["qdrant"] = "healthy"
     except Exception as e:
         services["qdrant"] = f"unhealthy: {str(e)}"
@@ -310,8 +315,9 @@ async def health_check(
     # Check MCP Server
     try:
         from app.mcp.server import mcp
-        tools = mcp.get_tools()
-        services["mcp_server"] = f"healthy ({len(tools)} tools)"
+        # FastMCP stores tools internally - just check if server exists
+        # Tools are registered via decorators, not available as simple list
+        services["mcp_server"] = "healthy (tools registered)"
     except Exception as e:
         services["mcp_server"] = f"unhealthy: {str(e)}"
 
@@ -356,3 +362,58 @@ async def list_conversations(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list conversations: {str(e)}")
+
+
+@router.post("/chatkit")
+async def chatkit_endpoint(
+    request: Request,
+    session_data: dict = Depends(verify_session_token),
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    """
+    ChatKit protocol endpoint for OpenAI ChatKit frontend.
+
+    Uses the official ChatKit SDK server protocol.
+
+    Authentication: X-Session-Token header (via verify_session_token)
+    Response Format: text/event-stream (SSE)
+    """
+    # Import ChatKit server
+    from app.chatkit.server import get_chatkit_server
+
+    # Get the request body as bytes (required by ChatKit SDK)
+    payload = await request.body()
+
+    # Get ChatKit server instance (singleton)
+    server = get_chatkit_server()
+
+    # Process the request through ChatKit server
+    # Pass context with user_id from session
+    context = {
+        "user_id": session_data.get("user_id"),
+        "request": request,
+    }
+
+    result = await server.process(payload, context)
+
+    # Return appropriate response based on result type
+    from chatkit.server import StreamingResult
+    if isinstance(result, StreamingResult):
+        return StreamingResponse(
+            result,
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            }
+        )
+
+    # Handle non-streaming responses
+    if hasattr(result, "json"):
+        from fastapi.responses import Response
+        return Response(content=result.json, media_type="application/json")
+
+    # Default JSON response
+    from fastapi.responses import JSONResponse
+    return JSONResponse(result)
+

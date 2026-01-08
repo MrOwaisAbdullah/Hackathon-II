@@ -1,9 +1,17 @@
 'use client'
 
-// """TeamFlow ChatWidget using OpenAI ChatKit.
-// This component wraps the official ChatKit Chat component and integrates
-// with our FastAPI backend endpoints.
-// """
+/**
+ * TeamFlow ChatWidget using OpenAI ChatKit with custom backend.
+ *
+ * This component implements ChatKit with a self-hosted backend:
+ * - Uses custom FastAPI backend instead of OpenAI-hosted
+ * - Integrates with AgentOrchestrator for AI responses
+ * - Supports RAG knowledge base queries
+ * - Streams responses via Server-Sent Events (SSE)
+ *
+ * Backend Protocol: OpenAI ChatKit server protocol
+ * Endpoint: /api/v1/chat/chatkit
+ */
 
 import { ChatKit, useChatKit } from '@openai/chatkit-react'
 import { useState } from 'react'
@@ -23,53 +31,14 @@ export function ChatWidget({
   const [isOpen, setIsOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
+  // Build the full ChatKit endpoint URL
+  const chatkitEndpoint = `${apiUrl}/api/v1/chat/chatkit`
+
   // useChatKit must be called unconditionally (React hooks rules)
   const { control, ref } = useChatKit({
     api: {
-      async getClientSecret(existing) {
-        console.log('[ChatWidget] >>> getClientSecret called, existing:', existing)
-        try {
-          console.log('[ChatWidget] Creating chat session with API:', apiUrl)
-
-          // Get auth token from localStorage (Better Auth JWT)
-          const authToken = typeof window !== 'undefined'
-            ? localStorage.getItem('auth_token')
-            : null
-
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          }
-
-          // Add session token if available
-          if (authToken) {
-            headers['X-Session-Token'] = authToken
-            console.log('[ChatWidget] Including auth token in request')
-          }
-
-          const res = await fetch(`${apiUrl}/api/v1/chat/sessions`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              user_id: 'temp-user',
-            }),
-          })
-
-          if (!res.ok) {
-            const errorText = await res.text()
-            console.error('[ChatWidget] Session creation failed:', res.status, errorText)
-            throw new Error(`Failed to create session: ${res.status} - ${errorText}`)
-          }
-
-          const data = await res.json()
-          console.log('[ChatWidget] Session created successfully:', data.conversation_id)
-          return data.conversation_id
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Unknown error'
-          console.error('[ChatWidget] getClientSecret error:', err)
-          setError(message)
-          throw err
-        }
-      },
+      url: chatkitEndpoint,
+      domainKey: 'local-dev',
     },
     theme: 'light',
     startScreen: {
@@ -119,7 +88,7 @@ export function ChatWidget({
       {/* Floating toggle button */}
       <button
         onClick={handleToggle}
-        className="fixed z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-2xl transition-all hover:bg-blue-700 hover:scale-105"
+        className="fixed z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-gray-800 text-white shadow-2xl transition-all hover:bg-gray-900 hover:scale-105"
         style={{
           bottom: position.includes('bottom') ? '1.5rem' : undefined,
           top: position.includes('top') ? '1.5rem' : undefined,
@@ -148,22 +117,46 @@ export function ChatWidget({
         </div>
       )}
 
-      {/* ChatKit - temporarily always visible for testing */}
-      <div className="fixed z-[9998] bg-white border-4 border-green-500" style={{
-        bottom: '5rem',
-        right: '1.5rem',
-        width: '400px',
-        height: '600px',
-      }}>
-        <div className="p-2 bg-green-100 text-xs">
-          ChatKit Status: {isInitialized ? '✅ READY' : '⏳ Initializing...'}
+      {/* ChatKit - visible when open */}
+      {isOpen && (
+        <div className="fixed z-[9998] bg-white rounded-lg shadow-2xl border border-gray-200" style={{
+          bottom: '5rem',
+          right: position.includes('right') ? '1.5rem' : undefined,
+          left: position.includes('left') ? '1.5rem' : undefined,
+          width: '400px',
+          height: '600px',
+        }}>
+          {/* Status bar */}
+          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${isInitialized ? 'bg-gray-500' : 'bg-gray-400'}`} />
+                <span className="text-xs font-medium text-gray-700">
+                  {isInitialized ? 'Connected' : 'Connecting...'}
+                </span>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Close chat"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* ChatKit component */}
+          <div className="h-[560px] w-[400px]">
+            <ChatKit
+              control={control}
+              ref={ref}
+              className="h-full w-full"
+            />
+          </div>
         </div>
-        <ChatKit
-          control={control}
-          ref={ref}
-          className="h-[580px] w-[400px]"
-        />
-      </div>
+      )}
     </>
   )
 }

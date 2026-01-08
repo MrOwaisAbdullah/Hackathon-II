@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
+from contextlib import contextmanager
 
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
@@ -16,10 +17,20 @@ from app.models.chat import (
 )
 from app.models.preferences import UserChatPreference, UserChatPreferenceUpdate
 from app.models.user import User
+from app.db.session import engine
 
 
 class ChatService:
     """Service for chat operations (conversations, messages, preferences)."""
+
+    @contextmanager
+    def _get_session(self):
+        """Get a database session for internal use."""
+        session = Session(engine)
+        try:
+            yield session
+        finally:
+            session.close()
 
     # Conversation methods
 
@@ -205,6 +216,81 @@ class ChatService:
         session.commit()
         session.refresh(preferences)
         return preferences
+
+    # Internal methods (manage their own sessions)
+
+    async def create_conversation_internal(
+        self,
+        user_id: str | UUID,
+        title: Optional[str] = None,
+    ) -> Conversation:
+        """Create a conversation with internal session management."""
+        if isinstance(user_id, str):
+            user_id = UUID(user_id)
+
+        with self._get_session() as session:
+            return self.create_conversation(user_id, session, title)
+
+    async def get_conversation_internal(
+        self,
+        conversation_id: str | UUID,
+        user_id: str | UUID,
+    ) -> Optional[Conversation]:
+        """Get a conversation with internal session management."""
+        try:
+            if isinstance(conversation_id, str):
+                # Skip if this is a ChatKit thread ID (not a UUID)
+                if conversation_id.startswith("thread_"):
+                    return None
+                conversation_id = UUID(conversation_id)
+            if isinstance(user_id, str):
+                user_id = UUID(user_id)
+
+            with self._get_session() as session:
+                return self.get_conversation(conversation_id, user_id, session)
+        except ValueError:
+            # Invalid UUID format (e.g., ChatKit thread ID)
+            return None
+
+    async def get_messages_internal(
+        self,
+        conversation_id: str | UUID,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> List[Message]:
+        """Get messages with internal session management."""
+        try:
+            if isinstance(conversation_id, str):
+                # Skip if this is a ChatKit thread ID
+                if conversation_id.startswith("thread_"):
+                    return []
+                conversation_id = UUID(conversation_id)
+
+            with self._get_session() as session:
+                return self.get_messages(conversation_id, session, limit, offset)
+        except ValueError:
+            # Invalid UUID format
+            return []
+
+    async def add_message_internal(
+        self,
+        conversation_id: str | UUID,
+        role: str,
+        content: str,
+    ) -> Optional[Message]:
+        """Add a message with internal session management."""
+        try:
+            if isinstance(conversation_id, str):
+                # Skip if this is a ChatKit thread ID
+                if conversation_id.startswith("thread_"):
+                    return None
+                conversation_id = UUID(conversation_id)
+
+            with self._get_session() as session:
+                return self.add_message(conversation_id, role, content, session)
+        except (ValueError, Exception):
+            # Invalid UUID or other error - return None
+            return None
 
 
 # Singleton instance for dependency injection
