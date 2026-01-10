@@ -208,6 +208,7 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 - [X] T099 [P] Add keyboard shortcut (Ctrl+Shift+F or Escape) to toggle fullscreen mode in `ChatWidget.tsx` for power users
 - [X] T100 [P] E2E test fullscreen toggle in `frontend/tests/e2e/chat.spec.ts` verifying expand button works, layout fills screen, and collapse returns to floating widget
 - [X] T100a [P] E2E test sidebar AI Assistant button in `frontend/tests/e2e/chat.spec.ts` verifying clicking "AI Assistant" in sidebar navigates to `/chat` page and opens fullscreen chat interface
+- [X] T102 [P] Implement route-based visibility control in `frontend/src/components/chat/ChatWidgetWrapper.tsx` that restricts the floating chat widget to authenticated dashboard routes only. Create a DASHBOARD_ROUTES whitelist array containing: '/dashboard', '/tasks', '/projects', '/time-entries', '/team', '/settings', '/archive'. The widget MUST NOT appear on public pages (/, /contact, /about, /privacy), authentication pages (/login, /signup), or the fullscreen /chat page which replaces the floating widget. Use usePathname() to check current route and return null for non-dashboard routes.
 
 ---
 

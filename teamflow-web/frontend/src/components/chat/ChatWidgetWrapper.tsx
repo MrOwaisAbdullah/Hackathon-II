@@ -6,13 +6,43 @@ import { ChatWidget } from './ChatWidget';
 /**
  * ChatWidgetWrapper - Client component that conditionally renders ChatWidget
  *
- * Hides the floating chat widget on the fullscreen /chat page to avoid duplication.
+ * Restricts the floating chat widget to authenticated dashboard routes only.
+ *
+ * Dashboard routes where widget IS shown:
+ * - /dashboard
+ * - /tasks
+ * - /projects
+ * - /time-entries
+ * - /team
+ * - /settings
+ * - /archive
+ *
+ * Routes where widget is NOT shown:
+ * - Public pages: /, /contact, /about, /privacy
+ * - Auth pages: /login, /signup
+ * - Fullscreen chat: /chat (has its own fullscreen ChatWidget)
  */
+const DASHBOARD_ROUTES = [
+  '/dashboard',
+  '/tasks',
+  '/projects',
+  '/time-entries',
+  '/team',
+  '/settings',
+  '/archive',
+] as const;
+
 export function ChatWidgetWrapper() {
   const pathname = usePathname();
 
-  // Don't show floating widget on fullscreen chat page
-  if (pathname === '/chat') {
+  // Check if current route is a dashboard route
+  // Exact match or starts with route + '/' (for sub-routes like /projects/123)
+  const isDashboardRoute = DASHBOARD_ROUTES.some(route =>
+    pathname === route || pathname.startsWith(route + '/')
+  );
+
+  // Don't show floating widget on non-dashboard routes
+  if (!isDashboardRoute) {
     return null;
   }
 

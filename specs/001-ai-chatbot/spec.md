@@ -110,6 +110,7 @@ As an Agency Owner, I want the AI to analyze team workload and suggest optimal t
 **Fullscreen Chat UI**:
 - **FR-028**: System MUST provide a fullscreen chat mode option that allows users to expand the chat widget to fill the entire browser window, similar to ChatGPT's chat interface, with responsive layout adaptation for desktop and mobile screens
 - **FR-029**: System MUST provide an "AI Assistant" button in the main navigation sidebar that opens the fullscreen chat interface when clicked, offering easy access to the chatbot from anywhere in the application
+- **FR-030**: System MUST restrict the floating chat widget visibility to authenticated dashboard routes only. The widget MUST appear on dashboard routes (/dashboard, /tasks, /projects, /time-entries, /team, /settings, /archive) and MUST NOT appear on public pages (/, /contact, /about, /privacy), authentication pages (/login, /signup), or the fullscreen /chat page which provides an alternative fullscreen interface
 
 **Error Handling & Fallbacks**:
 - **FR-024**: System MUST inform users when AI services are unavailable or rate-limited and allow read-only knowledge base queries during outage
