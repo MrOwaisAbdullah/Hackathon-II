@@ -16,8 +16,10 @@ The server handles:
 """
 import asyncio
 import json
+import uuid
 from typing import AsyncIterator, Any, Optional
 from pathlib import Path
+from datetime import datetime, timezone
 from uuid import UUID
 
 from agents import Agent, Runner, RunContextWrapper
@@ -31,15 +33,21 @@ from chatkit.server import (
     ErrorEvent,
     ThreadStreamEvent,
 )
+from chatkit.types import (
+    AssistantMessageItem,
+    AssistantMessageContent,
+    ThreadItemDoneEvent,
+)
 from chatkit.agents import (
     simple_to_agent_input,
     stream_agent_response,
     AgentContext,
 )
 from chatkit.store import Store as StoreClass, Page, ThreadItem
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import AsyncIterator, Dict, List
+import uuid
 
 from app.agents.orchestrator import AgentOrchestrator
 from app.services.chat_service import ChatService
@@ -86,18 +94,86 @@ class MemoryStore(StoreClass[dict]):
         item: ThreadItem,
         context: dict,
     ) -> None:
-        """Add an item to a thread."""
+        """Add an item to a thread.
+
+        CRITICAL: Replace __fake_id__ with a real unique ID to prevent overwrites.
+        The ChatKit framework uses __fake_id__ during streaming, but we need real IDs for persistence.
+        """
+        import uuid
+        import logging
+        logger = logging.getLogger(__name__)
+
+        original_id = item.id
+        item_type = type(item).__name__
+
+        logger.info(f"[add_thread_item] thread={thread_id}, original_id={original_id}, type={item_type}")
+
         state = self._threads.get(thread_id)
-        if state:
-            state.items.append(item)
+        if not state:
+            # Thread doesn't exist yet, create it
+            state = _ThreadState(thread=ThreadMetadata(
+                id=thread_id,
+                title="New Chat",
+                created_at=datetime.utcnow(),
+                metadata={},
+            ), items=[])
+            self._threads[thread_id] = state
+            logger.info(f"[add_thread_item] Created new thread {thread_id}")
+
+        # CRITICAL FIX: Replace __fake_id__ with a real unique ID
+        # Each message must have a unique ID or they will overwrite each other
+        if item.id == "__fake_id__":
+            # Generate a real unique ID for this message
+            new_id = f"{item.type}_{uuid.uuid4().hex[:16]}"
+            item = item.model_copy(update={"id": new_id})
+            logger.info(f"[add_thread_item] Replaced __fake_id__ with {new_id}")
+
+        # Check if we're overwriting an existing item
+        existing = self._items_map.get(item.id)
+        if existing:
+            logger.warning(f"[add_thread_item] ⚠️ OVERWRITING existing item {item.id}!")
+
+        state.items.append(item)
         self._items_map[item.id] = item
+        logger.info(f"[add_thread_item] Added item {item.id}, thread now has {len(state.items)} items")
 
     async def save_item(
         self,
+        thread_id: str,
         item: ThreadItem,
         context: dict,
     ) -> None:
-        """Save an item (for updates)."""
+        """Save an item (for updates).
+
+        Called by ThreadItemReplacedEvent to replace an existing item.
+        CRITICAL: thread_id is passed as the first parameter (ChatKit Store interface).
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        item_type = type(item).__name__
+        logger.info(f"[save_item] thread={thread_id}, item_id={item.id}, type={item_type}")
+
+        state = self._threads.get(thread_id)
+        if state:
+            logger.info(f"[save_item] Thread has {len(state.items)} items")
+
+            # Find and update the item with matching ID in this thread
+            for i, existing_item in enumerate(state.items):
+                if existing_item.id == item.id:
+                    logger.warning(f"[save_item] ⚠️ UPDATING existing item at index {i}: {existing_item.id}")
+                    state.items[i] = item
+                    self._items_map[item.id] = item
+                    return
+
+            # Item not found in thread, add it
+            logger.info(f"[save_item] Item {item.id} not found in thread, appending")
+            state.items.append(item)
+            self._items_map[item.id] = item
+            return
+
+        # Thread not found, just add to map
+        logger.warning(f"[save_item] Thread {thread_id} not found, adding to map")
         self._items_map[item.id] = item
 
     async def load_thread(
@@ -190,10 +266,14 @@ class MemoryStore(StoreClass[dict]):
 
     async def load_item(
         self,
+        thread_id: str,
         item_id: str,
         context: dict,
     ) -> ThreadItem | None:
-        """Load an item by ID."""
+        """Load an item by ID.
+
+        CRITICAL: thread_id is passed as the first parameter (ChatKit Store interface).
+        """
         return self._items_map.get(item_id)
 
     async def delete_thread(
@@ -293,6 +373,7 @@ class TeamFlowChatKitServer(ChatKitServer):
         self.rag_service = rag_service
         self.enable_rag = enable_rag
         self.orchestrator: Optional[AgentOrchestrator] = None
+        self._fallback_agent: Optional[Agent] = None  # Fallback agent for runtime errors
 
         # Initialize agent
         self._init_agent()
@@ -302,15 +383,92 @@ class TeamFlowChatKitServer(ChatKitServer):
         # Create agent with system instructions
         # Using OpenRouter models with OpenAIChatCompletionsModel wrapper
         self.assistant_agent = create_chatbot_agent(
-            model="mistralai/devstral-2512:free",
+            model="google/gemini-2.0-flash-exp:free",
         )
 
         # Initialize orchestrator if chat_service is available
         if self.chat_service:
             self.orchestrator = AgentOrchestrator(
                 chat_service=self.chat_service,
-                model="mistralai/devstral-2512:free",
+                model="google/gemini-2.0-flash-exp:free",
             )
+
+    def _get_fallback_agent(self) -> Agent:
+        """Get or create the fallback Agent using direct OpenAI API.
+
+        This is used when the primary agent encounters runtime errors
+        (e.g., 429 rate limit from OpenRouter).
+
+        Returns:
+            Configured Agent with TeamFlow tools using direct OpenAI API
+        """
+        if self._fallback_agent is None:
+            from app.agents.client import get_openai_fallback_model
+            from agents import Agent
+
+            # Create direct OpenAI model
+            model_instance = get_openai_fallback_model("gpt-5-nano-2025-08-07")
+
+            # Import tools
+            from app.agents.tools import (
+                search_knowledge_base,
+                add_task,
+                list_tasks,
+                assign_task,
+                complete_task,
+                delete_task,
+                archive_task,
+                update_task_priority,
+                update_task_due_date,
+                update_task_status,
+                list_projects,
+                create_project,
+                get_project_details,
+                get_profitability,
+                workload_summary,
+                suggest_assignee,
+                add_time_entry,
+                list_time_entries,
+                get_time_for_task,
+                update_time_entry,
+                delete_time_entry,
+            )
+
+            # Create fallback agent with same instructions
+            from app.agents.chatbot import TEAMFLOW_AGENT_INSTRUCTIONS
+            self._fallback_agent = Agent(
+                name="teamflow-assistant-fallback",
+                instructions=TEAMFLOW_AGENT_INSTRUCTIONS,
+                model=model_instance,
+                tools=[
+                    search_knowledge_base,
+                    add_task,
+                    list_tasks,
+                    assign_task,
+                    complete_task,
+                    delete_task,
+                    archive_task,
+                    update_task_priority,
+                    update_task_due_date,
+                    update_task_status,
+                    list_projects,
+                    create_project,
+                    get_project_details,
+                    get_profitability,
+                    workload_summary,
+                    suggest_assignee,
+                    add_time_entry,
+                    list_time_entries,
+                    get_time_for_task,
+                    update_time_entry,
+                    delete_time_entry,
+                ],
+            )
+
+            import logging
+            logging.info("[ChatKit] Created fallback agent using direct OpenAI API: gpt-5-nano-2025-08-07")
+
+        return self._fallback_agent
 
     async def respond(
         self,
@@ -324,6 +482,11 @@ class TeamFlowChatKitServer(ChatKitServer):
         This method processes the user message through the agent and streams
         the response using ChatKit's streaming helpers.
 
+        CRITICAL: Follow the official ChatKit pattern:
+        - The ChatKitServer base class ALREADY handles user message persistence
+        - The ChatKitServer base class ALREADY calls respond() with proper input
+        - We just need to run the agent and yield events from stream_agent_response()
+
         Args:
             thread: ChatKit thread metadata
             input: User message or client tool output
@@ -332,20 +495,12 @@ class TeamFlowChatKitServer(ChatKitServer):
         Yields:
             ThreadStreamEvent objects for ChatKit
         """
-        try:
-            # Extract user message content
-            if isinstance(input, UserMessageItem):
-                user_message = self._extract_message_content(input.content)
-            elif isinstance(input, ClientToolCallItem):
-                user_message = f"Tool output: {input.output}"
-            else:
-                yield ErrorEvent(
-                    error_code="unknown_input_type",
-                    message=f"Unknown input type: {type(input)}"
-                )
-                return
+        import logging
+        logger = logging.getLogger(__name__)
 
+        try:
             # Load recent thread history for context
+            # NOTE: The user message is already persisted by ChatKitServer base class
             items_page = await self.store.load_thread_items(
                 thread.id,
                 after=None,
@@ -353,6 +508,8 @@ class TeamFlowChatKitServer(ChatKitServer):
                 order="asc",
                 context=context or {},
             )
+
+            logger.info(f"[ChatKit respond] Thread {thread.id}, Loaded {len(items_page.data)} items")
 
             # Convert thread items to agent input format
             input_items = await simple_to_agent_input(items_page.data)
@@ -365,22 +522,166 @@ class TeamFlowChatKitServer(ChatKitServer):
             )
 
             # Run the agent and stream the response
-            # IMPORTANT: Pass input_items (conversation history) NOT just the user_message
-            # The agent needs the full conversation context to respond properly
-            result = Runner.run_streamed(
-                self.assistant_agent,
-                input_items,  # Pass conversation history, not just message string
-                context=agent_context
-            )
+            agent_to_use = self.assistant_agent
+            result = None
+            used_fallback = False
 
-            # Stream the agent response as ChatKit events
-            async for event in stream_agent_response(agent_context, result):
-                yield event
+            try:
+                result = Runner.run_streamed(
+                    agent_to_use,
+                    input_items,  # Pass conversation history
+                    context=agent_context
+                )
+                logger.info(f"[ChatKit respond] Agent execution started (primary), streaming response...")
+            except Exception as primary_error:
+                error_str = str(primary_error).lower()
+                error_code = getattr(primary_error, 'code', None)
+
+                # Check if this is a 429 rate limit or similar error
+                is_rate_limit = (
+                    '429' in error_str or
+                    error_code == 429 or
+                    'rate limit' in error_str or
+                    'rate-limited' in error_str or
+                    'provider returned error' in error_str
+                )
+
+                if is_rate_limit:
+                    logger.warning(f"[ChatKit respond] Primary agent hit rate limit (429): {primary_error}. Using fallback agent...")
+
+                    # Retry with fallback agent
+                    fallback_agent = self._get_fallback_agent()
+                    agent_to_use = fallback_agent
+                    used_fallback = True
+
+                    result = Runner.run_streamed(
+                        agent_to_use,
+                        input_items,
+                        context=agent_context
+                    )
+                    logger.info(f"[ChatKit respond] Fallback agent execution started, streaming response...")
+                else:
+                    # Not a rate limit error - re-raise
+                    raise
+
+            # CRITICAL FIX: Generate unique message ID upfront to prevent overwriting
+            # The stream_agent_response() helper uses __fake_id__ during streaming,
+            # which causes the frontend to update the same message repeatedly.
+            # We generate a unique ID now and ensure all events for this response use it.
+            import uuid
+            unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+            logger.info(f"[ChatKit respond] Generated unique message ID: {unique_message_id}")
+
+            # Stream the agent response using ChatKit's helper
+            # The helper handles all ChatKit events including ThreadItemDoneEvent for persistence
+            # We just need to yield events as-is for proper streaming and persistence
+            logger.info(f"[ChatKit respond] Starting agent response streaming for thread {thread.id}")
+
+            event_types_seen = set()
+            event_count = 0
+            message_started = False
+
+            try:
+                async for event in stream_agent_response(agent_context, result):
+                    event_count += 1
+                    event_type = type(event).__name__
+                    event_types_seen.add(event_type)
+
+                    # CRITICAL: Ensure unique ID for assistant messages
+                    # When we see an assistant message event with __fake_id__, replace it with our unique ID
+                    # This prevents the frontend from overwriting previous messages
+                    if hasattr(event, 'item'):
+                        item = event.item
+                        if hasattr(item, 'id') and item.id == "__fake_id__":
+                            # Replace __fake_id__ with our unique ID
+                            new_item = item.model_copy(update={"id": unique_message_id})
+                            event = event.model_copy(update={"item": new_item})
+                            logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in {event_type}")
+                            message_started = True
+
+                    # CRITICAL: Log event details to debug message overwriting
+                    event_id = getattr(event, 'id', None)
+                    event_item_id = getattr(event, 'item', None)
+                    if event_item_id:
+                        event_item_id = getattr(event_item_id, 'id', None)
+
+                    # Use print to ensure output is visible
+                    print(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
+                    logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
+
+                    # Check for ThreadItemReplacedEvent which would cause overwriting
+                    if event_type == 'ThreadItemReplacedEvent':
+                        logger.warning(f"[ChatKit respond] ⚠️ ThreadItemReplacedEvent detected! item.id={event_item_id}")
+
+                    # Check for ThreadItemDoneEvent to verify persistence
+                    if event_type == 'ThreadItemDoneEvent':
+                        item = getattr(event, 'item', None)
+                        if item:
+                            logger.info(f"[ChatKit respond] ✓ ThreadItemDoneEvent with item.id={item.id}")
+
+                    # Yield all events - with fixed unique ID for assistant messages
+                    yield event
+
+            except Exception as streaming_error:
+                error_str = str(streaming_error).lower()
+                error_code = getattr(streaming_error, 'code', None)
+
+                # Check if this is a 429 rate limit error during streaming
+                is_rate_limit = (
+                    '429' in error_str or
+                    error_code == 429 or
+                    'rate limit' in error_str or
+                    'rate-limited' in error_str or
+                    'provider returned error' in error_str
+                )
+
+                # If we hit rate limit during streaming and haven't used fallback yet
+                if is_rate_limit and not used_fallback:
+                    logger.warning(f"[ChatKit respond] Rate limit during streaming: {streaming_error}. Retrying with fallback...")
+
+                    # Retry with fallback agent
+                    fallback_agent = self._get_fallback_agent()
+
+                    result = Runner.run_streamed(
+                        fallback_agent,
+                        input_items,
+                        context=agent_context
+                    )
+                    logger.info(f"[ChatKit respond] Fallback agent execution started, streaming response...")
+
+                    # CRITICAL: Generate new unique message ID for fallback response
+                    unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+                    logger.info(f"[ChatKit respond] Generated unique message ID for fallback: {unique_message_id}")
+
+                    # Stream the fallback response
+                    async for event in stream_agent_response(agent_context, result):
+                        event_type = type(event).__name__
+                        event_types_seen.add(event_type)
+                        logger.debug(f"[ChatKit respond] Event (fallback): {event_type}")
+
+                        # CRITICAL: Ensure unique ID for assistant messages in fallback
+                        if hasattr(event, 'item'):
+                            item = event.item
+                            if hasattr(item, 'id') and item.id == "__fake_id__":
+                                # Replace __fake_id__ with our unique ID
+                                new_item = item.model_copy(update={"id": unique_message_id})
+                                event = event.model_copy(update={"item": new_item})
+                                logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in fallback {event_type}")
+
+                        # Yield all events with fixed unique ID
+                        yield event
+                else:
+                    # Either not a rate limit error, or we already tried fallback
+                    logger.error(f"[ChatKit respond] Error during streaming: {streaming_error}")
+                    yield ErrorEvent(
+                        error_code=type(streaming_error).__name__,
+                        message=str(streaming_error)
+                    )
+
+            logger.info(f"[ChatKit respond] Response streaming completed for thread {thread.id}. Total events: {event_count}, Event types seen: {event_types_seen}")
 
         except Exception as e:
             # Log error
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Error in respond: {type(e).__name__}: {str(e)}")
 
             # Yield error event
@@ -408,9 +709,61 @@ class TeamFlowChatKitServer(ChatKitServer):
         Yields:
             ChatKit events from action processing
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         try:
+            # Handle feedback actions (T065 - Acceptance tracking)
+            # ChatKit SDK sends "feedback" action with thumbs up/down
+            if action_name == "feedback":
+                feedback_type = payload.get("feedback")  # "thumbs_up" or "thumbs_down"
+                item_id = payload.get("item_id")
+
+                logger.info(
+                    f"Feedback received: {feedback_type} for item {item_id}"
+                )
+
+                # Map feedback to recommendation acceptance
+                # thumbs_up -> accepted, thumbs_down -> rejected
+                action = "accepted" if feedback_type == "thumbs_up" else "rejected"
+
+                # Try to extract recommendation details from the thread item
+                try:
+                    item = await self.store.load_item(item_id, context or {})
+                    if item and hasattr(item, 'content'):
+                        # Parse content to extract recommendation details
+                        content_str = str(item.content)
+
+                        # Simple heuristic to detect recommendation type
+                        recommendation_type = "unknown"
+                        if "assignee" in content_str.lower():
+                            recommendation_type = "assignee"
+                        elif "task" in content_str.lower():
+                            recommendation_type = "task_creation"
+
+                        # Track the recommendation acceptance via backend endpoint (T066)
+                        await self._track_recommendation_acceptance(
+                            recommendation_type=recommendation_type,
+                            recommendation_id=item_id,
+                            action=action,
+                            reasoning=content_str[:500],  # First 500 chars
+                            context={"thread_id": thread.id},
+                            user_id=context.get("user_id") if context else None,
+                        )
+
+                except Exception as e:
+                    logger.error(f"Error loading item for feedback: {str(e)}")
+
+                # Stream a confirmation response
+                async for event in self._stream_agent_response_simple(
+                    f"Thanks for your feedback! ({action})",
+                    thread,
+                    context
+                ):
+                    yield event
+
             # Example: Handle "add_to_todo" action
-            if action_name == "add_to_todo":
+            elif action_name == "add_to_todo":
                 item = payload.get("item")
                 if item:
                     # Stream a response confirming the action
@@ -430,30 +783,67 @@ class TeamFlowChatKitServer(ChatKitServer):
                 message=str(e)
             )
 
-    def _extract_message_content(self, content: Any) -> str:
-        """Extract text content from ChatKit message content.
+    async def _track_recommendation_acceptance(
+        self,
+        recommendation_type: str,
+        recommendation_id: str,
+        action: str,
+        reasoning: str,
+        context: dict,
+        user_id: str = None,
+    ):
+        """Track recommendation acceptance via backend endpoint (T066).
 
         Args:
-            content: ChatKit message content (text, parts, etc.)
-
-        Returns:
-            Extracted text string
+            recommendation_type: Type of recommendation (assignee, task_creation, etc.)
+            recommendation_id: Unique identifier
+            action: User action (accepted/rejected)
+            reasoning: AI reasoning that was shown
+            context: Additional context
+            user_id: User ID from session
         """
-        if isinstance(content, str):
-            return content
-        elif isinstance(content, list):
-            # Handle multi-part content (text, images, files)
-            text_parts = []
-            for part in content:
-                if isinstance(part, str):
-                    text_parts.append(part)
-                elif isinstance(part, dict):
-                    if part.get("type") == "text":
-                        text_parts.append(part.get("text", ""))
-                    # Handle images/files as needed
-            return " ".join(text_parts)
-        else:
-            return str(content)
+        import logging
+        import httpx
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Make internal call to tracking endpoint
+            # Use the API URL from environment or default to localhost
+            api_url = "http://localhost:8000"
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{api_url}/api/v1/chat/recommendations/track",
+                    json={
+                        "recommendation_type": recommendation_type,
+                        "recommendation_id": recommendation_id,
+                        "action": action,
+                        "reasoning": reasoning,
+                        "context": context,
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                        # Note: In production with authentication, include session token
+                    },
+                    timeout=5.0,
+                )
+
+                if response.status_code == 200:
+                    logger.info(
+                        f"Recommendation {action} tracked successfully: "
+                        f"type={recommendation_type}, id={recommendation_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"Failed to track recommendation: "
+                        f"status={response.status_code}, "
+                        f"response={response.text}"
+                    )
+
+        except Exception as e:
+            # Don't fail the flow if tracking fails
+            logger.error(f"Error tracking recommendation acceptance: {str(e)}")
 
     async def _convert_to_chatkit_event(
         self,

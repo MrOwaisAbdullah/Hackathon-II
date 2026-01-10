@@ -2,8 +2,15 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, Filter, X, Save } from "lucide-react";
-import { useTimeEntries, useTasks, useProjects, useCreateTimeEntry } from "@/lib/query";
+import { Plus, Clock, Filter, X, Save, Pencil, Trash2, MoreVertical } from "lucide-react";
+import {
+  useTimeEntries,
+  useTasks,
+  useProjects,
+  useCreateTimeEntry,
+  useUpdateTimeEntry,
+  useDeleteTimeEntry,
+} from "@/lib/query";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Project, Task } from "@/types";
@@ -27,6 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
 const QUICK_DURATIONS = [15, 30, 60, 120, 240, 480]; // 15m, 30m, 1h, 2h, 4h, 8h
@@ -36,6 +44,8 @@ export default function TimeEntriesPage() {
   const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
   const createTimeEntry = useCreateTimeEntry();
+  const updateTimeEntry = useUpdateTimeEntry();
+  const deleteTimeEntry = useDeleteTimeEntry();
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -46,6 +56,7 @@ export default function TimeEntriesPage() {
 
   // Modal state
   const [showLogModal, setShowLogModal] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string>("");
   const [manualMinutes, setManualMinutes] = useState<number>(0);
   const [note, setNote] = useState<string>("");
@@ -65,6 +76,28 @@ export default function TimeEntriesPage() {
     if (!task?.project_id) return "No Project";
     const project = projects.find((p: Project) => p.id === task.project_id);
     return project?.name || "Unknown Project";
+  };
+
+  // Handle edit entry
+  const handleEditEntry = (entry: any) => {
+    setEditingEntryId(entry.id);
+    setSelectedTaskId(entry.task_id);
+    setManualMinutes(entry.duration_minutes);
+    setNote(entry.note || "");
+    setEntryDate(entry.entry_date || new Date().toISOString().split("T")[0]);
+    setShowLogModal(true);
+  };
+
+  // Handle delete entry
+  const handleDeleteEntry = async (entryId: string, taskTitle: string) => {
+    if (confirm(`Are you sure you want to delete this time entry for "${taskTitle}"?`)) {
+      try {
+        await deleteTimeEntry.mutateAsync(entryId);
+        toast.success("Time entry deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete time entry");
+      }
+    }
   };
 
   // Filter entries based on current filters
@@ -112,6 +145,7 @@ export default function TimeEntriesPage() {
 
   // Handle log time button click
   const handleLogTimeClick = () => {
+    setEditingEntryId(null);
     setSelectedTaskId("");
     setManualMinutes(0);
     setNote("");
@@ -119,7 +153,7 @@ export default function TimeEntriesPage() {
     setShowLogModal(true);
   };
 
-  // Handle submit time entry
+  // Handle submit time entry (create or update)
   const handleSubmitTimeEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTaskId || manualMinutes <= 0) {
@@ -128,20 +162,42 @@ export default function TimeEntriesPage() {
     }
 
     try {
-      await createTimeEntry.mutateAsync({
-        task_id: selectedTaskId,
-        duration_minutes: manualMinutes,
-        note: note || undefined,
-        entry_date: entryDate || undefined,
-      });
-      toast.success("Time entry logged successfully");
+      if (editingEntryId) {
+        // Update existing entry
+        await updateTimeEntry.mutateAsync({
+          entryId: editingEntryId,
+          duration_minutes: manualMinutes,
+          note: note || undefined,
+          entry_date: entryDate || undefined,
+        });
+        toast.success("Time entry updated successfully");
+      } else {
+        // Create new entry
+        await createTimeEntry.mutateAsync({
+          task_id: selectedTaskId,
+          duration_minutes: manualMinutes,
+          note: note || undefined,
+          entry_date: entryDate || undefined,
+        });
+        toast.success("Time entry logged successfully");
+      }
       setShowLogModal(false);
+      setEditingEntryId(null);
       setSelectedTaskId("");
       setManualMinutes(0);
       setNote("");
     } catch (error) {
-      toast.error("Failed to log time entry");
+      toast.error(editingEntryId ? "Failed to update time entry" : "Failed to log time entry");
     }
+  };
+
+  // Handle modal close
+  const handleCloseModal = () => {
+    setShowLogModal(false);
+    setEditingEntryId(null);
+    setSelectedTaskId("");
+    setManualMinutes(0);
+    setNote("");
   };
 
   // Filter tasks by active status (not archived)
@@ -243,7 +299,7 @@ export default function TimeEntriesPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <div className="bg-card rounded-lg border border-border overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50">
                 <tr>
@@ -252,6 +308,7 @@ export default function TimeEntriesPage() {
                   <th className="px-6 py-3 text-left text-sm font-medium">Duration</th>
                   <th className="px-6 py-3 text-left text-sm font-medium">Note</th>
                   <th className="px-6 py-3 text-left text-sm font-medium">Date</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -277,6 +334,31 @@ export default function TimeEntriesPage() {
                           : formatDistanceToNow(new Date(entry.created_at))
                         }
                       </td>
+                      <td className="px-6 py-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleEditEntry(entry)}
+                              className="cursor-pointer"
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteEntry(entry.id, getTaskName(entry.task_id))}
+                              className="cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
                     </motion.tr>
                   ))}
               </tbody>
@@ -295,7 +377,7 @@ export default function TimeEntriesPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 z-50"
-              onClick={() => setShowLogModal(false)}
+              onClick={handleCloseModal}
             />
 
             {/* Modal */}
@@ -311,9 +393,11 @@ export default function TimeEntriesPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Log Time Entry</h2>
+                  <h2 className="text-lg font-semibold">
+                    {editingEntryId ? "Edit Time Entry" : "Log Time Entry"}
+                  </h2>
                   <button
-                    onClick={() => setShowLogModal(false)}
+                    onClick={handleCloseModal}
                     className="p-1 hover:bg-muted rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5" />
@@ -400,18 +484,22 @@ export default function TimeEntriesPage() {
                       type="submit"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
-                      disabled={createTimeEntry.isPending}
+                      disabled={createTimeEntry.isPending || updateTimeEntry.isPending}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent-hover disabled:opacity-50 font-medium transition-colors"
                     >
                       <Save className="w-4 h-4" />
-                      {createTimeEntry.isPending ? "Saving..." : "Save Entry"}
+                      {createTimeEntry.isPending || updateTimeEntry.isPending
+                        ? "Saving..."
+                        : editingEntryId
+                        ? "Update Entry"
+                        : "Save Entry"}
                     </motion.button>
                     <motion.button
                       type="button"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
-                      onClick={() => setShowLogModal(false)}
-                      disabled={createTimeEntry.isPending}
+                      onClick={handleCloseModal}
+                      disabled={createTimeEntry.isPending || updateTimeEntry.isPending}
                       className="px-4 py-2 border border-input rounded-lg hover:bg-muted transition-colors"
                     >
                       Cancel

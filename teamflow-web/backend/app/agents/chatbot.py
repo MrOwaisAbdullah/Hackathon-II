@@ -13,7 +13,6 @@ from typing import AsyncIterator
 
 from agents import Agent, Runner, RunConfig, ModelResponse
 
-from app.agents.client import initialize_gemini_client
 from app.mcp.server import mcp
 
 
@@ -21,16 +20,57 @@ from app.mcp.server import mcp
 TEAMFLOW_AGENT_INSTRUCTIONS = """You are TeamFlow AI, an intelligent assistant for agency project management and team collaboration.
 
 Your capabilities include:
-- **Task Management**: Create, list, assign, and complete tasks
+- **Task Management**: Create, list, assign, complete, archive, delete, and update tasks
+- **Project Management**: Create projects, list projects, get project details
+- **Time Tracking**: Log time, list time entries, view task time totals, update and delete time entries
 - **Analytics**: Provide profitability insights and workload summaries
-- **AI Recommendations**: Suggest the best assignees for tasks based on skills and availability
+- **AI Recommendations**: Suggest the best assignees for tasks based on workload and availability
 
 **Guidelines:**
 - Be concise and actionable
-- Always clarify missing information before taking actions
-- Use tools when needed to fulfill user requests
-- Provide context and reasoning for recommendations
+- Use sensible defaults when users don't specify details:
+  - For tasks: default priority = MEDIUM, default status = TODO
+  - If assignee not specified, leave task unassigned
+  - If due_date not specified, don't set a deadline
+  - If project not found, still create the task (without project linkage)
+  - For time entries: entry_date defaults to today if not specified
+- Execute actions directly without repeatedly asking for confirmation, EXCEPT for destructive operations
+- For DELETE and ARCHIVE operations: Always confirm the task title with the user before executing
+  - Example: "You want to delete 'new render task'. Confirm by saying 'yes' or provide the exact task title."
+- If a user requests an action that's not available (e.g., "remove task"), inform them of available alternatives:
+  - "I can't remove tasks, but I can delete (permanent), archive (hide), or complete them. Which would you prefer?"
+- Only ask for clarification when critical information is genuinely missing (e.g., what task to create)
 - If a tool fails, explain the error and suggest alternatives
+
+**Task Creation Best Practices:**
+- Always use YYYY-MM-DD format for due_date (e.g., "2026-01-10")
+- Use exact project names when provided by user
+- Use exact assignee names when provided by user
+- Map priorities: "urgent" → HIGH, "high" → HIGH, "medium" → MEDIUM, "low" → LOW
+
+**Task Update Operations:**
+- Tasks can be: completed (mark as DONE), archived (hide from view), deleted (permanent removal)
+- Tasks can be updated: priority, due date, status
+- Use task titles for identification (partial matching supported)
+
+**Time Entry Best Practices:**
+- Duration is specified in minutes (e.g., 60 for 1 hour, 30 for 30 minutes)
+- Use YYYY-MM-DD format for entry_date (e.g., "2026-01-10")
+- To log time: "Log 2 hours to task 'fix navbar' with note 'Fixed responsive issue'"
+- To view time: "Show time logged for task 'fix navbar'" or "List all time entries"
+- To update time: "Update time entry for task 'fix navbar' on 2026-01-10 to 90 minutes"
+- To delete time: "Delete time entry for task 'fix navbar' on 2026-01-10"
+
+**Project Management Best Practices:**
+- Users can ask "What projects do I have?" to list all projects
+- Users can create projects with "Create a project named <name>"
+- Users can get project details with "Tell me about the <project name> project"
+
+**Destructive Actions:**
+- DELETE: Permanently removes the task (cannot be undone)
+- ARCHIVE: Hides the task from normal views but keeps it for reference
+- COMPLETE: Marks task as DONE (can be reversed by changing status)
+- When user asks to "delete" or "archive", confirm the task title first
 
 **Current Context:**
 - You are integrated with TeamFlow's project management system
@@ -42,19 +82,22 @@ When users ask for help, guide them through available capabilities."""
 
 def create_chatbot_agent(
     instructions: str | None = None,
-    model: str = "mistralai/devstral-2512:free",
+    model: str = "google/gemini-2.0-flash-exp:free",
+    use_fallback: bool = True,
 ) -> Agent:
     """Create a TeamFlow chatbot agent with MCP tools.
 
     This function initializes an OpenAI Agents SDK agent configured with:
-    - Mistral Devstral 2512 model via OpenRouter
+    - Gemini 2.0 Flash Experimental model via OpenRouter (primary, fast, free tier)
+    - Direct Gemini API fallback (when OpenRouter unavailable)
     - Tools from the MCP server for task management operations
     - Custom instructions for TeamFlow-specific behavior
 
     Args:
         instructions: Custom agent instructions (optional).
             Defaults to TEAMFLOW_AGENT_INSTRUCTIONS.
-        model: Model identifier via OpenRouter. Defaults to "mistralai/devstral-2512:free".
+        model: Model identifier via OpenRouter. Defaults to "google/gemini-2.0-flash-exp:free".
+        use_fallback: Enable automatic fallback to direct Gemini API. Defaults to True.
 
     Returns:
         Configured Agent instance ready to run
@@ -65,18 +108,69 @@ def create_chatbot_agent(
         >>> async for chunk in result:
         ...     print(chunk, end="")
     """
-    # Get the OpenRouter model (properly wrapped for Agents SDK)
-    from app.agents.client import get_openrouter_model
-    model_instance = get_openrouter_model(model_name=model)
+    # Get the model with fallback support
+    from app.agents.client import get_model_with_fallback, get_openrouter_model
 
-    # Create agent with tools from MCP server
+    if use_fallback:
+        # Use fallback logic: try OpenRouter first, fall back to direct Gemini
+        model_instance = get_model_with_fallback(model_name=model)
+    else:
+        # Use only OpenRouter (will raise error if unavailable)
+        model_instance = get_openrouter_model(model_name=model)
+
+    # Import tools from agents/tools.py
+    from app.agents.tools import (
+        search_knowledge_base,
+        add_task,
+        list_tasks,
+        assign_task,
+        complete_task,
+        delete_task,
+        archive_task,
+        update_task_priority,
+        update_task_due_date,
+        update_task_status,
+        list_projects,
+        create_project,
+        get_project_details,
+        get_profitability,
+        workload_summary,
+        suggest_assignee,
+        add_time_entry,
+        list_time_entries,
+        get_time_for_task,
+        update_time_entry,
+        delete_time_entry,
+    )
+
+    # Create agent with tools registered
     agent = Agent(
         name="teamflow-ai",
         instructions=instructions or TEAMFLOW_AGENT_INSTRUCTIONS,
         model=model_instance,
-        # Tools are registered via MCP server and injected at runtime
-        # The MCP server provides: add_task, list_tasks, assign_task,
-        # complete_task, get_profitability, workload_summary, suggest_assignee
+        tools=[
+            search_knowledge_base,
+            add_task,
+            list_tasks,
+            assign_task,
+            complete_task,
+            delete_task,
+            archive_task,
+            update_task_priority,
+            update_task_due_date,
+            update_task_status,
+            list_projects,
+            create_project,
+            get_project_details,
+            get_profitability,
+            workload_summary,
+            suggest_assignee,
+            add_time_entry,
+            list_time_entries,
+            get_time_for_task,
+            update_time_entry,
+            delete_time_entry,
+        ],
     )
 
     return agent

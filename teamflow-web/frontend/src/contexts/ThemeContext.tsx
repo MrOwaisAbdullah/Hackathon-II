@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -13,26 +13,38 @@ interface ThemeProviderProps {
 interface ThemeProviderState {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 }
 
 const initialState: ThemeProviderState = {
-  theme: 'system',
+  theme: 'light',
   setTheme: () => null,
+  toggleTheme: () => null,
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
+  defaultTheme = 'light',
+  storageKey = 'theme',
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     // Check if running on client
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
+      // Clear old 'vite-ui-theme' key to avoid conflicts
+      localStorage.removeItem('vite-ui-theme')
+
+      const savedTheme = localStorage.getItem(storageKey) as Theme | null
+
+      // If saved theme is 'system', default to 'light' for consistency
+      if (savedTheme === 'system' || !savedTheme) {
+        return defaultTheme
+      }
+
+      return savedTheme
     }
-    return defaultTheme;
+    return defaultTheme
   });
 
   useEffect(() => {
@@ -53,13 +65,21 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme]);
 
-  const value = {
+  const value = useMemo(() => ({
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: (newTheme: Theme) => {
+      console.log('[ThemeContext] setTheme called with:', newTheme)
+      localStorage.setItem(storageKey, newTheme);
+      setTheme(newTheme);
     },
-  };
+    toggleTheme: () => {
+      setTheme(prev => {
+        const newTheme = prev === 'light' ? 'dark' : 'light';
+        console.log('[ThemeContext] Toggling from', prev, 'to', newTheme);
+        return newTheme;
+      });
+    },
+  }), [theme, storageKey]);
 
   return (
     <ThemeProviderContext.Provider value={value}>

@@ -446,7 +446,25 @@ class TeamFlowChatKitServer(ChatKitServer):
             )
 
             # Stream the agent response as ChatKit events
+            # CRITICAL FIX: Generate unique message ID upfront to prevent overwriting
+            # The stream_agent_response() helper uses __fake_id__ during streaming,
+            # which causes the frontend to update the same message repeatedly.
+            # We generate a unique ID now and ensure all events for this response use it.
+            import uuid
+            unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+            logger.info(f"Generated unique message ID: {unique_message_id}")
+
             async for event in stream_agent_response(agent_context, result):
+                # CRITICAL: Replace __fake_id__ with our unique ID
+                # This prevents the frontend from overwriting previous messages
+                if hasattr(event, 'item'):
+                    item = event.item
+                    if hasattr(item, 'id') and item.id == "__fake_id__":
+                        # Replace __fake_id__ with our unique ID
+                        new_item = item.model_copy(update={"id": unique_message_id})
+                        event = event.model_copy(update={"item": new_item})
+                        logger.info(f"Replaced __fake_id__ with {unique_message_id} in {type(event).__name__}")
+
                 yield event
 
             logger.info("Streaming complete")

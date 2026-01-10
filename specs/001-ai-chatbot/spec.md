@@ -107,6 +107,10 @@ As an Agency Owner, I want the AI to analyze team workload and suggest optimal t
 - **FR-022**: System MUST authenticate chat sessions using existing user authentication (no separate login for chat)
 - **FR-023**: System MUST provide chat history persistence for 7 days per authenticated user
 
+**Fullscreen Chat UI**:
+- **FR-028**: System MUST provide a fullscreen chat mode option that allows users to expand the chat widget to fill the entire browser window, similar to ChatGPT's chat interface, with responsive layout adaptation for desktop and mobile screens
+- **FR-029**: System MUST provide an "AI Assistant" button in the main navigation sidebar that opens the fullscreen chat interface when clicked, offering easy access to the chatbot from anywhere in the application
+
 **Error Handling & Fallbacks**:
 - **FR-024**: System MUST inform users when AI services are unavailable or rate-limited and allow read-only knowledge base queries during outage
 - **FR-025**: System MUST validate user permissions based on RBAC roles (Admin/Manager/Member/Viewer) before executing commands that modify or query data
@@ -177,7 +181,7 @@ As an Agency Owner, I want the AI to analyze team workload and suggest optimal t
 ## Out of Scope
 
 - **General-Purpose Chatbot**: Conversational AI outside of task management, project queries, and knowledge retrieval (e.g., weather, news, entertainment)
-- **Voice Input/Output**: Speech-to-text or text-to-speech capabilities (Note: Voice input via Web Speech API is included as a bonus feature +200 points)
+- **Voice Output**: Text-to-speech capabilities (Note: Voice INPUT via Web Speech API IS included as a bonus feature +200 points - see tasks T077-T084, T101)
 - **Multi-Language Support**: Support for languages other than English
 - **File Upload via Chat**: Uploading files (documents, images) through the chat interface (knowledge base ingestion will be batch process)
 - **Advanced Multi-Agent Orchestration**: Multiple specialized agents collaborating (single unified agent for Phase 3)

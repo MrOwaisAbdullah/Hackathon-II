@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   LogOut,
   Menu,
-  Archive
+  Archive,
+  MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: MessageCircle, label: 'AI Assistant', href: '/chat' },
   { icon: FolderKanban, label: 'Projects', href: '/projects' },
   { icon: CheckSquare, label: 'Tasks', href: '/tasks' },
   { icon: Users, label: 'Team', href: '/team' },

@@ -542,6 +542,50 @@ export function useCreateTimeEntry() {
   });
 }
 
+/**
+ * Update a time entry
+ */
+export function useUpdateTimeEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      entryId,
+      ...data
+    }: {
+      entryId: string;
+      duration_minutes?: number;
+      note?: string;
+      entry_date?: string;
+    }) => {
+      const response = await api.put<{ time_entry: TimeEntry }>(
+        `/api/v1/time-entries/${entryId}`,
+        data
+      );
+      return response.data.time_entry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+    },
+  });
+}
+
+/**
+ * Delete a time entry
+ */
+export function useDeleteTimeEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (entryId: string) => {
+      await api.delete(`/api/v1/time-entries/${entryId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['time-entries'] });
+    },
+  });
+}
+
 // ============ ACCOUNT MANAGEMENT QUERIES ============
 
 /**

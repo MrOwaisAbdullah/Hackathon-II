@@ -2,7 +2,7 @@
 
 **Feature**: 001-ai-chatbot | **Branch**: `001-ai-chatbot` | **Date**: 2025-01-06
 
-**Total Tasks**: 88 | **Estimated Completion**: 9 implementation phases
+**Total Tasks**: 103 | **Estimated Completion**: 9 implementation phases
 
 ---
 
@@ -30,7 +30,7 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 | 3 | US1 (P1) | 18 | Task management via natural language |
 | 4 | US2 (P2) | 15 | Knowledge base queries and RAG |
 | 5 | US3 (P3) | 14 | AI insights and recommendations |
-| 6 | Bonus | 10 | Urdu support and voice input |
+| 6 | Bonus | 13 | Urdu support, voice input, and fullscreen UI with sidebar access |
 | 7 | Polish | 9 | Cross-cutting concerns and optimization |
 
 ---
@@ -157,12 +157,12 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 - [X] T062 [P] [US3] Implement workload_summary tool in `backend/app/mcp/tools.py` that returns team members with task_count, hours_assigned, and utilization_percentage
 - [X] T063 [P] [US3] Implement get_profitability tool in `backend/app/mcp/tools.py` that calculates revenue, cost, profit, and margin from TimeEntry data
 - [X] T064 [P] [US3] Implement project budget comparison in `backend/app/mcp/tools.py` that compares actual time cost against project budget
-- [ ] T065 [P] [US3] Add reasoning display to ChatWidget in `frontend/src/components/chat/ChatWidget.tsx` showing why recommendation was made
-- [ ] T066 [P] [US3] Implement acceptance tracking in `backend/app/api/chat.py` that logs when user accepts or rejects AI recommendations
+- [X] T065 [P] [US3] Add reasoning display to ChatWidget in `frontend/src/components/chat/ChatWidget.tsx` showing why recommendation was made
+- [X] T066 [P] [US3] Implement acceptance tracking in `backend/app/api/chat.py` that logs when user accepts or rejects AI recommendations
 - [X] T067 [US3] Test recommend_assignee with sample data in `backend/tests/unit/test_mcp_tools.py` and verify it suggests most suitable team member
-- [ ] T068 [US3] E2E test recommendation flow in `frontend/tests/e2e/chat.spec.ts` verifying assignment suggestion followed by user acceptance
-- [ ] T069 [US3] Implement recommendation rate calculation in `backend/app/jobs/calculate_acceptance_rate.py` to track SC-005 (70% target)
-- [ ] T070 [US3] Implement analytics dashboard view in `frontend/src/components/analytics/RecommendationsPanel.tsx` showing recommendation acceptance rate over time
+- [X] T068 [US3] E2E test recommendation flow in `frontend/tests/e2e/chat.spec.ts` verifying assignment suggestion followed by user acceptance
+- [X] T069 [US3] Implement recommendation rate calculation in `backend/app/jobs/calculate_acceptance_rate.py` to track SC-005 (70% target)
+- [X] T070 [US3] Implement analytics dashboard view in `frontend/src/components/analytics/RecommendationsPanel.tsx` showing recommendation acceptance rate over time
 
 ---
 
@@ -178,23 +178,36 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 
 #### Urdu Language Support
 
-- [ ] T071 [P] Implement Urdu language detection in `backend/app/agents/prompts.py` using character-based heuristic (Urdu chars > 30%)
-- [ ] T072 [P] Add Urdu language instruction to system prompt in `backend/app/agents/prompts.py`: "If user speaks Urdu, respond in Urdu (Roman script)"
-- [ ] T073 [P] Implement language preference storage in `backend/app/api/chat.py` that saves user's language choice to user_chat_preferences table
-- [ ] T074 [P] Add language toggle dropdown to `frontend/src/components/chat/ChatHeader.tsx` with English (en) and Urdu (ur) options
-- [ ] T075 [P] Test Urdu commands in `backend/tests/integration/test_chat_api.py` verifying Urdu input produces Urdu output
-- [ ] T076 [P] E2E test Urdu flow in `frontend/tests/e2e/chat.spec.ts` verifying "Acme project ke liye task banayein" creates task correctly
+- [X] T071 [P] Implement Urdu language detection in `backend/app/agents/prompts.py` using character-based heuristic (Urdu chars > 30%)
+- [X] T072 [P] Add Urdu language instruction to system prompt in `backend/app/agents/prompts.py`: "If user speaks Urdu, respond in Urdu (Roman script)"
+- [X] T073 [P] Implement language preference storage in `backend/app/api/chat.py` that saves user's language choice to user_chat_preferences table
+- [X] T074 [P] Add language toggle dropdown to `frontend/src/components/chat/LanguageToggle.tsx` with English (en) and Urdu (ur) options
+- [X] T075 [P] Test Urdu commands in `backend/tests/integration/test_chat_api.py` verifying Urdu input produces Urdu output
+- [X] T076 [P] E2E test Urdu flow in `frontend/tests/e2e/chat.spec.ts` verifying "Acme project ke liye task banayein" creates task correctly
 
 #### Voice Input
 
-- [ ] T077 [P] Implement `frontend/src/hooks/useVoiceInput.ts` hook using `window.SpeechRecognition` API with startRecording and stopRecording methods
-- [ ] T078 [P] Add language configuration to `useVoiceInput.ts` hook supporting `en-US` and `ur-PK` for English and Urdu transcription
-- [ ] T079 [P] Implement microphone button in `frontend/src/components/chat/ChatInput.tsx` with icon, visual feedback (pulsing red while recording), and keyboard shortcut (Ctrl+Shift+V)
-- [ ] T080 [P] Implement transcript display in `frontend/src/components/chat/ChatInput.tsx` showing real-time transcription below input field
-- [ ] T081 [P] Add browser compatibility check in `useVoiceInput.ts` that hides microphone button if Web Speech API unsupported
-- [ ] T082 [P] Implement edit-before-send flow in `frontend/src/components/chat/ChatInput.tsx` allowing user to edit transcript before submitting
-- [ ] T083 [P] E2E test voice input flow in `frontend/tests/e2e/chat.spec.ts` using `chrome-devtools` MCP to verify transcript accuracy
-- [ ] T084 [P] Add voice input instructions to quickstart.md explaining browser support (Chrome recommended) and troubleshooting tips
+- [X] T077 [P] Implement `frontend/src/hooks/useVoiceInput.ts` hook using `window.SpeechRecognition` API with startRecording and stopRecording methods
+- [X] T078 [P] Add language configuration to `useVoiceInput.ts` hook supporting `en-US` and `ur-PK` for English and Urdu transcription
+- [X] T079 [P] Implement microphone button in `frontend/src/components/chat/VoiceInput.tsx` with icon, visual feedback (pulsing red while recording), and keyboard shortcut (Ctrl+Shift+V)
+- [X] T080 [P] Implement transcript display in `frontend/src/components/chat/VoiceInput.tsx` showing real-time transcription below input field
+- [X] T081 [P] Add browser compatibility check in `useVoiceInput.ts` that hides microphone button if Web Speech API unsupported
+- [X] T082 [P] Implement edit-before-send flow in `frontend/src/components/chat/VoiceInput.tsx` allowing user to edit transcript before submitting
+- [X] T083 [P] E2E test voice input flow in `frontend/tests/e2e/chat.spec.ts` using `chrome-devtools` MCP to verify transcript accuracy
+- [X] T084 [P] Add voice input instructions to quickstart.md explaining browser support (Chrome recommended) and troubleshooting tips
+- [X] T101 [CRITICAL] Integrate VoiceInput component into ChatWidget by importing `frontend/src/components/chat/VoiceInput.tsx` and rendering it in the chat input area. Verify ChatKit supports custom input extensions or build a custom message input wrapper that combines VoiceInput with ChatKit's ThreadView. Test microphone button appears and recording works end-to-end.
+
+#### Fullscreen Chat Mode
+
+- [X] T094 [P] Add `isFullscreen` state to `frontend/src/components/chat/ChatWidget.tsx` to track fullscreen mode and toggle between floating widget (400×600) and fullscreen layout
+- [X] T095 [P] Implement fullscreen toggle button in `ChatWidget.tsx` header with expand/collapse icon (⛶) that switches between floating and fullscreen modes
+- [X] T096 [P] Add responsive layout styles to `ChatWidget.tsx` using Tailwind classes that set width/height to `100vw/100vh` in fullscreen mode and restore to `400px/600px` in floating mode
+- [X] T097 [P] Create dedicated fullscreen chat page route at `frontend/src/app/(main)/chat/page.tsx` that renders ChatWidget in fullscreen mode by default for improved UX similar to ChatGPT
+- [X] T097a [P] Add "AI Assistant" navigation item to main sidebar in `frontend/src/components/dashboard/Sidebar.tsx` (or equivalent navigation component) with chat icon (MessageCircle) that routes to `/chat` fullscreen page when clicked
+- [X] T098 [P] Implement mobile-responsive breakpoint in `ChatWidget.tsx` using Tailwind `md:` and `lg:` prefixes to optimize layout for phones (<768px), tablets (768-1024px), and desktops (>1024px)
+- [X] T099 [P] Add keyboard shortcut (Ctrl+Shift+F or Escape) to toggle fullscreen mode in `ChatWidget.tsx` for power users
+- [X] T100 [P] E2E test fullscreen toggle in `frontend/tests/e2e/chat.spec.ts` verifying expand button works, layout fills screen, and collapse returns to floating widget
+- [X] T100a [P] E2E test sidebar AI Assistant button in `frontend/tests/e2e/chat.spec.ts` verifying clicking "AI Assistant" in sidebar navigates to `/chat` page and opens fullscreen chat interface
 
 ---
 
@@ -206,15 +219,15 @@ This document breaks down the Phase 3 AI Chatbot implementation into atomic, tes
 
 ### Implementation Tasks
 
-- [ ] T085 [P] Implement conversation cleanup job in `backend/app/jobs/cleanup_conversations.py` that deletes messages and conversations older than 7 days
-- [ ] T086 [P] Schedule cleanup job to run daily using cron or background task scheduler in `backend/app/main.py`
-- [ ] T087 [P] Implement rate limiting in `backend/app/api/chat.py` with 100 requests/hour limit for POST /chat/respond endpoint
-- [ ] T088 [P] Add rate limit headers to response in `backend/app/api/chat.py` (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
-- [ ] T089 [P] Implement error response format in `backend/app/api/chat.py` following {error: {code, message, details}} structure
-- [ ] T090 [P] Add comprehensive error logging in `backend/app/api/chat.py` with context (conversation_id, user_id, error_type) for debugging
-- [ ] T091 [P] Implement streaming performance monitoring in `backend/app/api/chat.py` ensuring streaming starts within 2 seconds (SC-007)
-- [ ] T092 [P] Implement RBAC role constant mapping in `backend/app/mcp/tools.py` defining which roles can execute each tool (admin, manager, member, viewer)
-- [ ] T093 [P] Implement uptime monitoring in `backend/app/api/chat.py` using Prometheus metrics for chat service health tracking (SC-006)
+- [X] T085 [P] Implement conversation cleanup job in `backend/app/jobs/cleanup_conversations.py` that deletes messages and conversations older than 7 days
+- [X] T086 [P] Schedule cleanup job to run daily using cron or background task scheduler in `backend/app/main.py`
+- [X] T087 [P] Implement rate limiting in `backend/app/api/chat.py` with 100 requests/hour limit for POST /chat/respond endpoint
+- [X] T088 [P] Add rate limit headers to response in `backend/app/api/chat.py` (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset)
+- [X] T089 [P] Implement error response format in `backend/app/api/chat.py` following {error: {code, message, details}} structure
+- [X] T090 [P] Add comprehensive error logging in `backend/app/api/chat.py` with context (conversation_id, user_id, error_type) for debugging
+- [X] T091 [P] Implement streaming performance monitoring in `backend/app/api/chat.py` ensuring streaming starts within 2 seconds (SC-007)
+- [X] T092 [P] Implement RBAC role constant mapping in `backend/app/mcp/tools.py` defining which roles can execute each tool (admin, manager, member, viewer)
+- [X] T093 [P] Implement uptime monitoring in `backend/app/api/chat.py` using Prometheus metrics for chat service health tracking (SC-006)
 
 ---
 

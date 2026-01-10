@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 import secrets
 import string
 
-from pydantic import EmailStr, Field as PDField
+from pydantic import EmailStr, Field as PDField, field_validator
 from sqlalchemy import Enum as SQLEnum
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -48,8 +48,19 @@ class User(SQLModel, table=True):
 class UserBase(SQLModel):
     """Base user schema."""
 
-    email: EmailStr
+    email: str  # Changed from EmailStr to str to allow .local domains
     name: str = PDField(..., min_length=1, max_length=100)
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        """Validate email format but allow .local domains for development."""
+        import re
+        # Basic email format validation (more permissive than EmailStr)
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, v):
+            raise ValueError('Invalid email format')
+        return v
 
 
 class UserCreate(UserBase):
@@ -62,8 +73,19 @@ class UserCreate(UserBase):
 class UserLogin(SQLModel):
     """User login schema."""
 
-    email: EmailStr
+    email: str  # Changed from EmailStr to str to allow .local domains
     password: str
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        """Validate email format but allow .local domains for development."""
+        import re
+        # Basic email format validation (more permissive than EmailStr)
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, v):
+            raise ValueError('Invalid email format')
+        return v
 
 
 class UserRead(UserBase):

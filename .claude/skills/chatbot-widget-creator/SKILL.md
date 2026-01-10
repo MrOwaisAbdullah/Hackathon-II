@@ -310,6 +310,52 @@ Edit `src/components/ChatWidget/styles/ChatWidget.module.css`:
 - [ ] Test on slow networks
 - [ ] Verify memory leak prevention
 - [ ] Test with long conversations (100+ messages)
+- [ ] **CRITICAL: Use fast AI models for chat** (see Performance Guidelines below)
+
+## Performance Guidelines
+
+### Model Selection for Chat (CRITICAL)
+
+**Never use slow free-tier models** for real-time chat applications. Using models like `mistralai/devstral-2512:free` will result in unacceptable response times (20-30+ seconds).
+
+**Recommended Fast Models:**
+| Model | Response Time | Cost | Recommendation |
+|-------|--------------|------|----------------|
+| `google/gemini-2.0-flash-exp:free` | ~5 seconds | Free | ✅ Best balance |
+| `google/gemini-flash-1.5` | ~3 seconds | Free | ✅ Fastest |
+| `openai/gpt-4o-mini` | ~2 seconds | Paid | ✅ Best quality |
+
+**Performance Targets:**
+- **First token**: < 2 seconds
+- **Complete response**: < 5 seconds
+- **Streaming**: Start within 1 second
+
+**Real-World Performance Comparison:**
+```
+Slow model (mistralai/devstral-2512:free):
+  Request: 23:45:32 → Response: 23:46:01 = 29 seconds ❌
+
+Fast model (google/gemini-2.0-flash-exp:free):
+  Request: 23:53:28 → Response: 23:53:33 = 5 seconds ✅
+```
+
+**Implementation Example:**
+```python
+# WRONG - Too slow for production
+model = "mistralai/devstral-2512:free"  # 29 seconds
+
+# RIGHT - Fast enough for chat
+model = "google/gemini-2.0-flash-exp:free"  # 5 seconds
+```
+
+**Impact on User Experience:**
+- **< 2 seconds**: Excellent, users don't notice delay
+- **2-5 seconds**: Good, acceptable for most use cases
+- **5-10 seconds**: Marginal, users may become impatient
+- **10+ seconds**: Poor, users may abandon conversation
+- **20+ seconds**: Unusable, users will definitely leave
+
+Always test response times before deploying to production!
 
 ## Result
 

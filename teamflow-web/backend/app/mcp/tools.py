@@ -6,16 +6,89 @@ Tool categories:
 - Task Management: add_task, list_tasks, assign_task, complete_task
 - Analytics: get_profitability, workload_summary
 - Recommendations: suggest_assignee
+
+Phase 7 (T092): RBAC role constant mapping for MCP tools.
+Defines which roles can execute each tool (admin, manager, member, viewer).
 """
-from typing import Optional, List
+from typing import Optional, List, Set
 from uuid import UUID
 from datetime import datetime
+from enum import Enum
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 
 from app.services.task_service import TaskService
 from app.services.analytics_service import AnalyticsService
+
+
+# T092: RBAC Role Constants
+
+
+class UserRole(str, Enum):
+    """User roles for RBAC (T092)."""
+
+    ADMIN = "admin"
+    MANAGER = "manager"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+
+# T092: Tool-to-Role mapping
+# Defines which roles can execute each MCP tool
+TOOL_ROLE_PERMISSIONS = {
+    # Knowledge Base Tools - Available to all roles
+    "search_knowledge_base": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER},
+
+    # Task Management Tools
+    "add_task": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER},
+    "list_tasks": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER},
+    "assign_task": {UserRole.ADMIN, UserRole.MANAGER},
+    "complete_task": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER},
+
+    # Analytics Tools - Manager and Admin only
+    "get_profitability": {UserRole.ADMIN, UserRole.MANAGER},
+    "workload_summary": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER},
+
+    # Recommendation Tools - All roles can view recommendations
+    "suggest_assignee": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER},
+}
+
+
+def check_tool_permission(tool_name: str, user_role: UserRole) -> bool:
+    """Check if user role has permission to execute a tool (T092).
+
+    Args:
+        tool_name: Name of the MCP tool
+        user_role: User's role (admin, manager, member, viewer)
+
+    Returns:
+        True if user has permission, False otherwise
+
+    Example:
+        >>> check_tool_permission("add_task", UserRole.MEMBER)
+        True
+        >>> check_tool_permission("assign_task", UserRole.VIEWER)
+        False
+    """
+    allowed_roles = TOOL_ROLE_PERMISSIONS.get(tool_name, set())
+    return user_role in allowed_roles
+
+
+def get_allowed_roles(tool_name: str) -> Set[UserRole]:
+    """Get set of roles allowed to execute a tool (T092).
+
+    Args:
+        tool_name: Name of the MCP tool
+
+    Returns:
+        Set of allowed roles
+
+    Example:
+        >>> get_allowed_roles("assign_task")
+        {UserRole.ADMIN, UserRole.MANAGER}
+    """
+    return TOOL_ROLE_PERMISSIONS.get(tool_name, set())
 
 
 # Input schemas for tools

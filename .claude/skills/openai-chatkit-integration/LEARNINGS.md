@@ -6,7 +6,7 @@ This document summarizes the critical lessons learned from implementing ChatKit 
 
 After extensive debugging and research, we successfully integrated ChatKit JS (frontend) + ChatKit Python SDK (backend) + OpenAI Agents SDK + OpenRouter. This document captures the most common pitfalls and their solutions to save you hours of debugging.
 
-## The 8 Critical Pitfalls
+## The 9 Critical Pitfalls
 
 ### 1. Wrong ChatKit SDK Imports
 
@@ -194,6 +194,50 @@ async def load_threads(self, context, limit, after, order) -> Page[ThreadMetadat
 
 ---
 
+### 9. Messages Overwriting Each Other (CRITICAL) 🆕
+
+**Symptom:**
+- First AI response appears correctly
+- Second AI response **overwrites** the first instead of appearing below it
+- Third AI response overwrites the second
+- Chat history restore shows messages correctly (so it's a live streaming issue only)
+
+**Root Cause:**
+The `stream_agent_response()` helper uses `__fake_id__` as a temporary placeholder during streaming. When multiple messages are sent, they all use the same `__fake_id__`, causing the frontend ChatKit client to update the same message component instead of creating new ones.
+
+**Solution:**
+```python
+# WRONG - Causes message overwriting
+async for event in stream_agent_response(agent_context, result):
+    yield event  # ❌ All messages use same __fake_id__
+
+# CORRECT - Generate unique ID and replace __fake_id__
+import uuid
+
+# Generate unique message ID BEFORE streaming
+unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+
+async for event in stream_agent_response(agent_context, result):
+    # CRITICAL: Replace __fake_id__ with our unique ID
+    if hasattr(event, 'item'):
+        item = event.item
+        if hasattr(item, 'id') and item.id == "__fake_id__":
+            # Replace __fake_id__ with our unique ID
+            new_item = item.model_copy(update={"id": unique_message_id})
+            event = event.model_copy(update={"item": new_item})
+            logger.info(f"Replaced __fake_id__ with {unique_message_id} in {type(event).__name__}")
+
+    yield event
+```
+
+**Key Point:** Generate a unique message ID upfront and replace `__fake_id__` in all streaming events. This ensures each AI response gets a distinct ID that prevents the frontend from overwriting previous messages.
+
+**Related Issues:**
+- GitHub: https://github.com/openai/openai-agents-python/issues/1485
+- GitHub: https://github.com/openai/openai-chatkit-advanced-samples/issues/6
+
+---
+
 ## The Correct Implementation Pattern
 
 Here's the complete, correct pattern for the `respond()` method:
@@ -241,8 +285,20 @@ async def respond(
             context=agent_context
         )
 
-        # 6. Stream response as ChatKit events
+        # 6. Generate unique message ID (CRITICAL for preventing overwriting)
+        import uuid
+        unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+
+        # 7. Stream response as ChatKit events
         async for event in stream_agent_response(agent_context, result):
+            # CRITICAL: Replace __fake_id__ with our unique ID
+            # This prevents the frontend from overwriting previous messages
+            if hasattr(event, 'item'):
+                item = event.item
+                if hasattr(item, 'id') and item.id == "__fake_id__":
+                    new_item = item.model_copy(update={"id": unique_message_id})
+                    event = event.model_copy(update={"item": new_item})
+
             yield event
 
     except Exception as e:
@@ -263,6 +319,7 @@ Before deploying, verify:
 - [ ] `load_thread()` auto-creates threads if they don't exist
 - [ ] `load_threads()` returns `Page` object, not list
 - [ ] Passing `input_items` (not `user_message`) to `Runner.run_streamed()`
+- [ ] Replacing `__fake_id__` with unique message IDs in streaming events (prevents overwriting)
 - [ ] Using `server.process()` in FastAPI endpoint
 - [ ] CORS configured for frontend origin
 - [ ] Environment variables set for API keys
@@ -309,6 +366,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 | Agent only responds to greetings | Passing `user_message` instead of `input_items` | Pass conversation history via `simple_to_agent_input()` |
 | `404 Not Found` from LLM API | Wrong API type or base_url | Use `set_default_openai_api("chat_completions")` |
 | `cannot import name 'ChatKitServer'` | Wrong import path | Use `from chatkit.server import ...` |
+| **Messages overwriting each other** | `stream_agent_response()` uses `__fake_id__` for all messages | Generate unique ID and replace `__fake_id__` in streaming events |
 
 ---
 
@@ -322,11 +380,15 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 6. **Thread Creation**: Added auto-creation in `load_thread()`
 7. **Context Issue**: **Critical breakthrough** - passing `input_items` instead of `user_message`
 8. **Success**: Agent now responds to all types of messages with full context
+9. **Message Overwriting Bug (2026-01-10)**: Discovered `stream_agent_response()` uses `__fake_id__` placeholder, causing messages to overwrite each other. Fixed by generating unique IDs upfront and replacing `__fake_id__` in streaming events.
 
 ---
 
 ## Conclusion
 
-The ChatKit integration is deceptively simple but has several critical implementation details that, if missed, will cause mysterious failures. The most critical lesson is **always pass conversation history (`input_items`) to the agent, not just the current message**.
+The ChatKit integration is deceptively simple but has several critical implementation details that, if missed, will cause mysterious failures. The most critical lessons are:
+
+1. **Always pass conversation history (`input_items`) to the agent, not just the current message**
+2. **Always generate unique message IDs and replace `__fake_id__` in streaming events** to prevent message overwriting
 
 Use the templates in this skill as a starting point - they've been battle-tested and incorporate all the lessons learned.

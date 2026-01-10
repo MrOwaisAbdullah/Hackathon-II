@@ -679,8 +679,26 @@ class TeamFlowChatKitServer(ChatKitServer):
                 context=agent_context
             )
 
+            # CRITICAL FIX: Generate unique message ID upfront to prevent overwriting
+            # The stream_agent_response() helper uses __fake_id__ during streaming,
+            # which causes the frontend to update the same message repeatedly.
+            # We generate a unique ID now and ensure all events for this response use it.
+            import uuid
+            unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+            logger.info(f"Generated unique message ID: {unique_message_id}")
+
             # Stream the agent response as ChatKit events
             async for event in stream_agent_response(agent_context, result):
+                # CRITICAL: Replace __fake_id__ with our unique ID
+                # This prevents the frontend from overwriting previous messages
+                if hasattr(event, 'item'):
+                    item = event.item
+                    if hasattr(item, 'id') and item.id == "__fake_id__":
+                        # Replace __fake_id__ with our unique ID
+                        new_item = item.model_copy(update={"id": unique_message_id})
+                        event = event.model_copy(update={"item": new_item})
+                        logger.info(f"Replaced __fake_id__ with {unique_message_id} in {type(event).__name__}")
+
                 yield event
 
             logger.info("Streaming complete")
@@ -735,6 +753,24 @@ def get_chatkit_server() -> TeamFlowChatKitServer:
 
     return _chatkit_server
 ```
+
+#### ⚠️ CRITICAL: Message Overwriting Bug
+
+**Problem**: If you skip the `__fake_id__` replacement step above, you'll encounter a critical bug where AI responses overwrite each other instead of appearing as separate messages.
+
+**Symptoms**:
+- First AI response appears correctly
+- Second AI response **overwrites** the first instead of appearing below it
+- Third AI response overwrites the second
+- Chat history restore shows messages correctly (so it's a live streaming issue only)
+
+**Root Cause**: The `stream_agent_response()` helper uses `__fake_id__` as a temporary placeholder during streaming. When multiple messages are sent, they all use the same `__fake_id__`, causing the frontend ChatKit client to update the same message component instead of creating new ones.
+
+**Solution**: The fix shown above (lines 682-704):
+1. Generate a unique message ID upfront: `unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"`
+2. Intercept events and replace `__fake_id__` with the unique ID using `item.model_copy(update={"id": unique_message_id})`
+
+**Verification**: Test by sending multiple messages and verify each response appears as a new message below previous ones.
 
 ### Step 9: Create FastAPI Endpoints
 
@@ -974,13 +1010,45 @@ export default function ChatPage() {
 - Responses stream in real-time
 - Conversation history is maintained
 - Agent responds to all types of questions (not just greetings)
+- **Each AI response appears as a NEW message (critical!)**
 - Threads persist across page refreshes (if using persistent storage)
 
 ❌ **Not Working - Check Troubleshooting:**
 - No response at all
 - Only greetings work, not real questions
 - Context is lost between messages
+- **Messages overwriting each other (see "CRITICAL: Message Overwriting Bug" above)**
 - Error messages in console
+
+### Critical Test: Message Overwriting
+
+**Test Steps:**
+1. Send message "Hello!"
+2. Wait for AI response
+3. Send message "What can you do?"
+4. Wait for AI response
+5. Send message "Tell me a joke"
+6. Wait for AI response
+
+**Expected Result:**
+```
+[User] Hello!
+[AI] Hi there! How can I help you today?
+[User] What can you do?
+[AI] I can help answer questions, provide information, and assist with various tasks.
+[User] Tell me a joke
+[AI] Why don't scientists trust atoms? Because they make up everything!
+```
+
+**If Bug Present:**
+```
+[User] Hello!
+[User] What can you do?
+[User] Tell me a joke
+[AI] Why don't scientists trust atoms? Because they make up everything!  ← Only last message visible!
+```
+
+**Fix**: See "⚠️ CRITICAL: Message Overwriting Bug" section above (or `SKILL.md` Pitfall #9).
 
 ---
 

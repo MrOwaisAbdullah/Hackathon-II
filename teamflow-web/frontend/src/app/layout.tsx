@@ -5,7 +5,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Providers } from "@/components/providers/Providers";
 import { Toaster } from "sonner";
-import { ChatWidget } from "@/components/chat";
+import { ChatWidgetWrapper } from "@/components/chat/ChatWidgetWrapper";
 
 export const metadata: Metadata = {
   title: "TeamFlow - Agency Task Management",
@@ -29,11 +29,8 @@ export default function RootLayout({
           <ThemeProvider>
             <AuthProvider>
               {children}
-              {/* ChatWidget - Positioned via fixed positioning */}
-              <ChatWidget
-                apiUrl={process.env.NEXT_PUBLIC_API_URL}
-                position="bottom-right"
-              />
+              {/* ChatWidget - Positioned via fixed positioning, hidden on /chat page */}
+              <ChatWidgetWrapper />
             </AuthProvider>
           </ThemeProvider>
         </Providers>

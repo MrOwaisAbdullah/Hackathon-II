@@ -20,7 +20,7 @@ logger = get_logger("api.users")
 class UserCreateRequest(BaseModel):
     """User creation request."""
     name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr
+    email: str  # Changed from EmailStr to allow .local domains
     role: UserRole = UserRole.member
     is_project_manager: bool = False
 
@@ -28,7 +28,7 @@ class UserCreateRequest(BaseModel):
 class UserUpdateRequest(BaseModel):
     """User update request (all fields optional)."""
     name: str | None = Field(None, min_length=1, max_length=100)
-    email: EmailStr | None
+    email: str | None  # Changed from EmailStr to allow .local domains
     role: UserRole | None
     is_project_manager: bool | None
 

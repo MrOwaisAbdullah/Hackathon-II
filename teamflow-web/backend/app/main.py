@@ -1,8 +1,11 @@
 """FastAPI application for TeamFlow backend."""
+import asyncio
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,13 +19,48 @@ from app.core.logging import get_logger, RequestLoggingMiddleware
 # T155: Use structured logger
 logger = get_logger(__name__)
 
+# T086: Global scheduler for background tasks
+scheduler = AsyncIOScheduler()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
+    """Application lifespan manager (T086)."""
+
+    async def run_cleanup_job():
+        """Background task to run cleanup job."""
+        try:
+            from app.jobs.cleanup_conversations import main as cleanup_main
+            logger.info("[lifespan] Running scheduled conversation cleanup job")
+            # Run cleanup in a separate thread to avoid blocking
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, cleanup_main)
+            logger.info("[lifespan] Cleanup job completed")
+        except Exception as e:
+            logger.error(f"[lifespan] Cleanup job failed: {str(e)}")
+
     # Startup
+    logger.info("[lifespan] Starting up application...")
+
+    # T086: Schedule cleanup job to run daily at 2 AM UTC
+    scheduler.add_job(
+        run_cleanup_job,
+        'cron',
+        hour=2,
+        minute=0,
+        id='cleanup_conversations',
+        name='Daily conversation cleanup',
+        replace_existing=True,
+    )
+    scheduler.start()
+    logger.info("[lifespan] Scheduler started - cleanup job scheduled for daily 2 AM UTC")
+
     yield
+
     # Shutdown
+    logger.info("[lifespan] Shutting down application...")
+    scheduler.shutdown()
+    logger.info("[lifespan] Scheduler stopped")
 
 
 app = FastAPI(
@@ -63,6 +101,29 @@ async def health_check():
     return {"status": "healthy", "service": "teamflow-backend"}
 
 
+# T093: Prometheus metrics endpoint
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint for uptime monitoring (T093).
+
+    Exposes metrics in Prometheus text format for scraping.
+    Metrics include:
+    - Chat service health and performance
+    - AI agent response times
+    - RAG search performance
+    - MCP tool execution
+    - System uptime and health
+
+    Returns:
+        Prometheus metrics in text format
+    """
+    from fastapi.responses import Response
+    from app.core.metrics import get_metrics, CONTENT_TYPE_LATEST
+
+    metrics_data = get_metrics()
+    return Response(content=metrics_data, media_type=CONTENT_TYPE_LATEST)
+
+
 # JWT Middleware - extracts user info from token and adds to request state
 @app.middleware("http")
 async def jwt_middleware(request: Request, call_next):
@@ -88,50 +149,111 @@ async def jwt_middleware(request: Request, call_next):
 
 
 # T155: Error handling middleware with structured logging
+# T089: Standardized error response format
+# T090: Comprehensive error logging with context
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler for unhandled errors."""
+    """Global exception handler for unhandled errors (T089, T090)."""
+    error_context = {
+        "method": request.method,
+        "path": str(request.url.path),
+        "error_type": type(exc).__name__,
+        "error_message": str(exc),
+        "user_id": getattr(request.state, "user_id", None),
+        "agency_id": getattr(request.state, "agency_id", None),
+        "email": getattr(request.state, "email", None),
+        "role": getattr(request.state, "role", None),
+        "headers": dict(request.headers),
+    }
+
     logger.error(
-        f"Unhandled exception on {request.url.path}: {str(exc)}",
-        method=request.method,
-        path=str(request.url.path),
-        error_type=type(exc).__name__,
-        user_id=getattr(request.state, "user_id", None),
-        agency_id=getattr(request.state, "agency_id", None),
+        "[global_exception_handler] Unhandled exception",
+        **error_context,
     )
+
+    # T089: Standardized error response format
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "error": "Internal server error",
-            "detail": str(exc) if settings.environment != "production" else "An unexpected error occurred",
-            "path": str(request.url.path),
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred",
+                "details": str(exc) if settings.environment != "production" else None,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
         },
     )
 
 
 @app.exception_handler(status.HTTP_404_NOT_FOUND)
 async def not_found_exception_handler(request: Request, exc: Exception):
-    """Handle 404 errors."""
+    """Handle 404 errors (T089, T090)."""
     logger.warning(
-        f"404 error on {request.url.path}: {str(exc)}",
+        "[not_found_exception_handler] Resource not found",
         method=request.method,
         path=str(request.url.path),
+        user_id=getattr(request.state, "user_id", None),
     )
+
+    # T089: Standardized error response format
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": "Not found", "path": str(request.url.path)},
+        content={
+            "error": {
+                "code": "NOT_FOUND",
+                "message": "The requested resource was not found",
+                "details": {"path": str(request.url.path)},
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        },
     )
 
 
 @app.exception_handler(status.HTTP_422_UNPROCESSABLE_ENTITY)
 async def validation_exception_handler(request: Request, exc: Exception):
-    """Handle validation errors."""
+    """Handle validation errors (T089, T090)."""
     logger.warning(
-        f"Validation error on {request.url.path}: {str(exc)}",
+        "[validation_exception_handler] Validation error",
         method=request.method,
         path=str(request.url.path),
+        error_message=str(exc),
+        user_id=getattr(request.state, "user_id", None),
     )
+
+    # T089: Standardized error response format
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"error": "Validation error", "detail": str(exc)},
+        content={
+            "error": {
+                "code": "VALIDATION_ERROR",
+                "message": "Request validation failed",
+                "details": str(exc) if settings.environment != "production" else None,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        },
+    )
+
+
+@app.exception_handler(status.HTTP_429_TOO_MANY_REQUESTS)
+async def rate_limit_exception_handler(request: Request, exc: Exception):
+    """Handle rate limit errors (T089, T090)."""
+    logger.warning(
+        "[rate_limit_exception_handler] Rate limit exceeded",
+        method=request.method,
+        path=str(request.url.path),
+        user_id=getattr(request.state, "user_id", None),
+    )
+
+    # T089: Standardized error response format for rate limiting
+    # Rate limit headers are already added by the rate_limit function
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content={
+            "error": {
+                "code": "RATE_LIMIT_EXCEEDED",
+                "message": "Too many requests. Please try again later.",
+                "details": getattr(request.state, "rate_limit_info", {}),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        },
     )

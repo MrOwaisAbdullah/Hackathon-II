@@ -246,14 +246,56 @@ curl -X POST http://localhost:8000/api/v1/chat/respond \
 
 ---
 
-### 6.4 Voice Input Not Working
+### 6.4 Voice Input Not Working (T084)
 
-**Symptom**: Microphone button doesn't respond.
+**Symptom**: Microphone button doesn't respond or transcription doesn't work.
+
+**Browser Requirements**:
+- **Chrome/Edge** (Chromium-based): ✅ Fully supported
+- **Safari**: ⚠️ Partial support (may require experimental features)
+- **Firefox**: ❌ Not supported (Web Speech API not available)
+- **Opera**: ✅ Supported (Chromium-based)
 
 **Solution**:
-1. Check browser support (Chrome recommended)
-2. Verify microphone permissions granted
-3. Check console for errors: F12 → Console tab
+1. **Check browser support** (Chrome recommended):
+   - Open Developer Tools (F12) → Console tab
+   - Type: `window.SpeechRecognition || window.webkitSpeechRecognition`
+   - Should return a function, not `undefined`
+
+2. **Verify microphone permissions**:
+   - Click lock icon in address bar (left of URL)
+   - Find "Microphone" permission
+   - Set to "Allow"
+   - Refresh the page
+
+3. **Check for SSL/HTTPS**:
+   - Voice input requires HTTPS in production
+   - Local development (http://localhost) works
+   - For remote testing, use HTTPS or ngrok
+
+4. **Test keyboard shortcut**:
+   - Press `Ctrl+Shift+V` to toggle recording
+   - Button should pulse red when recording
+   - Press again to stop
+
+5. **Verify transcript appears**:
+   - Real-time transcription shows below input field
+   - Edit transcript before sending if needed
+   - Click "Send" to submit
+
+**Common Issues**:
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Not supported" message | Browser doesn't support Web Speech API | Use Chrome/Edge |
+| "Permission denied" | Microphone access blocked | Allow microphone in browser settings |
+| No transcript appears | Speech not recognized | Speak clearly, reduce background noise |
+| Transcript has errors | Network/API issue | Check internet connection |
+
+**Language Support**:
+- English (en-US): Default, high accuracy
+- Urdu (ur-PK): Supported, but accuracy may vary
+- Switch language using LanguageToggle component (🇬🇧/🇵🇰 dropdown)
 
 ---
 

@@ -2,6 +2,8 @@
 
 This module provides in-memory rate limiting using a sliding window algorithm.
 For production, consider using Redis for distributed rate limiting.
+
+Phase 7 (T087, T088): Added chat-specific rate limiting.
 """
 import time
 from collections import defaultdict
@@ -31,6 +33,9 @@ RATE_LIMITS = {
     "users_create": RateLimitConfig(max_requests=10, window_seconds=3600),  # 10 user creations per hour
     "users_update": RateLimitConfig(max_requests=30, window_seconds=60),  # 30 user updates per minute
     "users_delete": RateLimitConfig(max_requests=5, window_seconds=3600),  # 5 user deletions per hour
+    # T087: Chat rate limits (Phase 7)
+    "chat_respond": RateLimitConfig(max_requests=100, window_seconds=3600),  # 100 requests per hour
+    "chat_default": RateLimitConfig(max_requests=60, window_seconds=60),  # 60 requests per minute for other chat endpoints
 }
 
 
@@ -112,14 +117,21 @@ rate_limiter = InMemoryRateLimiter()
 def get_client_identifier(request: Request) -> str:
     """Get a unique identifier for rate limiting.
 
+    T087: Prioritizes user_id from authenticated session over IP address.
+    This allows rate limiting per user rather than per IP.
+
     Uses X-Forwarded-For header if available (for production behind proxy),
     otherwise falls back to client IP.
     """
+    # T087: Try to get user_id from session state (set by JWT middleware)
+    if hasattr(request.state, "user_id") and request.state.user_id:
+        return f"user:{request.state.user_id}"
+
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
+        return f"ip:{forwarded_for.split(',')[0].strip()}"
 
-    return request.client.host if request.client else "unknown"
+    return f"ip:{request.client.host}" if request.client else "ip:unknown"
 
 
 def rate_limit(limit_type: str = "auth_default"):
@@ -146,14 +158,38 @@ def rate_limit(limit_type: str = "auth_default"):
             # Check if request is allowed
             if not rate_limiter.is_allowed(rate_limit_key, config):
                 retry_after = rate_limiter.get_retry_after(rate_limit_key, config)
+                # T088: Add rate limit headers
                 raise HTTPException(
                     status_code=429,
                     detail={
-                        "error": "Too many requests",
-                        "retry_after": retry_after,
+                        "error": {
+                            "code": "RATE_LIMIT_EXCEEDED",
+                            "message": "Too many requests. Please try again later.",
+                            "details": {
+                                "retry_after": retry_after,
+                                "limit": f"{config.max_requests} requests per {config.window_seconds} seconds",
+                            }
+                        }
                     },
-                    headers={"Retry-After": str(retry_after)},
+                    headers={
+                        "Retry-After": str(retry_after),
+                        "X-RateLimit-Limit": str(config.max_requests),
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": str(int(time.time()) + retry_after),
+                    }
                 )
+
+            # T088: Calculate remaining requests and add headers to successful responses
+            request_times = rate_limiter.requests.get(rate_limit_key, [])
+            remaining = max(0, config.max_requests - len(request_times))
+            reset_time = int(time.time()) + config.window_seconds
+
+            # Store rate limit info in request state for headers
+            request.state.rate_limit = {
+                "limit": config.max_requests,
+                "remaining": remaining - 1,  # -1 for current request
+                "reset": reset_time,
+            }
 
             return await func(request, *args, **kwargs)
 
@@ -182,11 +218,39 @@ def check_rate_limit(
 
     if not rate_limiter.is_allowed(rate_limit_key, config):
         retry_after = rate_limiter.get_retry_after(rate_limit_key, config)
+        # T088: Add rate limit headers
         raise HTTPException(
             status_code=429,
             detail={
-                "error": "Too many requests",
-                "retry_after": retry_after,
+                "error": {
+                    "code": "RATE_LIMIT_EXCEEDED",
+                    "message": "Too many requests. Please try again later.",
+                    "details": {
+                        "retry_after": retry_after,
+                        "limit": f"{config.max_requests} requests per {config.window_seconds} seconds",
+                    }
+                }
             },
-            headers={"Retry-After": str(retry_after)},
+            headers={
+                "Retry-After": str(retry_after),
+                "X-RateLimit-Limit": str(config.max_requests),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(int(time.time()) + retry_after),
+            }
         )
+
+
+def add_rate_limit_headers(request: Request, response) -> None:
+    """Add rate limit headers to response (T088).
+
+    Helper function to add X-RateLimit-* headers to successful responses.
+
+    Args:
+        request: FastAPI Request object with rate_limit in state
+        response: FastAPI Response object
+    """
+    if hasattr(request.state, "rate_limit"):
+        rl = request.state.rate_limit
+        response.headers["X-RateLimit-Limit"] = str(rl["limit"])
+        response.headers["X-RateLimit-Remaining"] = str(rl["remaining"])
+        response.headers["X-RateLimit-Reset"] = str(rl["reset"])

@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     )
 
     # Phase 3 AI Services (T003)
+    openai_api_key: str = Field(
+        default="",
+        description="OpenAI API key for GPT models (fallback when OpenRouter rate limited)",
+    )
     gemini_api_key: str = Field(
         default="",
         description="Gemini API key for AI model access",

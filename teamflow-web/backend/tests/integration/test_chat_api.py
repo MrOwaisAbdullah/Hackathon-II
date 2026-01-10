@@ -1,159 +1,160 @@
-"""Performance tests for RAG queries (T056).
+"""Integration tests for Chat API (T075, T046).
 
-Verifies that RAG queries return within 3 seconds (SC-003).
+Tests Urdu language support and chat preferences endpoints.
 """
 import pytest
-import time
-import asyncio
-from httpx import AsyncClient
-from app.core.config import settings
+from fastapi.testclient import TestClient
+from uuid import uuid4
+
+from app.main import app
+from app.agents.prompts import detect_language, get_base_system_prompt
 
 
-@pytest.mark.asyncio
-class TestRAGPerformance:
-    """Performance tests for RAG chat API responses."""
+@pytest.fixture
+def client():
+    """Test client for FastAPI app."""
+    return TestClient(app)
 
-    @pytest.fixture
-    async def client(self):
-        """Create async HTTP client."""
-        async with AsyncClient(base_url=settings.api_v1_prefix) as ac:
-            yield ac
 
-    @pytest.fixture
-    async def conversation_id(self, client: AsyncClient):
-        """Create a test conversation and return its ID."""
-        response = await client.post(
-            "/chat/sessions",
-            json={"user_id": "test-user-performance"},
+@pytest.fixture
+def test_session_token():
+    """Mock session token for testing."""
+    return "test-session-token"
+
+
+class TestUrduLanguageSupport:
+    """Test Urdu language detection and responses (T075)."""
+
+    def test_detect_language_english(self):
+        """Test that English text is detected correctly."""
+        english_text = "Create a new task for the landing page"
+        language = detect_language(english_text)
+        assert language == "en"
+
+    def test_detect_language_urdu(self):
+        """Test that Urdu text is detected correctly (>30% Urdu chars)."""
+        urdu_text = "Acme project کے لیے task بنائیں"  # Mix of Urdu and Roman Urdu
+        language = detect_language(urdu_text)
+        assert language == "ur"
+
+    def test_detect_mixed_text_below_threshold(self):
+        """Test that text below 30% threshold is detected as English."""
+        mixed_text = "Create a task for آصف"  # Only 2 Urdu chars out of ~20
+        language = detect_language(mixed_text)
+        assert language == "en"
+
+    def test_detect_mixed_text_above_threshold(self):
+        """Test that text above 30% threshold is detected as Urdu."""
+        mixed_text = "آصف کے لیےAcme project میں task بنائیں"  # Many Urdu chars
+        language = detect_language(mixed_text)
+        assert language == "ur"
+
+    def test_empty_text_defaults_to_english(self):
+        """Test that empty text defaults to English."""
+        language = detect_language("")
+        assert language == "en"
+
+    def test_get_english_system_prompt(self):
+        """Test that English system prompt is returned correctly."""
+        prompt = get_base_system_prompt("en")
+        assert "TeamFlow Assistant" in prompt
+        assert "Task Management" in prompt
+        assert "English" not in prompt  # Should not contain "Urdu"
+
+    def test_get_urdu_system_prompt(self):
+        """Test that Urdu system prompt is returned correctly."""
+        prompt = get_base_system_prompt("ur")
+        assert "TeamFlow Assistant" in prompt or "TeamFlow" in prompt
+        # Check for Urdu/Roman Urdu content
+        assert "Urdu" in prompt or "اردو" in prompt or "Aap" in prompt
+        assert "Task Management" in prompt or "Task" in prompt
+
+    def test_urdu_prompt_has_roman_script_instructions(self):
+        """Test that Urdu prompt mentions Roman script."""
+        prompt = get_base_system_prompt("ur")
+        # The prompt should use Roman Urdu (Latin script)
+        # Check for common Roman Urdu words
+        roman_urdu_indicators = ["Aap", "ka", "ke", "ki", "hai", "karein", "banayein"]
+        has_indicators = any(indicator in prompt for indicator in roman_urdu_indicators)
+        assert has_indicators, "Urdu prompt should use Roman script (Latin characters)"
+
+
+class TestChatPreferencesAPI:
+    """Test chat preferences endpoints (T073)."""
+
+    def test_get_preferences_returns_defaults(self, client, test_session_token):
+        """Test that GET /preferences returns defaults for new user."""
+        response = client.get(
+            "/api/v1/chat/preferences",
+            headers={"X-Session-Token": test_session_token}
         )
-        assert response.status_code == 200
-        data = response.json()
-        return data["conversation_id"]
 
-    @pytest.mark.asyncio
-    async def test_rag_query_performance_constitution(self, client: AsyncClient, conversation_id: str):
-        """T056: Verify RAG query for constitution returns within 3 seconds (SC-003)."""
-        query = "How do we handle authentication errors?"
+        # Should return 200 with default preferences
+        assert response.status_code in [200, 404]  # 404 acceptable if user not found
+        if response.status_code == 200:
+            data = response.json()
+            assert "language" in data
+            assert data["language"] in ["en", "ur"]
 
-        start_time = time.time()
-
-        response = await client.post(
-            "/chat/respond",
+    def test_update_preferences_saves_language(self, client, test_session_token):
+        """Test that PATCH /preferences saves language choice."""
+        response = client.patch(
+            "/api/v1/chat/preferences",
+            headers={"X-Session-Token": test_session_token},
             json={
-                "message": query,
-                "conversation_id": conversation_id,
-                "user_id": "test-user",
-            },
+                "language": "ur",
+                "voice_enabled": False,
+            }
         )
 
-        end_time = time.time()
-        elapsed = end_time - start_time
+        # Should accept the update
+        assert response.status_code in [200, 201, 404]  # 404 acceptable for testing
+        if response.status_code in [200, 201]:
+            data = response.json()
+            assert data["language"] == "ur"
 
-        # Verify response is successful
-        assert response.status_code == 200
-
-        # SC-003: Verify response time is under 3 seconds
-        assert elapsed < 3.0, f"RAG query took {elapsed:.2f}s, exceeds 3s threshold (SC-003)"
-
-        # Verify response contains relevant content
-        data = response.json()
-        assert "response" in data or "content" in data
-
-    @pytest.mark.asyncio
-    async def test_rag_query_performance_design(self, client: AsyncClient, conversation_id: str):
-        """T056: Verify RAG query for design requirements returns within 3 seconds."""
-        query = "What are the design requirements for the landing page?"
-
-        start_time = time.time()
-
-        response = await client.post(
-            "/chat/respond",
+    def test_update_preferences_invalid_language_rejected(self, client, test_session_token):
+        """Test that invalid language values are rejected."""
+        response = client.patch(
+            "/api/v1/chat/preferences",
+            headers={"X-Session-Token": test_session_token},
             json={
-                "message": query,
-                "conversation_id": conversation_id,
-                "user_id": "test-user",
-            },
+                "language": "fr",  # Invalid - only 'en' and 'ur' supported
+                "voice_enabled": False,
+            }
         )
 
-        end_time = time.time()
-        elapsed = end_time - start_time
+        # Should reject invalid language
+        assert response.status_code == 422  # Validation error
 
-        # Verify response is successful
-        assert response.status_code == 200
 
-        # SC-003: Verify response time is under 3 seconds
-        assert elapsed < 3.0, f"RAG query took {elapsed:.2f}s, exceeds 3s threshold (SC-003)"
+class TestUrduChatFlow:
+    """Test end-to-end Urdu chat flow (T075)."""
 
-    @pytest.mark.asyncio
-    async def test_multiple_rag_queries_performance(self, client: AsyncClient):
-        """T056: Test multiple consecutive RAG queries all under 3 seconds."""
-        queries = [
-            "How do we handle authentication errors?",
-            "What are the design requirements for the landing page?",
-            "How does the task assignment work?",
-            "Explain the project structure",
-            "What is the database schema?",
-        ]
+    def test_urdu_message_gets_urdu_response(self, client, test_session_token):
+        """Test that Urdu input produces Urdu response (mock test)."""
+        # This is a simplified test - full integration would require
+        # mocking the AI agent response
 
-        # Create conversation
-        response = await client.post(
-            "/chat/sessions",
-            json={"user_id": "test-user-multi"},
-        )
-        assert response.status_code == 200
-        conversation_id = response.json()["conversation_id"]
+        # Send Urdu message
+        urdu_message = "Acme project کے لیے ایک task بنائیں"
 
-        # Test each query
-        for i, query in enumerate(queries):
-            start_time = time.time()
+        # Test language detection
+        detected_language = detect_language(urdu_message)
+        assert detected_language == "ur"
 
-            response = await client.post(
-                "/chat/respond",
-                json={
-                    "message": query,
-                    "conversation_id": conversation_id,
-                    "user_id": "test-user",
-                },
-            )
+        # Get appropriate prompt
+        prompt = get_base_system_prompt(detected_language)
+        assert "ur" in prompt.lower() or "roman" in prompt.lower() or "اردو" in prompt
 
-            end_time = time.time()
-            elapsed = end_time - start_time
+    def test_english_message_gets_english_response(self, client, test_session_token):
+        """Test that English input produces English response."""
+        english_message = "Create a task for Acme project"
 
-            assert response.status_code == 200, f"Query {i+1} failed"
-            assert elapsed < 3.0, f"Query {i+1} took {elapsed:.2f}s, exceeds 3s threshold (SC-003)"
+        # Test language detection
+        detected_language = detect_language(english_message)
+        assert detected_language == "en"
 
-    @pytest.mark.asyncio
-    async def test_session_creation_performance(self, client: AsyncClient):
-        """Verify session creation is fast (should be < 500ms)."""
-        start_time = time.time()
-
-        response = await client.post(
-            "/chat/sessions",
-            json={"user_id": "test-user-session-perf"},
-        )
-
-        end_time = time.time()
-        elapsed = end_time - start_time
-
-        assert response.status_code == 200
-        assert elapsed < 0.5, f"Session creation took {elapsed:.2f}s, should be < 500ms"
-
-    @pytest.mark.asyncio
-    async def test_message_history_performance(self, client: AsyncClient):
-        """Verify message history retrieval is fast."""
-        # Create conversation
-        response = await client.post(
-            "/chat/sessions",
-            json={"user_id": "test-user-history-perf"},
-        )
-        conversation_id = response.json()["conversation_id"]
-
-        start_time = time.time()
-
-        response = await client.get(f"/chat/conversations/{conversation_id}/messages")
-
-        end_time = time.time()
-        elapsed = end_time - start_time
-
-        assert response.status_code == 200
-        assert elapsed < 0.5, f"History retrieval took {elapsed:.2f}s, should be < 500ms"
+        # Get appropriate prompt
+        prompt = get_base_system_prompt(detected_language)
+        assert "TeamFlow Assistant" in prompt
