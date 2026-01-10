@@ -63,15 +63,20 @@ class _ThreadState:
 
 
 class MemoryStore(StoreClass[dict]):
-    """In-memory store for ChatKit threads and items.
+    """In-memory store for ChatKit threads and items with undo support (G1).
 
     Simple thread-safe implementation using dictionaries.
     Non-persistent - data is lost on restart.
+
+    G1 - Specification Analysis Finding: Added undo functionality for deletions.
+    Items can be restored within 5 minutes of deletion via undo_delete_thread_item().
     """
 
     def __init__(self) -> None:
         self._threads: Dict[str, _ThreadState] = {}
         self._items_map: Dict[str, ThreadItem] = {}
+        self._undo_stack: Dict[str, List[ThreadItem]] = {}  # thread_id -> list of deleted items
+        self._undo_timestamps: Dict[str, datetime] = {}  # item_id -> deletion timestamp
 
     async def save_thread(
         self,
@@ -291,10 +296,89 @@ class MemoryStore(StoreClass[dict]):
         item_id: str,
         context: dict,
     ) -> None:
-        """Delete an item from a thread."""
+        """Delete an item from a thread with undo support (G1).
+
+        Stores deleted items for 5 minutes to allow undo.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
         state = self._threads.get(thread_id)
         if state:
-            state.items = [i for i in state.items if i.id != item_id]
+            # Find the item
+            for i, item in enumerate(state.items):
+                if item.id == item_id:
+                    # Store for undo before deleting
+                    if thread_id not in self._undo_stack:
+                        self._undo_stack[thread_id] = []
+
+                    # Store with timestamp
+                    self._undo_stack[thread_id].append(item)
+                    self._undo_timestamps[item_id] = datetime.utcnow()
+
+                    # Delete
+                    state.items.pop(i)
+                    if item_id in self._items_map:
+                        del self._items_map[item_id]
+
+                    logger.info(f"Deleted item {item_id} (undo available for 5 minutes)")
+                    return
+
+    async def undo_delete_thread_item(
+        self,
+        thread_id: str,
+        item_id: str,
+        context: dict,
+    ) -> bool:
+        """Undo deletion if within 5-minute window (G1 - Specification Analysis Finding).
+
+        Args:
+            thread_id: Thread containing the deleted item
+            item_id: ID of the item to restore
+            context: Request context (for logging/authorization)
+
+        Returns:
+            True if item was restored, False if undo not available
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Check if item was deleted within 5 minutes
+        deleted_at = self._undo_timestamps.get(item_id)
+        if not deleted_at:
+            logger.info(f"Undo not available for item {item_id} (not in deletion history)")
+            return False
+
+        if (datetime.utcnow() - deleted_at).total_seconds() > 300:  # 5 minutes
+            logger.warning(f"Undo window expired for item {item_id}")
+            # Clean up expired entries
+            if thread_id in self._undo_stack:
+                self._undo_stack[thread_id] = [
+                    item for item in self._undo_stack[thread_id]
+                    if item.id != item_id
+                ]
+            if item_id in self._undo_timestamps:
+                del self._undo_timestamps[item_id]
+            return False
+
+        # Restore from undo stack
+        if thread_id in self._undo_stack:
+            for item in self._undo_stack[thread_id]:
+                if item.id == item_id:
+                    state = self._threads.get(thread_id)
+                    if state:
+                        state.items.append(item)
+                        self._items_map[item_id] = item
+
+                        # Remove from undo stack
+                        self._undo_stack[thread_id].remove(item)
+                        del self._undo_timestamps[item_id]
+
+                        logger.info(f"Restored item {item_id} via undo")
+                        return True
+
+        logger.info(f"Undo not available for item {item_id} (not found in undo stack)")
+        return False
 
     async def save_attachment(
         self,

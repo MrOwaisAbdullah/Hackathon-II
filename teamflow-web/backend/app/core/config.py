@@ -61,6 +61,20 @@ class Settings(BaseSettings):
         description="Logging level (debug, info, warning, error)",
     )
 
+    # Better Auth JWT validation (C1 - Specification Analysis Finding)
+    better_auth_public_key: str = Field(
+        default="",
+        description="Better Auth JWT public key for token validation (RS256)",
+    )
+    better_auth_issuer: str = Field(
+        default="https://auth.teamflow.com",
+        description="Better Auth JWT issuer URL",
+    )
+    better_auth_audience: List[str] = Field(
+        default=["teamflow-api"],
+        description="Valid JWT audience values",
+    )
+
     @property
     def cors_origins(self) -> List[str]:
         """Parse frontend_url into a list of CORS origins."""

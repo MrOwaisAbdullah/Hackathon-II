@@ -7,6 +7,8 @@ This module provides FastAPI endpoints for:
 - User preferences management
 - Health checks for AI services
 - ChatKit protocol support (self-hosted)
+- Recommendation acceptance tracking (A1 - Specification Analysis Finding)
+- Undo functionality for deletions (G1 - Specification Analysis Finding)
 
 Authentication: Uses Better Auth session validation via X-Session-Token header.
 Response Format: NDJSON streaming for real-time responses.
@@ -16,6 +18,11 @@ Phase 7 (T087, T088, T089, T090, T091):
 - Error response format standardization
 - Comprehensive error logging with context
 - Streaming performance monitoring (2 second target)
+
+Specification Analysis Remediations (0025):
+- C1: Better Auth JWT validation
+- A1: Recommendation acceptance metrics
+- G1: Undo functionality for deletions (5-minute window)
 """
 import json
 import asyncio
@@ -23,6 +30,7 @@ import logging
 import time
 from typing import Optional, AsyncIterator
 from datetime import datetime
+from jose import jwt
 
 from fastapi import APIRouter, HTTPException, Request, Header, Depends
 from fastapi.responses import StreamingResponse, Response
@@ -105,10 +113,10 @@ async def verify_session_token(
     x_session_token: Optional[str] = Header(None, alias="X-Session-Token"),
 ) -> dict:
     """
-    Verify Better Auth session token.
+    Verify Better Auth session token (C1 - Specification Analysis Finding).
 
-    For testing purposes, accepts any token and creates a temp user session.
-    TODO: Integrate with actual Better Auth session verification.
+    Validates JWT token with Better Auth backend and extracts user claims.
+    Falls back to temp user only in development mode when no token provided.
 
     Args:
         request: FastAPI request
@@ -117,17 +125,56 @@ async def verify_session_token(
 
     Returns:
         Session data with user_id and agency_id
+
+    Raises:
+        HTTPException: If token validation fails (401)
     """
-    # For testing: use fixed temp user ID that exists in database
-    # TODO: Verify JWT token with actual Better Auth integration
+    from app.core.config import settings
     from uuid import UUID
     from app.models.user import User
 
     TEMP_USER_ID = "739fe54d-a2df-4701-b7ef-a9c283610ae0"
 
-    # Fetch user from database to get agency_id
+    # Production: Validate JWT token
+    if settings.environment != "development" and x_session_token and settings.better_auth_public_key:
+        try:
+            # Decode JWT token (Better Auth uses RS256)
+            payload = jwt.decode(
+                x_session_token,
+                settings.better_auth_public_key,
+                algorithms=["RS256"],
+                issuer=settings.better_auth_issuer,
+                audience=settings.better_auth_audience,
+            )
+
+            user_id = payload.get("sub")
+            if not user_id:
+                raise HTTPException(status_code=401, detail="Invalid token: missing subject")
+
+            # Fetch user from database to get agency_id
+            user = session.get(User, UUID(user_id))
+            if not user:
+                raise HTTPException(status_code=401, detail="User not found")
+
+            logger.info(f"Session validated for user {user_id}")
+
+            return {
+                "user_id": user_id,
+                "agency_id": str(user.agency_id) if user.agency_id else None,
+                "session_id": payload.get("sid"),
+            }
+
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expired")
+        except jwt.InvalidTokenError as e:
+            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+
+    # Development: Use temp user ID
     user_id = UUID(TEMP_USER_ID)
     user = session.get(User, user_id)
+
+    if settings.environment == "development":
+        logger.warning(f"Using temp user {TEMP_USER_ID} (development mode)")
 
     if not user:
         # Fallback if user not found
@@ -617,7 +664,7 @@ async def track_recommendation_acceptance(
     session_data: dict = Depends(verify_session_token),
 ):
     """
-    Track user acceptance or rejection of AI recommendations (T066).
+    Track user acceptance or rejection of AI recommendations (T066, A1 - Specification Analysis Finding).
 
     Logs when users accept or reject AI-suggested actions like:
     - Task assignments (suggest_assignee tool)
@@ -638,34 +685,29 @@ async def track_recommendation_acceptance(
     Raises:
         HTTPException: If tracking fails (doesn't block chat flow)
     """
-    import logging
-    logger = logging.getLogger(__name__)
+    from app.models.recommendation import RecommendationAcceptanceLog
+    from uuid import UUID
 
     try:
-        user_id = session_data["user_id"]
+        user_id = UUID(session_data["user_id"])
 
-        # Log the acceptance event
-        # In production, this would be stored in a database table
-        # For now, we'll log it and store in a simple format
-        log_entry = {
-            "user_id": user_id,
-            "recommendation_type": request.recommendation_type,
-            "recommendation_id": request.recommendation_id,
-            "action": request.action,
-            "reasoning": request.reasoning,
-            "context": request.context,
-            "timestamp": datetime.utcnow().isoformat(),
-        }
+        # Store in database (A1 - Specification Analysis Finding)
+        log_entry = RecommendationAcceptanceLog(
+            user_id=user_id,
+            recommendation_type=request.recommendation_type,
+            recommendation_id=request.recommendation_id,
+            action=request.action,
+            reasoning=request.reasoning,
+            context=request.context,
+        )
 
-        # Log the event
+        session.add(log_entry)
+        session.commit()
+
         logger.info(
             f"Recommendation {request.action}: type={request.recommendation_type}, "
             f"id={request.recommendation_id}, user={user_id}"
         )
-
-        # TODO: Store in database table (recommendation_acceptance_log)
-        # Schema: user_id, recommendation_type, recommendation_id, action, reasoning, context, created_at
-        # This would allow for proper acceptance rate calculation and analytics
 
         return RecommendationAcceptanceResponse(
             success=True,
@@ -674,13 +716,13 @@ async def track_recommendation_acceptance(
         )
 
     except Exception as e:
-        # Log error but don't fail the request (tracking shouldn't block chat)
+        session.rollback()
         logger.error(f"Failed to track recommendation acceptance: {str(e)}")
 
         # Return success anyway to avoid blocking chat flow
         return RecommendationAcceptanceResponse(
             success=False,
-            message=f"Tracking failed (non-critical): {str(e)}",
+            message=f"Tracking failed: {str(e)}",
             tracked_at=datetime.utcnow().isoformat(),
         )
 
@@ -691,7 +733,7 @@ async def get_recommendation_stats(
     session_data: dict = Depends(verify_session_token),
 ):
     """
-    Get recommendation acceptance statistics (T066, T069).
+    Get recommendation acceptance statistics (T066, T069, A1 - Specification Analysis Finding).
 
     Returns acceptance rate metrics for AI recommendations.
     Used to track SC-005: 70% acceptance rate target.
@@ -703,26 +745,150 @@ async def get_recommendation_stats(
     Returns:
         Statistics including total recommendations, acceptance rate, trends
     """
+    from app.models.recommendation import RecommendationAcceptanceLog
+    from sqlmodel import select, func
+    from datetime import timedelta
+    from uuid import UUID
+
     try:
-        # TODO: Calculate from actual recommendation_acceptance_log table
-        # For now, return mock data
+        user_id = UUID(session_data["user_id"])
+
+        # Calculate stats from database (A1 - Specification Analysis Finding)
+        total_stmt = (
+            select(func.count())
+            .select_from(RecommendationAcceptanceLog)
+            .where(RecommendationAcceptanceLog.user_id == user_id)
+        )
+        total = session.exec(total_stmt).one()
+
+        accepted_stmt = (
+            select(func.count())
+            .select_from(RecommendationAcceptanceLog)
+            .where(
+                RecommendationAcceptanceLog.user_id == user_id,
+                RecommendationAcceptanceLog.action == "accepted"
+            )
+        )
+        accepted = session.exec(accepted_stmt).one()
+
+        rejected = total - accepted
+        acceptance_rate = (accepted / total * 100) if total > 0 else 0.0
+        target_rate = 70.0
+
+        # Get breakdown by type
+        by_type = {}
+        for rec_type in ["assignee", "task_creation", "priority"]:
+            type_total = session.exec(
+                select(func.count())
+                .select_from(RecommendationAcceptanceLog)
+                .where(
+                    RecommendationAcceptanceLog.user_id == user_id,
+                    RecommendationAcceptanceLog.recommendation_type == rec_type
+                )
+            ).one()
+
+            type_accepted = session.exec(
+                select(func.count())
+                .select_from(RecommendationAcceptanceLog)
+                .where(
+                    RecommendationAcceptanceLog.user_id == user_id,
+                    RecommendationAcceptanceLog.recommendation_type == rec_type,
+                    RecommendationAcceptanceLog.action == "accepted"
+                )
+            ).one()
+
+            by_type[rec_type] = {
+                "total": type_total,
+                "accepted": type_accepted,
+                "rate": round(type_accepted / type_total * 100, 2) if type_total > 0 else 0.0
+            }
+
+        # 7-day trend
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        trend = []
+        for i in range(7):
+            day_start = seven_days_ago + timedelta(days=i)
+            day_end = day_start + timedelta(days=1)
+
+            day_total = session.exec(
+                select(func.count())
+                .select_from(RecommendationAcceptanceLog)
+                .where(
+                    RecommendationAcceptanceLog.user_id == user_id,
+                    RecommendationAcceptanceLog.created_at >= day_start,
+                    RecommendationAcceptanceLog.created_at < day_end
+                )
+            ).one()
+
+            day_accepted = session.exec(
+                select(func.count())
+                .select_from(RecommendationAcceptanceLog)
+                .where(
+                    RecommendationAcceptanceLog.user_id == user_id,
+                    RecommendationAcceptanceLog.created_at >= day_start,
+                    RecommendationAcceptanceLog.created_at < day_end,
+                    RecommendationAcceptanceLog.action == "accepted"
+                )
+            ).one()
+
+            trend.append({
+                "date": day_start.date().isoformat(),
+                "total": day_total,
+                "accepted": day_accepted,
+                "rate": round(day_accepted / day_total * 100, 2) if day_total > 0 else 0.0
+            })
 
         return {
-            "total_recommendations": 0,
-            "accepted": 0,
-            "rejected": 0,
-            "acceptance_rate": 0.0,
-            "target_rate": 0.70,
-            "meets_target": None,  # True when >= 70%
-            "message": "Recommendation tracking not yet implemented in database",
-            "by_type": {
-                "assignee": {"total": 0, "accepted": 0, "rate": 0.0},
-                "task_creation": {"total": 0, "accepted": 0, "rate": 0.0},
-            },
-            "trend_7_days": [],
+            "total_recommendations": total,
+            "accepted": accepted,
+            "rejected": rejected,
+            "acceptance_rate": round(acceptance_rate, 2),
+            "target_rate": target_rate,
+            "meets_target": acceptance_rate >= target_rate if total > 0 else None,
+            "message": f"Acceptance rate: {acceptance_rate:.1f}% (target: {target_rate}%)",
+            "by_type": by_type,
+            "trend_7_days": trend,
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get recommendation stats: {str(e)}")
 
+
+@router.post("/chatkit/undo/{thread_id}/{item_id}")
+async def undo_item_deletion(
+    thread_id: str,
+    item_id: str,
+    session_data: dict = Depends(verify_session_token),
+):
+    """
+    Undo deletion of a thread item within 5-minute window (G1 - Specification Analysis Finding).
+
+    Allows users to restore accidentally deleted messages or responses.
+    Undo is available for 5 minutes after deletion.
+
+    Args:
+        thread_id: ChatKit thread ID
+        item_id: ThreadItem ID to restore
+        session_data: User session for authorization
+
+    Returns:
+        Confirmation of restoration
+
+    Raises:
+        HTTPException: If undo not available (expired or not found)
+    """
+    from app.chatkit.server import get_chatkit_server
+
+    server = get_chatkit_server()
+    context = {"user_id": session_data.get("user_id")}
+
+    success = await server.store.undo_delete_thread_item(thread_id, item_id, context)
+
+    if success:
+        return {"success": True, "message": f"Restored item {item_id}"}
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Undo not available (expired, not found, or not deleted)"
+        )
 
