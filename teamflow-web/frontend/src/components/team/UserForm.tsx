@@ -101,7 +101,7 @@ export function UserForm({ user, onClose, onSuccess }: UserFormProps) {
         onClose();
       }
     } catch {
-      console.error('Failed to save user:', ");
+      console.error('Failed to save user');
     }
   };
 

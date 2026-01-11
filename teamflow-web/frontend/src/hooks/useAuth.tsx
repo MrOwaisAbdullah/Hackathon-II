@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(response.data.user);
         }
       } catch {
-        console.error("Session check failed:", ");
+        console.error("Session check failed");
         // Clear invalid token
         if (typeof window !== "undefined") {
           localStorage.removeItem("auth_token");
