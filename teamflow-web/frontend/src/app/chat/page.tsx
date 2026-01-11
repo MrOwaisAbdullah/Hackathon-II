@@ -43,7 +43,7 @@ function ChatPageContent() {
   }, [theme]);
 
   // ChatKit setup
-  const { control, ref } = useChatKit({
+  const { control } = useChatKit({
     api: {
       url: `${API_URL}/api/v1/chat/chatkit`,
       domainKey: 'local-dev',
@@ -136,7 +136,6 @@ function ChatPageContent() {
       <div className="flex-1 overflow-hidden">
         <ChatKit
           control={control}
-          ref={ref}
           className="h-full w-full"
         />
       </div>
