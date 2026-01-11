@@ -160,8 +160,18 @@ export function ChatWidget({
       setIsInitialized(true)
     },
     onError: ({ error: _error }: { error: any }) => {
-      console.error('[ChatWidget] onError:')
-      setError("error")
+      console.error('[ChatWidget] onError:', _error)
+
+      // Ignore domain verification errors - chat still works with self-hosted backend
+      const errorMessage = _error?.message || _error?.toString() || ''
+      if (errorMessage.includes('Domain verification failed') ||
+          errorMessage.includes('domain_keys/verify')) {
+        console.log('[ChatWidget] Ignoring domain verification error - using self-hosted backend')
+        return
+      }
+
+      // Show error for other types of errors
+      setError('Chat initialization failed. Please refresh the page.')
     },
   })
 
