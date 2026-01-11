@@ -24,21 +24,21 @@ export default function TestChatKitPage() {
   console.log('[TestChatKitPage] useChatKit returned:', { control: !!control, ref: !!ref })
 
   return (
-    <div className=&quot;p-8&quot;>
-      <h1 className=&quot;text-2xl font-bold mb-4&quot;>ChatKit Test Page</h1>
-      <p className=&quot;mb-4 text-sm text-gray-600&quot;>Endpoint: {chatkitEndpoint}</p>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">ChatKit Test Page</h1>
+      <p className="mb-4 text-sm text-gray-600">Endpoint: {chatkitEndpoint}</p>
 
-      <div className=&quot;mb-4 p-4 bg-gray-100 rounded&quot;>
+      <div className="mb-4 p-4 bg-gray-100 rounded">
         <p><strong>Control exists:</strong> {control ? '✅ Yes' : '❌ No'}</p>
         <p><strong>Ref exists:</strong> {ref ? '✅ Yes' : '❌ No'}</p>
       </div>
 
-      <div className=&quot;border-4 border-blue-500 p-4&quot; style={{ height: '600px', width: '400px' }}>
-        <ChatKit control={control} ref={ref} className=&quot;h-full w-full&quot; />
+      <div className="border-4 border-blue-500 p-4" style={{ height: '600px', width: '400px' }}>
+        <ChatKit control={control} ref={ref} className="h-full w-full" />
       </div>
 
-      <p className=&quot;mt-4 text-sm text-gray-600&quot;>
-        Try sending a message like &quot;Hello!&quot; to test the chat integration.
+      <p className="mt-4 text-sm text-gray-600">
+        Try sending a message like "Hello!" to test the chat integration.
       </p>
     </div>
   )
