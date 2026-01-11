@@ -51,6 +51,11 @@ interface SpeechRecognition extends EventTarget {
   start(): void
   stop(): void
   abort(): void
+  onstart: () => void
+  onaudiostart: () => void
+  onaudioend: () => void
+  onspeechstart: () => void
+  onspeechend: () => void
   onresult: (event: SpeechRecognitionEvent) => void
   onerror: (event: SpeechRecognitionErrorEvent) => void
   onend: () => void
