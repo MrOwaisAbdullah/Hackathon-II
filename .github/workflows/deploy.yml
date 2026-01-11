@@ -5,7 +5,8 @@ name: Deploy TeamFlow Fullstack Application
 on:
   push:
     branches:
-      - 002-fullstack-web-crm  # Current default branch
+      - 002-fullstack-web-crm  # Main fullstack branch
+      - 001-ai-chatbot         # AI chatbot feature branch
       - main                    # Future-proof if renamed to 'main'
       - master                  # Legacy support
     paths:
