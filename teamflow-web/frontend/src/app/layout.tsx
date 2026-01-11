@@ -25,6 +25,22 @@ export default function RootLayout({
           src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"
           strategy="afterInteractive"
         />
+        {/* Suppress ChatKit domain verification errors for self-hosted backend */}
+        <Script id="chatkit-error-handler" strategy="afterInteractive">
+          {`
+            if (typeof window !== 'undefined') {
+              window.addEventListener('unhandledrejection', (event) => {
+                // Ignore ChatKit domain verification errors
+                if (event.reason?.message?.includes('Domain verification failed') ||
+                    event.reason?.message?.includes('domain_keys/verify') ||
+                    String(event.reason).includes('Domain verification failed')) {
+                  console.log('[ChatKit] Suppressed domain verification error (self-hosted backend)');
+                  event.preventDefault();
+                }
+              });
+            }
+          `}
+        </Script>
         <Providers>
           <ThemeProvider>
             <AuthProvider>
