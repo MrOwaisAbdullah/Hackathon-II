@@ -123,9 +123,7 @@ export function ChatWidget({
   const { control, ref, sendUserMessage } = useChatKit({
     api: {
       url: chatkitEndpoint,
-      // TODO: Register domain in OpenAI dashboard to remove verification errors
-      // https://platform.openai.com/settings/organization/security/domain-allowlist
-      domainKey: 'local-dev',
+      domainKey: process.env.NEXT_PUBLIC_CHATKIT_DOMAIN_KEY || 'local-dev',
     },
     theme: resolvedTheme,
     startScreen: {
