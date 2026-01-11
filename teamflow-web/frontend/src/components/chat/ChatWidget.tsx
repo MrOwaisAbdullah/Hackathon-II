@@ -159,7 +159,7 @@ export function ChatWidget({
     onReady: () => {
       setIsInitialized(true)
     },
-    onError: ({ error }: { error: any }) => {
+    onError: ({ error: _error }: { error: any }) => {
       console.error('[ChatWidget] onError:')
       setError("error")
     },
