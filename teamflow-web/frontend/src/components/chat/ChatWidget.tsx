@@ -123,7 +123,8 @@ export function ChatWidget({
   const { control, ref, sendUserMessage } = useChatKit({
     api: {
       url: chatkitEndpoint,
-      domainKey: 'local-dev',
+      // Note: domainKey removed to avoid domain verification with OpenAI
+      // The backend handles all auth/verification internally
     },
     theme: resolvedTheme,
     startScreen: {
