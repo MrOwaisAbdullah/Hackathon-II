@@ -88,7 +88,7 @@ export interface TimeEntryUpdate {
   entry_date?: string;
 }
 
-export interface TimeEntryRead extends TimeEntry {}
+export type TimeEntryRead = TimeEntry;
 
 // ============ PROFITABILITY TYPES (US5) ============
 

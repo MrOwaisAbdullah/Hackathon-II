@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const response = await api.get<{ user: User }>("/api/v1/auth/me");
           setUser(response.data.user);
         }
-      } catch (error) {
+      } catch {
         console.error("Session check failed:", error);
         // Clear invalid token
         if (typeof window !== "undefined") {

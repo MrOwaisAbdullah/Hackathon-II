@@ -58,7 +58,7 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
 
       // Close modal
       onClose();
-    } catch (error) {
+    } catch {
       console.error("Failed to create task:", error);
     } finally {
       setIsSubmitting(false);

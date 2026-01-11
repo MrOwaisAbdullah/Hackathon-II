@@ -94,7 +94,7 @@ export default function TimeEntriesPage() {
       try {
         await deleteTimeEntry.mutateAsync(entryId);
         toast.success("Time entry deleted successfully");
-      } catch (error) {
+      } catch {
         toast.error("Failed to delete time entry");
       }
     }
@@ -186,7 +186,7 @@ export default function TimeEntriesPage() {
       setSelectedTaskId("");
       setManualMinutes(0);
       setNote("");
-    } catch (error) {
+    } catch {
       toast.error(editingEntryId ? "Failed to update time entry" : "Failed to log time entry");
     }
   };

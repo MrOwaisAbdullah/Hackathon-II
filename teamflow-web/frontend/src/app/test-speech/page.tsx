@@ -51,7 +51,7 @@ export default function TestSpeechPage() {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript;
-        addLog(`   Result ${i}: "${transcript}" (isFinal: ${result.isFinal})`);
+        addLog(`   Result ${i}: &quot;${transcript}&quot; (isFinal: ${result.isFinal})`);
 
         if (result.isFinal) {
           finalTranscript += transcript + ' ';
@@ -79,10 +79,10 @@ export default function TestSpeechPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">Web Speech API Test</h1>
-        <p className="text-gray-600 mb-6">
+    <div className=&quot;min-h-screen bg-gray-50 p-8&quot;>
+      <div className=&quot;max-w-2xl mx-auto&quot;>
+        <h1 className=&quot;text-3xl font-bold mb-4&quot;>Web Speech API Test</h1>
+        <p className=&quot;text-gray-600 mb-6&quot;>
           This page tests if the Web Speech API works in your browser.
         </p>
 
@@ -101,25 +101,25 @@ export default function TestSpeechPage() {
 
         {/* Transcript Display */}
         {transcript && (
-          <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
-            <h2 className="font-semibold mb-2">Transcript:</h2>
-            <p className="text-lg">{transcript}</p>
+          <div className=&quot;mt-6 p-4 bg-white rounded-lg border border-gray-200&quot;>
+            <h2 className=&quot;font-semibold mb-2&quot;>Transcript:</h2>
+            <p className=&quot;text-lg&quot;>{transcript}</p>
           </div>
         )}
 
         {/* Error Display */}
         {error && (
-          <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
-            <h2 className="font-semibold text-red-800 mb-2">Error:</h2>
-            <p className="text-red-700">{error}</p>
+          <div className=&quot;mt-6 p-4 bg-red-50 rounded-lg border border-red-200&quot;>
+            <h2 className=&quot;font-semibold text-red-800 mb-2&quot;>Error:</h2>
+            <p className=&quot;text-red-700&quot;>{error}</p>
           </div>
         )}
 
         {/* Logs */}
         {logs.length > 0 && (
-          <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
-            <h2 className="font-semibold mb-2">Event Log:</h2>
-            <div className="font-mono text-sm space-y-1 max-h-64 overflow-y-auto">
+          <div className=&quot;mt-6 p-4 bg-white rounded-lg border border-gray-200&quot;>
+            <h2 className=&quot;font-semibold mb-2&quot;>Event Log:</h2>
+            <div className=&quot;font-mono text-sm space-y-1 max-h-64 overflow-y-auto&quot;>
               {logs.map((log, i) => (
                 <div key={i} className={log.includes('❌') ? 'text-red-600' : log.includes('✅') ? 'text-green-600' : 'text-gray-700'}>
                   {log}
@@ -130,9 +130,9 @@ export default function TestSpeechPage() {
         )}
 
         {/* Instructions */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h2 className="font-semibold text-blue-900 mb-2">If you get a "network" error:</h2>
-          <ul className="list-disc list-inside text-blue-800 space-y-1 text-sm">
+        <div className=&quot;mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200&quot;>
+          <h2 className=&quot;font-semibold text-blue-900 mb-2&quot;>If you get a &quot;network&quot; error:</h2>
+          <ul className=&quot;list-disc list-inside text-blue-800 space-y-1 text-sm&quot;>
             <li>Check your internet connection</li>
             <li>Try opening chrome://flags/#enable-speech-api and enable it</li>
             <li>Try in Incognito mode (Ctrl+Shift+N)</li>

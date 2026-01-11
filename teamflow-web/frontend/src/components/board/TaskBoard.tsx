@@ -250,7 +250,7 @@ export function TaskBoard() {
               <WifiOff className="text-amber-600 dark:text-amber-400 flex-shrink-0" size={20} />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-400">
-                  You're offline
+                  You&#39;re offline
                 </p>
                 <p className="text-xs text-amber-600 dark:text-amber-500">
                   Drag and drop is disabled. Changes will be saved when you reconnect.

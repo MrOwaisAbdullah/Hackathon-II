@@ -294,7 +294,7 @@ export function useVoiceInput({
               onErrorRef.current(errorMsg)
             }
           })
-      } catch (error) {
+      } catch {
         console.error('[useVoiceInput] >>> FAIL: Failed to start recording:', error)
         if (onErrorRef.current) {
           onErrorRef.current('Failed to start recording. Please try again.')
@@ -319,7 +319,7 @@ export function useVoiceInput({
         recognition.stop()
         setIsRecording(false)
         console.log('[useVoiceInput] >>> stop() completed')
-      } catch (error) {
+      } catch {
         console.error('[useVoiceInput] >>> ERROR stopping recognition:', error)
         setIsRecording(false)
       }

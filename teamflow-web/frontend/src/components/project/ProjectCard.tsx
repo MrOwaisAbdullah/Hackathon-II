@@ -49,7 +49,7 @@ export function ProjectCard({ project, onEdit, onDelete }: ProjectCardProps) {
         data: { status: newStatus },
       });
       toast.success(`Project ${newStatus === 'active' ? 'activated' : 'put on hold'}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to update project status');
     }
     setShowMenu(false);

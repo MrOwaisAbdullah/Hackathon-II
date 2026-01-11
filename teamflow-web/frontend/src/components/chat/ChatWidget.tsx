@@ -113,7 +113,7 @@ export function ChatWidget({
       await sendUserMessage({
         text: transcript.trim(),
       })
-    } catch (error) {
+    } catch {
       console.error('[ChatWidget] Failed to send voice message:', error)
       setError('Failed to send voice message. Please try again.')
     }

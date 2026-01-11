@@ -52,7 +52,7 @@ export default function ContactPage() {
       icon: MessageSquare,
       title: "Sales",
       email: "sales@teamflow.com",
-      description: "Interested in TeamFlow for your team? Let's talk."
+      description: "Interested in TeamFlow for your team? Let&#39;s talk."
     }
   ];
 
@@ -104,7 +104,7 @@ export default function ContactPage() {
               GET IN <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-300 to-emerald-400">TOUCH.</span>
             </h1>
             <p className="text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              Have questions? We&#39;d love to hear from you. Send us a message and we&#39;ll respond as soon as possible.
             </p>
           </motion.div>
         </div>

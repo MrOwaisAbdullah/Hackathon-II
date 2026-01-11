@@ -63,7 +63,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
         data: { status: newStatus as any },
       });
       toast.success(`Task moved to ${statusOptions.find(s => s.value === newStatus)?.label || newStatus}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to move task');
     }
   };
@@ -155,7 +155,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
       try {
         await deleteTask.mutateAsync(task.id);
         toast.success("Task deleted successfully");
-      } catch (error) {
+      } catch {
         toast.error("Failed to delete task");
       }
     }
@@ -165,7 +165,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
     try {
       await archiveTask.mutateAsync(task.id);
       toast.success("Task archived successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to archive task");
     }
   };

@@ -300,7 +300,7 @@ export default function SettingsPage() {
                           // Clear localStorage and redirect to login
                           localStorage.clear();
                           router.push("/login");
-                        } catch (error) {
+                        } catch {
                           toast.error("Failed to delete account. Please try again.");
                           setIsDeleting(false);
                           setShowDeleteConfirm(false);
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                     toast.success("Data exported successfully");
-                  } catch (error) {
+                  } catch {
                     toast.error("Failed to export data. Please try again.");
                   } finally {
                     setIsExporting(false);

@@ -69,7 +69,7 @@ export function TimeLoggingForm({
       setEntryDate(new Date().toISOString().split("T")[0]);
 
       onSuccess?.();
-    } catch (error) {
+    } catch {
       console.error("Failed to create time entry:", error);
     }
   };
@@ -89,7 +89,7 @@ export function TimeLoggingForm({
     try {
       await submitTimerEntry(note || undefined);
       onSuccess?.();
-    } catch (error) {
+    } catch {
       console.error("Failed to submit timer entry:", error);
     }
   };

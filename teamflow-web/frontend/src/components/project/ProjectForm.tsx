@@ -78,7 +78,7 @@ export function ProjectForm({ project, onClose, onSuccess }: ProjectFormProps) {
       }
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch {
       console.error('Failed to save project:', error);
     }
   };

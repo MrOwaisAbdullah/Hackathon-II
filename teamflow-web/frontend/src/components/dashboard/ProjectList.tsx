@@ -92,7 +92,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
         data: { status: newStatus },
       });
       toast.success(`Project ${newStatus === 'active' ? 'activated' : 'put on hold'}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to update project status');
     }
     setShowMenu(null);
@@ -104,7 +104,7 @@ export function ProjectList({ projects, onEdit }: ProjectListProps) {
       await deleteProject.mutateAsync(projectId);
       toast.success('Project deleted successfully');
       setDeleteConfirm(null);
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete project');
     }
     setShowMenu(null);

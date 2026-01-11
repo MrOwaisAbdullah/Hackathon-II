@@ -19,7 +19,7 @@
 
 import { ChatKit, useChatKit } from '@openai/chatkit-react';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Moon, Sun, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Moon, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useTheme } from '@/contexts/ThemeContext';

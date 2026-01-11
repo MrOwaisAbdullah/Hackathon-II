@@ -100,7 +100,7 @@ export function UserForm({ user, onClose, onSuccess }: UserFormProps) {
       if (!tempPassword) {
         onClose();
       }
-    } catch (error) {
+    } catch {
       console.error('Failed to save user:', error);
     }
   };

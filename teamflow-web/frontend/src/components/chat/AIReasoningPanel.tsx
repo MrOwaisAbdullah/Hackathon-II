@@ -75,7 +75,7 @@ export function AIReasoningPanel({
       } else {
         console.error(`[AIReasoningPanel] Failed to track ${action}:`, await response.text())
       }
-    } catch (error) {
+    } catch {
       console.error(`[AIReasoningPanel] Error tracking ${action}:`, error)
     } finally {
       setIsTracking(false)

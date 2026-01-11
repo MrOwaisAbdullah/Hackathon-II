@@ -79,7 +79,7 @@ const tiers = [
 const faqs = [
   {
     question: "Can I switch plans at any time?",
-    answer: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate your billing accordingly."
+    answer: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we&#39;ll prorate your billing accordingly."
   },
   {
     question: "What payment methods do you accept?",
