@@ -8,7 +8,7 @@ export default function TestChatKitPage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   const chatkitEndpoint = `${apiUrl}/api/v1/chat/chatkit`
 
-  const { control, ref } = useChatKit({
+  const { control } = useChatKit({
     api: {
       url: chatkitEndpoint,
       domainKey: 'local-dev',
@@ -21,7 +21,7 @@ export default function TestChatKitPage() {
     },
   })
 
-  console.log('[TestChatKitPage] useChatKit returned:', { control: !!control, ref: !!ref })
+  console.log('[TestChatKitPage] useChatKit returned:', { control: !!control })
 
   return (
     <div className="p-8">
@@ -30,11 +30,10 @@ export default function TestChatKitPage() {
 
       <div className="mb-4 p-4 bg-gray-100 rounded">
         <p><strong>Control exists:</strong> {control ? '✅ Yes' : '❌ No'}</p>
-        <p><strong>Ref exists:</strong> {ref ? '✅ Yes' : '❌ No'}</p>
       </div>
 
       <div className="border-4 border-blue-500 p-4" style={{ height: '600px', width: '400px' }}>
-        <ChatKit control={control} ref={ref} className="h-full w-full" />
+        <ChatKit control={control} className="h-full w-full" />
       </div>
 
       <p className="mt-4 text-sm text-gray-600">
