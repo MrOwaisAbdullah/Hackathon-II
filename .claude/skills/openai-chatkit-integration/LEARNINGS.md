@@ -6,7 +6,7 @@ This document summarizes the critical lessons learned from implementing ChatKit 
 
 After extensive debugging and research, we successfully integrated ChatKit JS (frontend) + ChatKit Python SDK (backend) + OpenAI Agents SDK + OpenRouter. This document captures the most common pitfalls and their solutions to save you hours of debugging.
 
-## The 9 Critical Pitfalls
+## The 10 Critical Pitfalls
 
 ### 1. Wrong ChatKit SDK Imports
 
@@ -238,6 +238,75 @@ async for event in stream_agent_response(agent_context, result):
 
 ---
 
+### 10. Domain Verification in Production (CRITICAL) 🆕
+
+**Symptom:**
+- ChatKit loads successfully in local development
+- Production deployment shows `IntegrationError: Domain verification failed`
+- Error appears in browser console immediately on page load
+- Chat widget may briefly appear then disappears
+
+**Error Message:**
+```
+IntegrationError: Domain verification failed for https://your-domain.vercel.app
+POST https://api.openai.com/v1/chatkit/domain_keys/verify 400 (Bad Request)
+Uncaught (in promise) IntegrationError
+```
+
+**Root Cause:**
+ChatKit's frontend JavaScript is loaded from OpenAI's CDN (`https://cdn.platform.openai.com/deployments/chatkit/chatkit.js`). This CDN code **always** verifies the domain with OpenAI's servers, regardless of whether you use a self-hosted backend. Even though you're using a custom FastAPI backend, the frontend ChatKit client enforces domain verification as a security measure.
+
+**Why It Works Locally:**
+- ChatKit automatically allows `localhost`, `127.0.0.1`, and local IP addresses
+- No domain registration needed for local development
+- Any `domainKey` value works locally
+
+**Why It Fails in Production:**
+- Production domains must be registered in OpenAI's dashboard
+- The CDN verifies the domain on every page load
+- Client-side error handlers cannot suppress this error (thrown by CDN code)
+
+**Solution:**
+
+**Step 1: Register Your Domain**
+1. Go to: https://platform.openai.com/settings/organization/security/domain-allowlist
+2. Click "Add Domain"
+3. Enter your production domain (e.g., `teamflow.vercel.app` or `*.vercel.app`)
+4. Copy the generated domain key (starts with `dk_`)
+
+**Step 2: Add Environment Variable**
+```bash
+# .env.local (for local testing with production domain)
+NEXT_PUBLIC_CHATKIT_DOMAIN_KEY=dk_xxxxxxxxxxxxx
+
+# Vercel / Netlify / other hosting
+# Add as environment variable in deployment settings
+```
+
+**Step 3: Use Environment Variable in ChatWidget**
+```tsx
+// ChatWidget.tsx
+const { control, ref, sendUserMessage } = useChatKit({
+  api: {
+    url: chatkitEndpoint,
+    // Use environment variable for production domain key
+    domainKey: process.env.NEXT_PUBLIC_CHATKIT_DOMAIN_KEY || 'local-dev',
+  },
+  theme: resolvedTheme,
+  // ... rest of config
+})
+```
+
+**Key Point:**
+1. **Domain verification is mandatory** for production deployments
+2. **Register domain at OpenAI dashboard** before deploying
+3. **Use environment variable** for domain key (`NEXT_PUBLIC_CHATKIT_DOMAIN_KEY`)
+4. **Client-side error handlers cannot suppress** this error (thrown by CDN)
+5. **Local development works without registration** (localhost auto-allowed)
+6. **Self-hosted backend doesn't bypass** domain verification (frontend enforces it)
+
+---
+
 ## The Correct Implementation Pattern
 
 Here's the complete, correct pattern for the `respond()` method:
@@ -323,6 +392,8 @@ Before deploying, verify:
 - [ ] Using `server.process()` in FastAPI endpoint
 - [ ] CORS configured for frontend origin
 - [ ] Environment variables set for API keys
+- [ ] **Domain registered at OpenAI dashboard** for production (see Pitfall #10)
+- [ ] **`NEXT_PUBLIC_CHATKIT_DOMAIN_KEY`** set in hosting platform (Vercel/Netlify)
 
 ---
 
@@ -343,6 +414,11 @@ MODEL_NAME=mistralai/devstral-2512:free  # OpenRouter
 
 # CORS
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# ChatKit Domain Verification (FRONTEND - Required for production)
+# Local development: use 'local-dev' (default)
+# Production: register domain at https://platform.openai.com/settings/organization/security/domain-allowlist
+NEXT_PUBLIC_CHATKIT_DOMAIN_KEY=dk_xxxxxxxxxxxxx
 ```
 
 ---
@@ -367,6 +443,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 | `404 Not Found` from LLM API | Wrong API type or base_url | Use `set_default_openai_api("chat_completions")` |
 | `cannot import name 'ChatKitServer'` | Wrong import path | Use `from chatkit.server import ...` |
 | **Messages overwriting each other** | `stream_agent_response()` uses `__fake_id__` for all messages | Generate unique ID and replace `__fake_id__` in streaming events |
+| **Domain verification failed** | Production domain not registered at OpenAI dashboard | Register domain and use `NEXT_PUBLIC_CHATKIT_DOMAIN_KEY` env var |
 
 ---
 
@@ -381,6 +458,7 @@ CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 7. **Context Issue**: **Critical breakthrough** - passing `input_items` instead of `user_message`
 8. **Success**: Agent now responds to all types of messages with full context
 9. **Message Overwriting Bug (2026-01-10)**: Discovered `stream_agent_response()` uses `__fake_id__` placeholder, causing messages to overwrite each other. Fixed by generating unique IDs upfront and replacing `__fake_id__` in streaming events.
+10. **Domain Verification Bug (2026-01-11)**: Production deployment failed with `IntegrationError: Domain verification failed`. ChatKit's CDN enforces domain verification even with self-hosted backend. Fixed by registering domain at OpenAI dashboard and using `NEXT_PUBLIC_CHATKIT_DOMAIN_KEY` environment variable.
 
 ---
 

@@ -386,6 +386,7 @@ If you encounter issues, check these in order:
 9. **Fullscreen Layout**: Does your outer container have `flex flex-col` when using `flex-1` on ChatKit? (see Pitfall #10)
 10. **Theme Memoization**: Is your ThemeContext value memoized with `useMemo`? (see Pitfall #11)
 11. **Theme Key Prop**: Are you using `key` prop for theme changes? Remove it. (see Pitfall #12)
+12. **Domain Verification**: Is your production domain registered at OpenAI dashboard? (see Pitfall #13)
 
 ---
 
@@ -1285,6 +1286,124 @@ ChatKit SDK handles theme changes internally via the `theme` prop. No `key` prop
 
 ---
 
+### ❌ Pitfall #13: Domain Verification in Production (CRITICAL)
+
+**Problem:**
+- ChatKit loads successfully in local development
+- Production deployment shows `IntegrationError: Domain verification failed`
+- Error appears in browser console immediately on page load
+- Chat widget may briefly appear then disappears
+
+**Symptoms:**
+```
+IntegrationError: Domain verification failed for https://your-domain.vercel.app
+POST https://api.openai.com/v1/chatkit/domain_keys/verify 400 (Bad Request)
+Uncaught (in promise) IntegrationError
+```
+
+**Root Cause:**
+ChatKit's frontend JavaScript is loaded from OpenAI's CDN (`https://cdn.platform.openai.com/deployments/chatkit/chatkit.js`). This CDN code **always** verifies the domain with OpenAI's servers, regardless of whether you use a self-hosted backend. Even though you're using a custom FastAPI backend, the frontend ChatKit client enforces domain verification as a security measure.
+
+**Why It Works Locally:**
+- ChatKit automatically allows `localhost`, `127.0.0.1`, and local IP addresses
+- No domain registration needed for local development
+- Any `domainKey` value works locally
+
+**Why It Fails in Production:**
+- Production domains must be registered in OpenAI's dashboard
+- The CDN verifies the domain on every page load
+- Client-side error handlers cannot suppress this error (thrown by CDN code)
+
+**Solution:**
+
+**Step 1: Register Your Domain**
+1. Go to: https://platform.openai.com/settings/organization/security/domain-allowlist
+2. Click "Add Domain"
+3. Enter your production domain (e.g., `teamflow.vercel.app` or `*.vercel.app`)
+4. Copy the generated domain key (starts with `dk_`)
+
+**Step 2: Add Environment Variable**
+Add the domain key to your frontend environment variables:
+
+```bash
+# .env.local (for local testing with production domain)
+NEXT_PUBLIC_CHATKIT_DOMAIN_KEY=dk_xxxxxxxxxxxxx
+
+# Vercel / Netlify / other hosting
+# Add as environment variable in deployment settings
+```
+
+**Step 3: Use Environment Variable in ChatWidget**
+
+```tsx
+// ChatWidget.tsx
+const { control, ref, sendUserMessage } = useChatKit({
+  api: {
+    url: chatkitEndpoint,
+    // Use environment variable for production domain key
+    domainKey: process.env.NEXT_PUBLIC_CHATKIT_DOMAIN_KEY || 'local-dev',
+  },
+  theme: resolvedTheme,
+  // ... rest of config
+})
+```
+
+**Step 4: Verify Deployment**
+```bash
+# Push changes to trigger deployment
+git push
+
+# Check browser console for successful initialization
+# Should see: "[ChatKit] ChatKit initialized successfully"
+# No domain verification errors
+```
+
+**Common Mistakes:**
+
+❌ **Using hardcoded 'local-dev' in production**
+```tsx
+// WRONG - Production won't work
+domainKey: 'local-dev'
+```
+
+❌ **Trying to suppress error with client-side handlers**
+```tsx
+// WRONG - Cannot catch error thrown by CDN code
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason?.message?.includes('Domain verification failed')) {
+    event.preventDefault() // This doesn't work!
+  }
+})
+```
+
+❌ **Removing domainKey parameter**
+```tsx
+// WRONG - TypeScript build error, domainKey is required
+domainKey: undefined // Build will fail
+```
+
+✅ **CORRECT: Register domain + use environment variable**
+```tsx
+// CORRECT - Domain registered, key from environment
+domainKey: process.env.NEXT_PUBLIC_CHATKIT_DOMAIN_KEY || 'local-dev'
+```
+
+**Key Points:**
+1. **Domain verification is mandatory** for production deployments
+2. **Register domain at OpenAI dashboard** before deploying
+3. **Use environment variable** for domain key (`NEXT_PUBLIC_CHATKIT_DOMAIN_KEY`)
+4. **Client-side error handlers cannot suppress** this error (thrown by CDN)
+5. **Local development works without registration** (localhost auto-allowed)
+6. **Self-hosted backend doesn't bypass** domain verification (frontend enforces it)
+
+**Environment Variables Checklist:**
+- [ ] `NEXT_PUBLIC_CHATKIT_DOMAIN_KEY` added to Vercel/Netlify/CI
+- [ ] Domain registered at https://platform.openai.com/settings/organization/security/domain-allowlist
+- [ ] Domain key starts with `dk_`
+- [ ] Fallback to `'local-dev'` for local development
+
+---
+
 ### ❌ Pitfall #10: Fullscreen Chat Shows No Content (CRITICAL)
 
 **Problem:**
@@ -1351,3 +1470,4 @@ Check the logs for:
 - **Fullscreen blank screen** → Missing `flex flex-col` on container (see Pitfall #10)
 - **Infinite loading/re-renders** → Missing `useMemo` in ThemeContext (see Pitfall #11)
 - **Theme toggle causes loading** → Using `key` prop for theme changes (see Pitfall #12)
+- **Domain verification error** → Domain not registered at OpenAI dashboard (see Pitfall #13)
