@@ -19,28 +19,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Suppress ChatKit domain verification errors BEFORE loading ChatKit */}
+        <Script id="chatkit-error-handler" strategy="beforeInteractive">
+          {`
+            window.addEventListener('unhandledrejection', function(event) {
+              // Ignore ChatKit domain verification errors for self-hosted backend
+              var reason = event.reason;
+              if (reason && typeof reason === 'object') {
+                var message = reason.message || String(reason);
+                if (message.includes('Domain verification failed') ||
+                    message.includes('domain_keys/verify')) {
+                  console.log('[ChatKit] Suppressed domain verification error (self-hosted backend)');
+                  event.preventDefault();
+                }
+              }
+            });
+          `}
+        </Script>
+      </head>
       <body className="antialiased">
         {/* ChatKit web component script - required for @openai/chatkit-react to work */}
         <Script
           src="https://cdn.platform.openai.com/deployments/chatkit/chatkit.js"
           strategy="afterInteractive"
         />
-        {/* Suppress ChatKit domain verification errors for self-hosted backend */}
-        <Script id="chatkit-error-handler" strategy="afterInteractive">
-          {`
-            if (typeof window !== 'undefined') {
-              window.addEventListener('unhandledrejection', (event) => {
-                // Ignore ChatKit domain verification errors
-                if (event.reason?.message?.includes('Domain verification failed') ||
-                    event.reason?.message?.includes('domain_keys/verify') ||
-                    String(event.reason).includes('Domain verification failed')) {
-                  console.log('[ChatKit] Suppressed domain verification error (self-hosted backend)');
-                  event.preventDefault();
-                }
-              });
-            }
-          `}
-        </Script>
         <Providers>
           <ThemeProvider>
             <AuthProvider>
