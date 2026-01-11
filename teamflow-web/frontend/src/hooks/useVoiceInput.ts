@@ -258,7 +258,7 @@ export function useVoiceInput({
 
     if (!isSupported) {
       const error = 'Speech Recognition is not supported in this browser. Please use Chrome or Edge.'
-      console.error('[useVoiceInput]', error)
+      console.error('[useVoiceInput]')
       if (onErrorRef.current) {
         onErrorRef.current(error)
       }
@@ -295,7 +295,7 @@ export function useVoiceInput({
             }
           })
       } catch {
-        console.error('[useVoiceInput] >>> FAIL: Failed to start recording:', error)
+        console.error('[useVoiceInput] >>> FAIL: Failed to start recording:')
         if (onErrorRef.current) {
           onErrorRef.current('Failed to start recording. Please try again.')
         }
@@ -320,7 +320,7 @@ export function useVoiceInput({
         setIsRecording(false)
         console.log('[useVoiceInput] >>> stop() completed')
       } catch {
-        console.error('[useVoiceInput] >>> ERROR stopping recognition:', error)
+        console.error('[useVoiceInput] >>> ERROR stopping recognition:')
         setIsRecording(false)
       }
     } else {

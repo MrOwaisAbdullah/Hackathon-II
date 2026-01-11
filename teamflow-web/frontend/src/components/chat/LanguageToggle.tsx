@@ -51,7 +51,7 @@ export function LanguageToggle({
           }
         }
       } catch {
-        console.error('[LanguageToggle] Failed to load preference:', error)
+        console.error('[LanguageToggle] Failed to load preference:')
       }
     }
 
@@ -85,7 +85,7 @@ export function LanguageToggle({
         console.error('[LanguageToggle] Failed to update preference:', await response.text())
       }
     } catch {
-      console.error('[LanguageToggle] Error updating preference:', error)
+      console.error('[LanguageToggle] Error updating preference:')
     } finally {
       setIsUpdating(false)
     }

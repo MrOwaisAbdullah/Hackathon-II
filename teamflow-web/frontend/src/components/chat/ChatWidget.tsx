@@ -114,7 +114,7 @@ export function ChatWidget({
         text: transcript.trim(),
       })
     } catch {
-      console.error('[ChatWidget] Failed to send voice message:', error)
+      console.error('[ChatWidget] Failed to send voice message:')
       setError('Failed to send voice message. Please try again.')
     }
   }
@@ -160,8 +160,8 @@ export function ChatWidget({
       setIsInitialized(true)
     },
     onError: ({ error }: { error: any }) => {
-      console.error('[ChatWidget] onError:', error)
-      setError(error.message)
+      console.error('[ChatWidget] onError:')
+      setError("error")
     },
   })
 

@@ -70,7 +70,7 @@ export function TimeLoggingForm({
 
       onSuccess?.();
     } catch {
-      console.error("Failed to create time entry:", error);
+      console.error("Failed to create time entry:", ");
     }
   };
 
@@ -90,7 +90,7 @@ export function TimeLoggingForm({
       await submitTimerEntry(note || undefined);
       onSuccess?.();
     } catch {
-      console.error("Failed to submit timer entry:", error);
+      console.error("Failed to submit timer entry:", ");
     }
   };
 
