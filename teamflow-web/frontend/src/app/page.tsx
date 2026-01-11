@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { CheckCircle2, Zap, Shield, BarChart3, ArrowRight, Github, Twitter, Linkedin } from "lucide-react";
+import { CheckCircle2, Zap, Shield, BarChart3, ArrowRight } from "lucide-react";
+import { MarketingHeader } from "@/components/layout/MarketingHeader";
+import { MarketingFooter } from "@/components/layout/MarketingFooter";
 
 export default function HomePage() {
   const containerRef = useRef(null);
@@ -23,24 +25,7 @@ export default function HomePage() {
       <div className="fixed inset-0 bg-[url('/noise.png')] opacity-[0.03] pointer-events-none" />
 
       {/* Header */}
-      <nav className="fixed top-0 left-0 right-0 p-6 flex justify-between items-center max-w-7xl mx-auto w-full z-50 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-lime-400 flex items-center justify-center shadow-lg shadow-lime-400/20">
-            <span className="text-black font-black text-xl tracking-tighter">T</span>
-          </div>
-          <span className="font-bold text-xl tracking-tight">TeamFlow</span>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="hidden md:flex gap-6 text-sm font-medium text-zinc-400">
-            <Link href="#features" className="hover:text-white transition-colors">Features</Link>
-            <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
-            <Link href="/login" className="hover:text-white transition-colors">Sign In</Link>
-          </div>
-          <Link href="/signup" className="px-5 py-2.5 bg-lime-400 text-black text-sm font-bold rounded-lg hover:bg-lime-300 transition-colors shadow-lg shadow-lime-400/20">
-            Get Started
-          </Link>
-        </div>
-      </nav>
+      <MarketingHeader />
 
       {/* Hero Section */}
       <section ref={containerRef} className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-20 px-4 overflow-hidden">
@@ -197,54 +182,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800 py-16 bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-2">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-lime-400 flex items-center justify-center">
-                  <span className="text-black font-bold">T</span>
-                </div>
-                <span className="font-bold text-xl tracking-tight">TeamFlow</span>
-              </div>
-              <p className="text-zinc-500 max-w-sm">
-                The modern operating system for forward-thinking creative agencies. Built for speed, designed for clarity.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-bold text-white mb-6">Product</h4>
-              <ul className="space-y-4 text-zinc-500">
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Features</Link></li>
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Integrations</Link></li>
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Pricing</Link></li>
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Changelog</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-white mb-6">Company</h4>
-              <ul className="space-y-4 text-zinc-500">
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">About</Link></li>
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Blog</Link></li>
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Careers</Link></li>
-                <li><Link href="#" className="hover:text-lime-400 transition-colors">Contact</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-zinc-600 text-sm">
-              © 2026 TeamFlow Inc. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link href="#" className="text-zinc-600 hover:text-white transition-colors"><Github className="w-5 h-5" /></Link>
-              <Link href="#" className="text-zinc-600 hover:text-white transition-colors"><Twitter className="w-5 h-5" /></Link>
-              <Link href="#" className="text-zinc-600 hover:text-white transition-colors"><Linkedin className="w-5 h-5" /></Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
     </main>
   );
 }
