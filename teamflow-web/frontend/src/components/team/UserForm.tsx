@@ -151,7 +151,7 @@ export function UserForm({ user, onClose, onSuccess }: UserFormProps) {
                 <div className="flex-1">
                   <h3 className="font-bold text-foreground mb-1">Team Member Added!</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Share this temporary password with the user. They'll be required to change it on first login.
+                    Share this temporary password with the user. They&#39;ll be required to change it on first login.
                   </p>
                   <div className="bg-background border border-border rounded-lg p-3 font-mono text-sm font-bold text-foreground tracking-wider select-all">
                     {tempPassword}
@@ -278,7 +278,7 @@ export function UserForm({ user, onClose, onSuccess }: UserFormProps) {
                 <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <AlertCircle className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" size={18} />
                   <p className="text-sm text-foreground">
-                    A temporary password will be generated and displayed after creating the user. They'll be required to change it on first login.
+                    A temporary password will be generated and displayed after creating the user. They&#39;ll be required to change it on first login.
                   </p>
                 </div>
               )}

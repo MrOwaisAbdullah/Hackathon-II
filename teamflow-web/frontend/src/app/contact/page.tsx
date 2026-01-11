@@ -196,7 +196,7 @@ export default function ContactPage() {
                   >
                     <CheckCircle2 className="w-16 h-16 text-lime-400 mx-auto mb-4" />
                     <h3 className="text-2xl font-bold mb-2">Message Sent!</h3>
-                    <p className="text-zinc-400">We'll get back to you within 24 hours.</p>
+                    <p className="text-zinc-400">We&#39;ll get back to you within 24 hours.</p>
                   </motion.div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-6">
@@ -325,7 +325,7 @@ export default function ContactPage() {
               },
               {
                 question: "Where are you located?",
-                answer: "We're based in San Francisco, CA with team members across the globe."
+                answer: "We&#39;re based in San Francisco, CA with team members across the globe."
               }
             ].map((faq, index) => (
               <motion.div

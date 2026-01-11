@@ -175,7 +175,7 @@ export function AIReasoningPanel({
           ) : (
             <>
               <span className="text-red-600">✗ Rejected</span>
-              <span className="text-gray-500">We'll use this to improve.</span>
+              <span className="text-gray-500">We&#39;ll use this to improve.</span>
             </>
           )}
         </div>

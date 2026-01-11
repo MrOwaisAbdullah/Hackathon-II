@@ -131,7 +131,7 @@ export default function TestSpeechPage() {
 
         {/* Instructions */}
         <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h2 className="font-semibold text-blue-900 mb-2">If you get a "network" error:</h2>
+          <h2 className="font-semibold text-blue-900 mb-2">If you get a &quot;network&quot; error:</h2>
           <ul className="list-disc list-inside text-blue-800 space-y-1 text-sm">
             <li>Check your internet connection</li>
             <li>Try opening chrome://flags/#enable-speech-api and enable it</li>

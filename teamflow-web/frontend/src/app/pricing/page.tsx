@@ -141,7 +141,7 @@ export default function PricingPage() {
               </span>
             </h1>
             <p className="text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-              Start free, upgrade when you're ready. No hidden fees, no surprises.
+              Start free, upgrade when you&#39;re ready. No hidden fees, no surprises.
             </p>
           </motion.div>
         </div>

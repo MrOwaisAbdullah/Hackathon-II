@@ -38,7 +38,7 @@ export default function TestChatKitPage() {
       </div>
 
       <p className="mt-4 text-sm text-gray-600">
-        Try sending a message like "Hello!" to test the chat integration.
+        Try sending a message like &quot;Hello!&quot; to test the chat integration.
       </p>
     </div>
   )

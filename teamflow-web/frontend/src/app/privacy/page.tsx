@@ -281,7 +281,7 @@ export default function PrivacyPage() {
               HAVE QUESTIONS?
             </h2>
             <p className="text-xl text-zinc-400 mb-8">
-              We're here to help. Contact us anytime.
+              We&#39;re here to help. Contact us anytime.
             </p>
             <Link
               href="/contact"
