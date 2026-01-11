@@ -86,7 +86,7 @@ export function ChatWidget({
 
   // T099: Keyboard shortcut for fullscreen toggle (Ctrl+Shift+F or Escape)
   useEffect(() => {
-    const handleKeyDown = (event: { key: string; ctrlKey: boolean; shiftKey: boolean; preventDefault: () => void }) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey && event.shiftKey && event.key === 'F') || event.key === 'Escape') {
         event.preventDefault()
         handleFullscreenToggle()
