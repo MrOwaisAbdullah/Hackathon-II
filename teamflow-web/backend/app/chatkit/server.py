@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from agents import Agent, Runner, RunContextWrapper
+from agents import Agent, Runner, RunContextWrapper, ItemHelpers
 from chatkit.server import (
     ChatKitServer,
     ErrorEvent,
@@ -477,10 +477,11 @@ class TeamFlowChatKitServer(ChatKitServer):
         This method processes the user message through the agent and streams
         the response using ChatKit's streaming helpers.
 
-        CRITICAL: Follow the official ChatKit pattern:
+        CRITICAL: Follow the official OpenAI Agents SDK streaming pattern:
         - The ChatKitServer base class ALREADY handles user message persistence
         - The ChatKitServer base class ALREADY calls respond() with proper input
-        - We just need to run the agent and yield events from stream_agent_response()
+        - Use Runner.run_streamed() and iterate through result.stream_events()
+        - Convert events to ChatKit ThreadItemAddedEvent for frontend
 
         Args:
             thread: ChatKit thread metadata
@@ -541,50 +542,95 @@ class TeamFlowChatKitServer(ChatKitServer):
                     async with create_chatbot_agent_context(
                         model=model_to_use,
                     ) as agent_to_use:
+                        logger.info(f"[ChatKit respond] About to run agent...")
+                        logger.info(f"[ChatKit respond] input_items count: {len(input_items) if input_items else 0}")
+
+                        # CRITICAL: Use Runner.run_streamed() for streaming responses
+                        # Then iterate through result.stream_events() to get events
                         result = Runner.run_streamed(
                             agent_to_use,
                             input_items,  # Pass conversation history
                             context=agent_context
                         )
-                        logger.info(f"[ChatKit respond] Agent execution started, streaming response...")
+                        logger.info(f"[ChatKit respond] Agent execution started, result type: {type(result).__name__}")
 
-                        # Stream the response - ALL within context manager
+                        # Debug: Check if result has content
+                        if hasattr(result, 'final_output'):
+                            logger.info(f"[ChatKit respond] Result has final_output attribute")
+                        if hasattr(result, 'stream_events'):
+                            logger.info(f"[ChatKit respond] Result has stream_events method")
+
+                        # CRITICAL: Iterate through result.stream_events() directly
+                        # Don't use ChatKit SDK's stream_agent_response() - it's outdated
                         event_types_seen = set()
                         event_count = 0
                         message_started = False
 
-                        async for event in stream_agent_response(agent_context, result):
+                        logger.info(f"[ChatKit respond] About to iterate result.stream_events()...")
+
+                        async for event in result.stream_events():
                             event_count += 1
-                            event_type = type(event).__name__
+                            event_type = event.type
                             event_types_seen.add(event_type)
 
-                            # CRITICAL: Ensure unique ID for assistant messages
-                            if hasattr(event, 'item'):
-                                item = event.item
-                                if hasattr(item, 'id') and item.id == "__fake_id__":
-                                    new_item = item.model_copy(update={"id": unique_message_id})
-                                    event = event.model_copy(update={"item": new_item})
-                                    logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in {event_type}")
+                            logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}")
+
+                            # Convert OpenAI Agents SDK events to ChatKit events
+                            # The key event types are:
+                            # - "raw_response_event" - Text delta events
+                            # - "run_item_stream_event" - Item completion events
+                            # - "agent_updated_stream_event" - Agent state changes
+
+                            if event.type == "raw_response_event":
+                                # Text delta event - stream token to frontend
+                                from openai.types.responses import ResponseTextDeltaEvent
+                                if isinstance(event.data, ResponseTextDeltaEvent):
+                                    # This is a text token - yield as ChatKit text update
+                                    # For now, we'll accumulate and yield at end
+                                    # TODO: Implement true token-by-token streaming
+                                    pass
+
+                            elif event.type == "run_item_stream_event":
+                                # Item completed (message, tool call, etc.)
+                                logger.info(f"[ChatKit respond] Run item: {event.item.type}")
+
+                                if event.item.type == "message_output_item":
+                                    # Message output - this is the assistant's response
+                                    message_text = ItemHelpers.text_message_output(event.item)
+                                    logger.info(f"[ChatKit respond] Message output: '{message_text[:100] if message_text else 'None'}...'")
+
+                                    # Yield ChatKit AssistantMessageItem
+                                    from chatkit.types import AssistantMessageItem, AssistantMessageContent
+                                    from chatkit.server import ThreadItemAddedEvent
+
+                                    assistant_item = AssistantMessageItem(
+                                        id=unique_message_id,
+                                        content=[AssistantMessageContent(type="text", text=message_text)],
+                                    )
+
+                                    yield ThreadItemAddedEvent(item=assistant_item)
                                     message_started = True
 
-                            # Log event details
-                            event_id = getattr(event, 'id', None)
-                            event_item_id = getattr(event, 'item', None)
-                            if event_item_id:
-                                event_item_id = getattr(event_item_id, 'id', None)
+                            elif event.type == "agent_updated_stream_event":
+                                # Agent state changed - ignore for now
+                                pass
 
-                            print(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
-                            logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
+                        logger.info(f"[ChatKit respond] Streaming completed. Total events: {event_count}, types: {event_types_seen}")
 
-                            if event_type == 'ThreadItemReplacedEvent':
-                                logger.warning(f"[ChatKit respond] ⚠️ ThreadItemReplacedEvent detected! item.id={event_item_id}")
+                        if event_count == 0:
+                            logger.error(f"[ChatKit respond] ⚠️ NO EVENTS YIELDED!")
+                            # Check if result has final_output as fallback
+                            if hasattr(result, 'final_output') and result.final_output:
+                                logger.info(f"[ChatKit respond] Using final_output as fallback: '{result.final_output[:100]}...'")
+                                # Yield the final_output as a ChatKit message
+                                from chatkit.types import AssistantMessageItem, AssistantMessageContent
+                                from chatkit.server import ThreadItemAddedEvent
 
-                            if event_type == 'ThreadItemDoneEvent':
-                                item = getattr(event, 'item', None)
-                                if item:
-                                    logger.info(f"[ChatKit respond] ✓ ThreadItemDoneEvent with item.id={item.id}")
-
-                            yield event
+                                assistant_item = AssistantMessageItem(
+                                    id=unique_message_id,
+                                    content=[AssistantMessageContent(type="text", text=result.final_output)],
+                                )
+                                yield ThreadItemAddedEvent(item=assistant_item)
 
                         # If we got here, success! Break out of retry loop
                         logger.info(f"[ChatKit respond] ✓ Successfully completed with model: {model_to_use}")
@@ -838,7 +884,7 @@ class TeamFlowChatKitServer(ChatKitServer):
         thread: ThreadMetadata,
         context: Any,
     ) -> AsyncIterator:
-        """Stream agent response without orchestrator (fallback).
+        """Stream agent response without full context (fallback for action handlers).
 
         Args:
             message: User message
@@ -848,25 +894,43 @@ class TeamFlowChatKitServer(ChatKitServer):
         Yields:
             ChatKit events
         """
+        import uuid
+        from chatkit.types import AssistantMessageItem, AssistantMessageContent
+        from chatkit.server import ThreadItemAddedEvent
+
         try:
             # Run agent with context manager for MCP server lifecycle
             async with create_chatbot_agent_context(
                 model="google/gemini-2.0-flash-exp:free",
-                use_fallback=True,
             ) as agent:
                 result = Runner.run_streamed(
                     agent,
                     message,
                 )
 
-                # Stream response events using stream_events()
-                async for event in result.stream_events():
-                    # Process events here if needed
-                    # For now, we'll let the ChatKit SDK handle the streaming
-                    pass
+                # Iterate through events and yield ChatKit events
+                message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+                message_yielded = False
 
-            # ChatKit SDK handles completion automatically
-            pass
+                async for event in result.stream_events():
+                    if event.type == "run_item_stream_event" and event.item.type == "message_output_item":
+                        message_text = ItemHelpers.text_message_output(event.item)
+
+                        assistant_item = AssistantMessageItem(
+                            id=message_id,
+                            content=[AssistantMessageContent(type="text", text=message_text)],
+                        )
+
+                        yield ThreadItemAddedEvent(item=assistant_item)
+                        message_yielded = True
+
+                # Fallback: if no message yielded, use final_output
+                if not message_yielded and hasattr(result, 'final_output') and result.final_output:
+                    assistant_item = AssistantMessageItem(
+                        id=message_id,
+                        content=[AssistantMessageContent(type="text", text=result.final_output)],
+                    )
+                    yield ThreadItemAddedEvent(item=assistant_item)
 
         except Exception as e:
             yield ErrorEvent(
