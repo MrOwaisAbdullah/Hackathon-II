@@ -539,10 +539,18 @@ class TeamFlowChatKitServer(ChatKitServer):
                     logger.info(f"[ChatKit respond] Attempt {attempt + 1}/{len([primary_model, fallback_model] if settings.openai_api_key else [primary_model])} using model: {model_to_use}")
 
                     # CRITICAL: Determine MCP server URL for current environment
-                    # In production (HuggingFace Spaces), use localhost instead of 127.0.0.1
+                    # In production (HuggingFace Spaces), the MCP server is on the SAME port as backend
                     import os
                     is_production = os.getenv("SPACE_ID") is not None or os.getenv("HUGGINGFACE_SPACE_ID") is not None
-                    mcp_url = "http://localhost:8000/mcp" if is_production else settings.mcp_server_url
+
+                    if is_production:
+                        # In production, MCP server is mounted on the backend's port
+                        # Detect the actual port from environment or use localhost with current port
+                        port = os.getenv("PORT", "7860")  # HuggingFace Spaces uses PORT env var
+                        mcp_url = f"http://localhost:{port}/mcp"
+                    else:
+                        mcp_url = settings.mcp_server_url
+
                     logger.info(f"[ChatKit respond] MCP server URL: {mcp_url} (production={is_production})")
 
                     # Run the agent with context manager for MCP server lifecycle
