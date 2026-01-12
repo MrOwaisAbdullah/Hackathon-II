@@ -554,19 +554,14 @@ class TeamFlowChatKitServer(ChatKitServer):
                         )
                         logger.info(f"[ChatKit respond] Agent execution started, result type: {type(result).__name__}")
 
-                        # Debug: Check if result has content
-                        if hasattr(result, 'final_output'):
-                            logger.info(f"[ChatKit respond] Result has final_output attribute")
-                        if hasattr(result, 'stream_events'):
-                            logger.info(f"[ChatKit respond] Result has stream_events method")
-
-                        # CRITICAL: Iterate through result.stream_events() directly
-                        # Don't use ChatKit SDK's stream_agent_response() - it's outdated
+                        # CRITICAL FIX: Collect all events FIRST, then yield them
+                        # This prevents async context issues when yielding across task boundaries
+                        events_to_yield = []
                         event_types_seen = set()
                         event_count = 0
                         message_started = False
 
-                        logger.info(f"[ChatKit respond] About to iterate result.stream_events()...")
+                        logger.info(f"[ChatKit respond] Starting to collect events...")
 
                         async for event in result.stream_events():
                             event_count += 1
@@ -575,54 +570,34 @@ class TeamFlowChatKitServer(ChatKitServer):
 
                             logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}")
 
-                            # Convert OpenAI Agents SDK events to ChatKit events
-                            # The key event types are:
-                            # - "raw_response_event" - Text delta events
-                            # - "run_item_stream_event" - Item completion events
-                            # - "agent_updated_stream_event" - Agent state changes
+                            if event.type == "run_item_stream_event" and event.item.type == "message_output_item":
+                                message_text = ItemHelpers.text_message_output(event.item)
+                                logger.info(f"[ChatKit respond] Message output: '{message_text[:100] if message_text else 'None'}...'")
 
-                            if event.type == "raw_response_event":
-                                # Text delta event - stream token to frontend
-                                from openai.types.responses import ResponseTextDeltaEvent
-                                if isinstance(event.data, ResponseTextDeltaEvent):
-                                    # This is a text token - yield as ChatKit text update
-                                    # For now, we'll accumulate and yield at end
-                                    # TODO: Implement true token-by-token streaming
-                                    pass
+                                # Create ChatKit event
+                                from chatkit.types import AssistantMessageItem, AssistantMessageContent
+                                from chatkit.server import ThreadItemAddedEvent
 
-                            elif event.type == "run_item_stream_event":
-                                # Item completed (message, tool call, etc.)
-                                logger.info(f"[ChatKit respond] Run item: {event.item.type}")
+                                assistant_item = AssistantMessageItem(
+                                    id=unique_message_id,
+                                    content=[AssistantMessageContent(type="text", text=message_text)],
+                                )
 
-                                if event.item.type == "message_output_item":
-                                    # Message output - this is the assistant's response
-                                    message_text = ItemHelpers.text_message_output(event.item)
-                                    logger.info(f"[ChatKit respond] Message output: '{message_text[:100] if message_text else 'None'}...'")
+                                events_to_yield.append(ThreadItemAddedEvent(item=assistant_item))
+                                message_started = True
 
-                                    # Yield ChatKit AssistantMessageItem
-                                    from chatkit.types import AssistantMessageItem, AssistantMessageContent
-                                    from chatkit.server import ThreadItemAddedEvent
+                        logger.info(f"[ChatKit respond] Collected {event_count} events, now yielding {len(events_to_yield)} ChatKit events")
 
-                                    assistant_item = AssistantMessageItem(
-                                        id=unique_message_id,
-                                        content=[AssistantMessageContent(type="text", text=message_text)],
-                                    )
+                        # Now yield all collected events (still in async context)
+                        for event in events_to_yield:
+                            yield event
 
-                                    yield ThreadItemAddedEvent(item=assistant_item)
-                                    message_started = True
-
-                            elif event.type == "agent_updated_stream_event":
-                                # Agent state changed - ignore for now
-                                pass
-
-                        logger.info(f"[ChatKit respond] Streaming completed. Total events: {event_count}, types: {event_types_seen}")
-
-                        if event_count == 0:
-                            logger.error(f"[ChatKit respond] ⚠️ NO EVENTS YIELDED!")
+                        if event_count == 0 or not message_started:
+                            logger.warning(f"[ChatKit respond] ⚠️ No message event yielded (events={event_count}, started={message_started})")
                             # Check if result has final_output as fallback
                             if hasattr(result, 'final_output') and result.final_output:
                                 logger.info(f"[ChatKit respond] Using final_output as fallback: '{result.final_output[:100]}...'")
-                                # Yield the final_output as a ChatKit message
+                                # Add fallback event to the list
                                 from chatkit.types import AssistantMessageItem, AssistantMessageContent
                                 from chatkit.server import ThreadItemAddedEvent
 
