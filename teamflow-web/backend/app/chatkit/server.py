@@ -593,12 +593,14 @@ class TeamFlowChatKitServer(ChatKitServer):
                                 message_text = ItemHelpers.text_message_output(event.item)
                                 logger.info(f"[ChatKit respond] Message output: '{message_text[:100] if message_text else 'None'}...'")
 
-                                # Create ChatKit event
+                                # Create ChatKit event with required fields
                                 from chatkit.types import AssistantMessageItem, AssistantMessageContent
                                 from chatkit.server import ThreadItemAddedEvent
 
                                 assistant_item = AssistantMessageItem(
                                     id=unique_message_id,
+                                    thread_id=thread.id,
+                                    created_at=datetime.now(timezone.utc),
                                     content=[AssistantMessageContent(type="output_text", text=message_text)],
                                 )
 
@@ -616,12 +618,14 @@ class TeamFlowChatKitServer(ChatKitServer):
                             # Check if result has final_output as fallback
                             if hasattr(result, 'final_output') and result.final_output:
                                 logger.info(f"[ChatKit respond] Using final_output as fallback: '{result.final_output[:100]}...'")
-                                # Add fallback event to the list
+                                # Add fallback event to the list with required fields
                                 from chatkit.types import AssistantMessageItem, AssistantMessageContent
                                 from chatkit.server import ThreadItemAddedEvent
 
                                 assistant_item = AssistantMessageItem(
                                     id=unique_message_id,
+                                    thread_id=thread.id,
+                                    created_at=datetime.now(timezone.utc),
                                     content=[AssistantMessageContent(type="output_text", text=result.final_output)],
                                 )
                                 yield ThreadItemAddedEvent(item=assistant_item)
@@ -933,6 +937,8 @@ class TeamFlowChatKitServer(ChatKitServer):
 
                         assistant_item = AssistantMessageItem(
                             id=message_id,
+                            thread_id=thread.id,
+                            created_at=datetime.now(timezone.utc),
                             content=[AssistantMessageContent(type="output_text", text=message_text)],
                         )
 
@@ -943,6 +949,8 @@ class TeamFlowChatKitServer(ChatKitServer):
                 if not message_yielded and hasattr(result, 'final_output') and result.final_output:
                     assistant_item = AssistantMessageItem(
                         id=message_id,
+                        thread_id=thread.id,
+                        created_at=datetime.now(timezone.utc),
                         content=[AssistantMessageContent(type="output_text", text=result.final_output)],
                     )
                     yield ThreadItemAddedEvent(item=assistant_item)
