@@ -16,43 +16,43 @@ The server handles:
 """
 import asyncio
 import json
-import uuid
-from typing import AsyncIterator, Any, Optional
-from pathlib import Path
+from typing import AsyncIterator, Any, Dict, List, Optional
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import UUID
 
 from agents import Agent, Runner, RunContextWrapper
 from chatkit.server import (
     ChatKitServer,
+    ErrorEvent,
     Store,
+    StreamingResult,
     ThreadMetadata,
+    ThreadStreamEvent,
     UserMessageItem,
     ClientToolCallItem,
-    StreamingResult,
-    ErrorEvent,
-    ThreadStreamEvent,
 )
 from chatkit.types import (
-    AssistantMessageItem,
     AssistantMessageContent,
+    AssistantMessageItem,
     ThreadItemDoneEvent,
 )
 from chatkit.agents import (
+    AgentContext,
     simple_to_agent_input,
     stream_agent_response,
-    AgentContext,
 )
 from chatkit.store import Store as StoreClass, Page, ThreadItem
-from datetime import datetime, timezone
-from dataclasses import dataclass, field
-from typing import AsyncIterator, Dict, List
-import uuid
 
+from app.agents.chatbot import create_chatbot_agent_context
 from app.agents.orchestrator import AgentOrchestrator
+from app.core.config import settings
+from app.core.logging import get_logger
 from app.services.chat_service import ChatService
 from app.services.rag_service import RAGService
-from app.agents.chatbot import create_chatbot_agent
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -457,18 +457,6 @@ class TeamFlowChatKitServer(ChatKitServer):
         self.rag_service = rag_service
         self.enable_rag = enable_rag
         self.orchestrator: Optional[AgentOrchestrator] = None
-        self._fallback_agent: Optional[Agent] = None  # Fallback agent for runtime errors
-
-        # Initialize agent
-        self._init_agent()
-
-    def _init_agent(self):
-        """Initialize the chatbot agent."""
-        # Create agent with system instructions
-        # Using OpenRouter models with OpenAIChatCompletionsModel wrapper
-        self.assistant_agent = create_chatbot_agent(
-            model="google/gemini-2.0-flash-exp:free",
-        )
 
         # Initialize orchestrator if chat_service is available
         if self.chat_service:
@@ -476,83 +464,6 @@ class TeamFlowChatKitServer(ChatKitServer):
                 chat_service=self.chat_service,
                 model="google/gemini-2.0-flash-exp:free",
             )
-
-    def _get_fallback_agent(self) -> Agent:
-        """Get or create the fallback Agent using direct OpenAI API.
-
-        This is used when the primary agent encounters runtime errors
-        (e.g., 429 rate limit from OpenRouter).
-
-        Returns:
-            Configured Agent with TeamFlow tools using direct OpenAI API
-        """
-        if self._fallback_agent is None:
-            from app.agents.client import get_openai_fallback_model
-            from agents import Agent
-
-            # Create direct OpenAI model
-            model_instance = get_openai_fallback_model("gpt-5-nano-2025-08-07")
-
-            # Import tools
-            from app.agents.tools import (
-                search_knowledge_base,
-                add_task,
-                list_tasks,
-                assign_task,
-                complete_task,
-                delete_task,
-                archive_task,
-                update_task_priority,
-                update_task_due_date,
-                update_task_status,
-                list_projects,
-                create_project,
-                get_project_details,
-                get_profitability,
-                workload_summary,
-                suggest_assignee,
-                add_time_entry,
-                list_time_entries,
-                get_time_for_task,
-                update_time_entry,
-                delete_time_entry,
-            )
-
-            # Create fallback agent with same instructions
-            from app.agents.chatbot import TEAMFLOW_AGENT_INSTRUCTIONS
-            self._fallback_agent = Agent(
-                name="teamflow-assistant-fallback",
-                instructions=TEAMFLOW_AGENT_INSTRUCTIONS,
-                model=model_instance,
-                tools=[
-                    search_knowledge_base,
-                    add_task,
-                    list_tasks,
-                    assign_task,
-                    complete_task,
-                    delete_task,
-                    archive_task,
-                    update_task_priority,
-                    update_task_due_date,
-                    update_task_status,
-                    list_projects,
-                    create_project,
-                    get_project_details,
-                    get_profitability,
-                    workload_summary,
-                    suggest_assignee,
-                    add_time_entry,
-                    list_time_entries,
-                    get_time_for_task,
-                    update_time_entry,
-                    delete_time_entry,
-                ],
-            )
-
-            import logging
-            logging.info("[ChatKit] Created fallback agent using direct OpenAI API: gpt-5-nano-2025-08-07")
-
-        return self._fallback_agent
 
     async def respond(
         self,
@@ -605,164 +516,98 @@ class TeamFlowChatKitServer(ChatKitServer):
                 request_context=context or {}
             )
 
-            # Run the agent and stream the response
-            agent_to_use = self.assistant_agent
-            result = None
-            used_fallback = False
-
-            try:
-                result = Runner.run_streamed(
-                    agent_to_use,
-                    input_items,  # Pass conversation history
-                    context=agent_context
-                )
-                logger.info(f"[ChatKit respond] Agent execution started (primary), streaming response...")
-            except Exception as primary_error:
-                error_str = str(primary_error).lower()
-                error_code = getattr(primary_error, 'code', None)
-
-                # Check if this is a 429 rate limit or similar error
-                is_rate_limit = (
-                    '429' in error_str or
-                    error_code == 429 or
-                    'rate limit' in error_str or
-                    'rate-limited' in error_str or
-                    'provider returned error' in error_str
-                )
-
-                if is_rate_limit:
-                    logger.warning(f"[ChatKit respond] Primary agent hit rate limit (429): {primary_error}. Using fallback agent...")
-
-                    # Retry with fallback agent
-                    fallback_agent = self._get_fallback_agent()
-                    agent_to_use = fallback_agent
-                    used_fallback = True
-
-                    result = Runner.run_streamed(
-                        agent_to_use,
-                        input_items,
-                        context=agent_context
-                    )
-                    logger.info(f"[ChatKit respond] Fallback agent execution started, streaming response...")
-                else:
-                    # Not a rate limit error - re-raise
-                    raise
-
             # CRITICAL FIX: Generate unique message ID upfront to prevent overwriting
-            # The stream_agent_response() helper uses __fake_id__ during streaming,
-            # which causes the frontend to update the same message repeatedly.
-            # We generate a unique ID now and ensure all events for this response use it.
             import uuid
             unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
             logger.info(f"[ChatKit respond] Generated unique message ID: {unique_message_id}")
 
-            # Stream the agent response using ChatKit's helper
-            # The helper handles all ChatKit events including ThreadItemDoneEvent for persistence
-            # We just need to yield events as-is for proper streaming and persistence
-            logger.info(f"[ChatKit respond] Starting agent response streaming for thread {thread.id}")
+            # Try primary model first, fall back to OpenAI on 429 rate limit
+            primary_model = "google/gemini-2.0-flash-exp:free"
+            fallback_model = "google/gemini-2.0-flash-exp:free"  # OpenRouter fallback
 
-            event_types_seen = set()
-            event_count = 0
-            message_started = False
+            # Check if we have OpenAI API key for direct fallback
+            use_openai_direct = bool(settings.openai_api_key)
+            if use_openai_direct:
+                fallback_model = "gpt-5-nano-2025-08-07"  # Direct OpenAI API fallback
 
-            try:
-                async for event in stream_agent_response(agent_context, result):
-                    event_count += 1
-                    event_type = type(event).__name__
-                    event_types_seen.add(event_type)
+            last_error = None
 
-                    # CRITICAL: Ensure unique ID for assistant messages
-                    # When we see an assistant message event with __fake_id__, replace it with our unique ID
-                    # This prevents the frontend from overwriting previous messages
-                    if hasattr(event, 'item'):
-                        item = event.item
-                        if hasattr(item, 'id') and item.id == "__fake_id__":
-                            # Replace __fake_id__ with our unique ID
-                            new_item = item.model_copy(update={"id": unique_message_id})
-                            event = event.model_copy(update={"item": new_item})
-                            logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in {event_type}")
-                            message_started = True
+            # Try primary model
+            for attempt, model_to_use in enumerate([primary_model, fallback_model] if settings.openai_api_key else [primary_model]):
+                try:
+                    logger.info(f"[ChatKit respond] Attempt {attempt + 1}/{len([primary_model, fallback_model] if settings.openai_api_key else [primary_model])} using model: {model_to_use}")
 
-                    # CRITICAL: Log event details to debug message overwriting
-                    event_id = getattr(event, 'id', None)
-                    event_item_id = getattr(event, 'item', None)
-                    if event_item_id:
-                        event_item_id = getattr(event_item_id, 'id', None)
+                    # Run the agent with context manager for MCP server lifecycle
+                    async with create_chatbot_agent_context(
+                        model=model_to_use,
+                    ) as agent_to_use:
+                        result = Runner.run_streamed(
+                            agent_to_use,
+                            input_items,  # Pass conversation history
+                            context=agent_context
+                        )
+                        logger.info(f"[ChatKit respond] Agent execution started, streaming response...")
 
-                    # Use print to ensure output is visible
-                    print(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
-                    logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
+                        # Stream the response - ALL within context manager
+                        event_types_seen = set()
+                        event_count = 0
+                        message_started = False
 
-                    # Check for ThreadItemReplacedEvent which would cause overwriting
-                    if event_type == 'ThreadItemReplacedEvent':
-                        logger.warning(f"[ChatKit respond] ⚠️ ThreadItemReplacedEvent detected! item.id={event_item_id}")
+                        async for event in stream_agent_response(agent_context, result):
+                            event_count += 1
+                            event_type = type(event).__name__
+                            event_types_seen.add(event_type)
 
-                    # Check for ThreadItemDoneEvent to verify persistence
-                    if event_type == 'ThreadItemDoneEvent':
-                        item = getattr(event, 'item', None)
-                        if item:
-                            logger.info(f"[ChatKit respond] ✓ ThreadItemDoneEvent with item.id={item.id}")
+                            # CRITICAL: Ensure unique ID for assistant messages
+                            if hasattr(event, 'item'):
+                                item = event.item
+                                if hasattr(item, 'id') and item.id == "__fake_id__":
+                                    new_item = item.model_copy(update={"id": unique_message_id})
+                                    event = event.model_copy(update={"item": new_item})
+                                    logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in {event_type}")
+                                    message_started = True
 
-                    # Yield all events - with fixed unique ID for assistant messages
-                    yield event
+                            # Log event details
+                            event_id = getattr(event, 'id', None)
+                            event_item_id = getattr(event, 'item', None)
+                            if event_item_id:
+                                event_item_id = getattr(event_item_id, 'id', None)
 
-            except Exception as streaming_error:
-                error_str = str(streaming_error).lower()
-                error_code = getattr(streaming_error, 'code', None)
+                            print(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
+                            logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}, id={event_id}, item.id={event_item_id}")
 
-                # Check if this is a 429 rate limit error during streaming
-                is_rate_limit = (
-                    '429' in error_str or
-                    error_code == 429 or
-                    'rate limit' in error_str or
-                    'rate-limited' in error_str or
-                    'provider returned error' in error_str
-                )
+                            if event_type == 'ThreadItemReplacedEvent':
+                                logger.warning(f"[ChatKit respond] ⚠️ ThreadItemReplacedEvent detected! item.id={event_item_id}")
 
-                # If we hit rate limit during streaming and haven't used fallback yet
-                if is_rate_limit and not used_fallback:
-                    logger.warning(f"[ChatKit respond] Rate limit during streaming: {streaming_error}. Retrying with fallback...")
+                            if event_type == 'ThreadItemDoneEvent':
+                                item = getattr(event, 'item', None)
+                                if item:
+                                    logger.info(f"[ChatKit respond] ✓ ThreadItemDoneEvent with item.id={item.id}")
 
-                    # Retry with fallback agent
-                    fallback_agent = self._get_fallback_agent()
+                            yield event
 
-                    result = Runner.run_streamed(
-                        fallback_agent,
-                        input_items,
-                        context=agent_context
-                    )
-                    logger.info(f"[ChatKit respond] Fallback agent execution started, streaming response...")
+                        # If we got here, success! Break out of retry loop
+                        logger.info(f"[ChatKit respond] ✓ Successfully completed with model: {model_to_use}")
+                        break
 
-                    # CRITICAL: Generate new unique message ID for fallback response
-                    unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
-                    logger.info(f"[ChatKit respond] Generated unique message ID for fallback: {unique_message_id}")
+                except Exception as e:
+                    last_error = e
+                    error_str = str(e)
 
-                    # Stream the fallback response
-                    async for event in stream_agent_response(agent_context, result):
-                        event_type = type(event).__name__
-                        event_types_seen.add(event_type)
-                        logger.debug(f"[ChatKit respond] Event (fallback): {event_type}")
-
-                        # CRITICAL: Ensure unique ID for assistant messages in fallback
-                        if hasattr(event, 'item'):
-                            item = event.item
-                            if hasattr(item, 'id') and item.id == "__fake_id__":
-                                # Replace __fake_id__ with our unique ID
-                                new_item = item.model_copy(update={"id": unique_message_id})
-                                event = event.model_copy(update={"item": new_item})
-                                logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in fallback {event_type}")
-
-                        # Yield all events with fixed unique ID
-                        yield event
-                else:
-                    # Either not a rate limit error, or we already tried fallback
-                    logger.error(f"[ChatKit respond] Error during streaming: {streaming_error}")
-                    yield ErrorEvent(
-                        error_code=type(streaming_error).__name__,
-                        message=str(streaming_error)
+                    # Check if this is a rate limit error (429)
+                    is_rate_limit = (
+                        "429" in error_str or
+                        "rate.limited" in error_str.lower() or
+                        "RateLimitError" in type(e).__name__ or
+                        "too many requests" in error_str.lower()
                     )
 
-            logger.info(f"[ChatKit respond] Response streaming completed for thread {thread.id}. Total events: {event_count}, Event types seen: {event_types_seen}")
+                    if is_rate_limit and attempt < 1:  # Only retry if we have fallback attempts left
+                        logger.warning(f"[ChatKit respond] ⚠️ Rate limit detected with {model_to_use}, retrying with fallback: {fallback_model}")
+                        continue
+                    else:
+                        # Not a rate limit error, or no more retries - raise
+                        raise
 
         except Exception as e:
             # Log error
@@ -1004,18 +849,21 @@ class TeamFlowChatKitServer(ChatKitServer):
             ChatKit events
         """
         try:
-            # Run agent with streaming
-            # Note: run_streamed() is sync and returns RunResultStreaming immediately
-            result = Runner.run_streamed(
-                self.assistant_agent,
-                message,
-            )
+            # Run agent with context manager for MCP server lifecycle
+            async with create_chatbot_agent_context(
+                model="google/gemini-2.0-flash-exp:free",
+                use_fallback=True,
+            ) as agent:
+                result = Runner.run_streamed(
+                    agent,
+                    message,
+                )
 
-            # Stream response events using stream_events()
-            async for event in result.stream_events():
-                # Process events here if needed
-                # For now, we'll let the ChatKit SDK handle the streaming
-                pass
+                # Stream response events using stream_events()
+                async for event in result.stream_events():
+                    # Process events here if needed
+                    # For now, we'll let the ChatKit SDK handle the streaming
+                    pass
 
             # ChatKit SDK handles completion automatically
             pass

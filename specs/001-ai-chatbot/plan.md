@@ -95,16 +95,24 @@ teamflow-web/
 │   │   │   ├── chat.py           # Conversation, Message models
 │   │   │   └── preferences.py     # UserChatPreference model
 │   │   ├── api/
-│   │   │   └── chat.py            # Chat endpoints (/chat/sessions, /chat/respond)
+│   │   │   └── endpoints/
+│   │   │       └── chat.py        # ChatKit server endpoints
+│   │   ├── api/endpoints/
+│   │   │   └── chatkit.py         # ChatKit integration
 │   │   ├── services/
+│   │   │   ├── rag_service.py     # Qdrant integration
 │   │   │   ├── chat_service.py    # Conversation & message management
-│   │   │   └── rag_service.py     # Qdrant integration
+│   │   │   └── ...
 │   │   ├── mcp/
-│   │   │   ├── server.py          # FastMCP server with tools
-│   │   │   └── tools.py           # Tool implementations
+│   │   │   ├── server.py          # FastMCP server (mounted at /mcp)
+│   │   │   └── tools.py           # 21 MCP tool implementations
 │   │   ├── agents/
-│   │   │   ├── orchestrator.py    # Agent + Runner setup
-│   │   │   └── prompts.py         # System prompts
+│   │   │   ├── client.py          # OpenAI/OpenRouter client + fallback
+│   │   │   ├── chatbot.py         # Agent context manager
+│   │   │   └── orchestrator.py    # Agent + Runner setup
+│   │   ├── core/
+│   │   │   └── config.py          # MCP_SERVER_URL configuration
+│   │   ├── main.py                # Single FastAPI app with /mcp mount
 │   │   └── jobs/
 │   │       ├── ingest_knowledge_base.py  # RAG ingestion
 │   │       └── cleanup_conversations.py  # 7-day retention
@@ -112,8 +120,9 @@ teamflow-web/
 │       ├── unit/
 │       │   ├── test_mcp_tools.py
 │       │   └── test_agents.py
-│       └── integration/
-│           └── test_chat_api.py
+│       ├── integration/
+│       │   └── test_mcp_streamablehttp.py
+│       └── test_mcp_integration.py  # Manual test script
 │
 └── frontend/
     └── src/
@@ -126,6 +135,12 @@ teamflow-web/
         └── hooks/
             └── useVoiceInput.ts    # Web Speech API hook
 ```
+
+**Architecture Notes:**
+- MCP server is mounted in `app/main.py` at `/mcp` endpoint
+- Agent uses `MCPServerStreamableHttp` for tool integration
+- `OpenAIModelWithFallback` wrapper handles 429 rate limit errors
+- `create_chatbot_agent_context()` provides proper async context management
 
 **Structure Decision**: Option 2 (Web application) with backend/frontend separation. Extends existing Phase II structure with new chat-focused modules.
 
@@ -147,9 +162,9 @@ teamflow-web/
                                       │ SSE / HTTP POST
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BACKEND (FastAPI)                                │
+│              BACKEND - Single FastAPI Process (Port 8000)                  │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  Custom ChatKit Server (/api/v1/chat)                                 │ │
+│  │  Main API Endpoints (/api/v1/*)                                        │ │
 │  │  ┌────────────────────────────────────────────────────────────────────┐ │ │
 │  │  │  POST /chat/sessions  →  Validate Better Auth, issue token        │ │ │
 │  │  │  POST /chat/respond    →  Orchestrate Agent, stream response      │ │ │
@@ -157,19 +172,28 @@ teamflow-web/
 │  │                              │                                          │ │
 │  │                              ▼                                          │ │
 │  │  ┌────────────────────────────────────────────────────────────────────┐ │ │
-│  │  │  Agent Orchestrator (openai-agents-sdk-gemini)                     │ │ │
+│  │  │  Agent Orchestrator (OpenAI Agents SDK)                            │ │ │
 │  │  │  - System prompt (multi-language, role context)                    │ │ │
-│  │  │  - Agent + Runner setup with Gemini 2.0                            │ │ │
-│  │  │  - Tool injection from MCP server                                  │ │ │
+│  │  │  - Agent + Runner setup with OpenRouter + OpenAI fallback         │ │ │
+│  │  │  - Context manager pattern for proper MCP lifecycle               │ │ │
+│  │  │  - Automatic 429 rate limit fallback                              │ │ │
 │  │  │  - Conversation history retrieval                                  │ │ │
 │  │  └────────────────────────────────────────────────────────────────────┘ │ │
 │  │                              │                                          │ │
 │  │                              ▼                                          │ │
 │  │  ┌────────────────────────────────────────────────────────────────────┐ │ │
-│  │  │  MCP Server (mcp-builder + FastMCP)                                │ │ │
-│  │  │  - add_task, list_tasks, assign_task, complete_task               │ │ │
-│  │  │  - get_profitability, workload_summary                             │ │ │
-│  │  │  - suggest_assignee (AI reasoning)                                 │ │ │
+│  │  │  MCP Server (Mounted at /mcp) - FastMCP                            │ │ │
+│  │  │  Knowledge Base: search_knowledge_base                             │ │ │
+│  │  │  Task Management: add_task, list_tasks, assign_task, complete_task│ │ │
+│  │  │  Task Updates: update_task_priority, update_task_due_date,         │ │ │
+│  │  │                update_task_status, archive_task, delete_task      │ │ │
+│  │  │  Project Management: list_projects, create_project,               │ │ │
+│  │  │                     get_project_details                            │ │ │
+│  │  │  Analytics: get_profitability, workload_summary                    │ │ │
+│  │  │  Recommendations: suggest_assignee                                 │ │ │
+│  │  │  Time Entry: add_time_entry, list_time_entries, get_time_for_task,│ │ │
+│  │  │              update_time_entry, delete_time_entry                  │ │ │
+│  │  │  Total: 21 tools exposed via MCPServerStreamableHttp              │ │ │
 │  │  └────────────────────────────────────────────────────────────────────┘ │ │
 │  │                              │                                          │ │
 │  │            ┌─────────────────┴──────────────────┐                     │ │
@@ -188,13 +212,45 @@ teamflow-web/
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           DATA LAYER                                         │
 │  ┌──────────────────────┐          ┌─────────────────────┐                  │
-│  │  Neon PostgreSQL      │          │  Gemini 2.0 API     │                  │
-│  │  - users, tasks       │          │  (via OpenAI SDK)   │                  │
-│  │  - conversations      │          │                     │                  │
-│  │  - messages           │          │  + OpenAI Embeddings│                  │
-│  │  - preferences        │          │    (text-embedding-3-small)          │
-│  └──────────────────────┘          └─────────────────────┘                  │
+│  │  Neon PostgreSQL      │          │  AI Models           │                  │
+│  │  - users, tasks       │          │  (Primary)           │                  │
+│  │  - conversations      │          │  OpenRouter:         │                  │
+│  │  - messages           │          │  google/gemini-2.0   │                  │
+│  │  - preferences        │          │  -flash-exp:free     │                  │
+│  └──────────────────────┘          │  (Fallback)          │                  │
+│                                   │  OpenAI API:         │                  │
+│                                   │  gpt-5-nano-2025-08- │                  │
+│                                   │  07                  │                  │
+│                                   └─────────────────────┘                  │
+│                                                                              │
+│  ┌──────────────────────┐                                                   │
+│  │  OpenAI Embeddings    │                                                   │
+│  │  text-embedding-3-    │                                                   │
+│  │  small               │                                                   │
+│  └──────────────────────┘                                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Production-Ready Deployment Architecture
+
+**Single Process, Single Port:**
+
+The backend implements a unified deployment architecture where both the main FastAPI application and the MCP server run in a single process. The MCP server is mounted as a sub-route at `/mcp` endpoint.
+
+**Benefits:**
+- Single container/VM deployment
+- No internal networking complexity
+- Shared lifecycle management
+- Simplified monitoring and logging
+- Easier horizontal scaling
+
+**Configuration:**
+```bash
+# Development (default)
+MCP_SERVER_URL=http://127.0.0.1:8000/mcp
+
+# Production (override via environment variable)
+MCP_SERVER_URL=https://api.teamflow.com/mcp
 ```
 
 ---
@@ -250,19 +306,20 @@ uv add fastapi uvicorn[standard] python-dotenv
 
 **Step 3.2**: Implement MCP Server
 - File: `backend/app/mcp/server.py`
-- Use `FastMCP` for decorators and Pydantic integration
-- Define tools with input/output schemas
+- Use `FastMCP` from `mcp.server.fastmcp` for decorators and Pydantic integration
+- Mount in `app/main.py` at `/mcp` endpoint using `app.mount("/mcp", mcp.streamable_http_app())`
+- No separate process needed - runs in same FastAPI application
 
-**Step 3.3**: Implement MCP Tools
+**Step 3.3**: Implement MCP Tools (21 tools total)
 - File: `backend/app/mcp/tools.py`
-- Tools:
-  - `add_task(input: AddTaskInput) -> str`
-  - `list_tasks(status: str | None, project_id: int | None) -> List[Task]`
-  - `assign_task(task_id: int, assignee_id: int) -> str`
-  - `complete_task(task_id: int) -> str`
-  - `get_profitability(project_id: int) -> ProfitabilityReport`
-  - `workload_summary(team_id: int) -> List[WorkloadEntry]`
-  - `suggest_assignee(task_id: int) -> Suggestion`
+- Organize into separate register functions per category:
+  - `register_knowledge_base_tools()`: `search_knowledge_base` (1 tool)
+  - `register_task_tools()`: `add_task`, `list_tasks`, `assign_task`, `complete_task` (4 tools)
+  - `register_task_update_tools()`: `update_task_priority`, `update_task_due_date`, `update_task_status`, `archive_task`, `delete_task` (5 tools)
+  - `register_project_tools()`: `list_projects`, `create_project`, `get_project_details` (3 tools)
+  - `register_analytics_tools()`: `get_profitability`, `workload_summary` (2 tools)
+  - `register_recommendation_tools()`: `suggest_assignee` (1 tool)
+  - `register_time_entry_tools()`: `add_time_entry`, `list_time_entries`, `get_time_for_task`, `update_time_entry`, `delete_time_entry` (5 tools)
 
 **Step 3.4**: Wrap Existing Services
 - All tools call existing Phase II services (`TaskService`, `ProjectService`, `AnalyticsService`)
@@ -276,17 +333,27 @@ uv add fastapi uvicorn[standard] python-dotenv
 - Skill location: `.claude/skills/openai-agents-sdk-gemini/`
 - Configure AsyncOpenAI client for Gemini compatibility
 
-**Step 4.2**: Implement Agent Orchestrator
-- File: `backend/app/agents/orchestrator.py`
-- Setup: AsyncOpenAI client with Gemini base URL
-- Agent: Define instructions, inject tools from MCP server
-- Runner: Configure for streaming responses
+**Step 4.2**: Implement Agent Context Manager
+- File: `backend/app/agents/chatbot.py`
+- Use `MCPServerStreamableHttp` from OpenAI Agents SDK
+- Implement `create_chatbot_agent_context()` as async context manager
+- Proper lifecycle: MCP connection on enter, cleanup on exit
+- MCP server URL: Use `settings.mcp_server_url` (default: `http://127.0.0.1:8000/mcp`)
 
-**Step 4.3**: Define System Prompts
-- File: `backend/app/agents/prompts.py`
-- Base prompt: "You are TeamFlow Assistant, an AI co-pilot..."
+**Step 4.3**: Implement Model Fallback
+- File: `backend/app/agents/client.py`
+- Create `OpenAIModelWithFallback` wrapper class
+- Intercept `complete()` and `stream_complete()` API calls
+- Detect 429 rate limit errors from OpenRouter
+- Automatically retry with OpenAI `gpt-5-nano-2025-08-07`
+- Log fallback actions for monitoring
+
+**Step 4.4**: Define System Prompts
+- File: `backend/app/agents/chatbot.py`
+- Base prompt: "You are TeamFlow AI, an intelligent assistant for agency project management..."
 - Multi-language: "If user speaks Urdu, respond in Urdu (Roman script)"
 - RBAC: "Only admins/managers can assign tasks. Members can only view their own."
+- All 21 tools documented in prompt for agent awareness
 
 ---
 
@@ -383,10 +450,19 @@ uv add fastapi uvicorn[standard] python-dotenv
 
 ### Phase 9: Deployment
 
-**Step 9.1**: Backend (HuggingFace Spaces)
+**Step 9.1**: Backend (Single-Server Architecture)
 - Dockerfile with Python 3.13
-- Environment variables for API keys
+- **Important**: MCP server is mounted at `/mcp` endpoint - no separate process needed
+- Environment variables:
+  ```bash
+  OPENROUTER_API_KEY=sk-or-...
+  OPENAI_API_KEY=sk-...  # For fallback
+  MCP_SERVER_URL=https://api.teamflow.com/mcp
+  QDRANT_URL=https://your-qdrant-cloud-url
+  QDRANT_API_KEY=...
+  ```
 - Qdrant URL (use Qdrant Cloud or external)
+- Single process deployment: `uvicorn app.main:app --host 0.0.0.0 --port 8000`
 
 **Step 9.2**: Frontend (Vercel)
 - Next.js build with static export
@@ -394,9 +470,11 @@ uv add fastapi uvicorn[standard] python-dotenv
 - Deploy to production
 
 **Step 9.3**: Post-Deployment
-- Run health check: `GET /api/v1/chat/health`
+- Run health check: `GET /health`
+- Verify MCP endpoint: `curl https://api.teamflow.com/mcp` (should return MCP protocol response)
 - Ingest knowledge base to production Qdrant
 - Monitor logs for errors
+- Test fallback mechanism by triggering rate limit (if using free tier)
 
 ---
 
@@ -435,11 +513,13 @@ uv add fastapi uvicorn[standard] python-dotenv
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Gemini API rate limits | Medium | Implement queue, fallback to OpenAI GPT-4 |
+| OpenRouter API rate limits (429) | Low | **Automatic fallback** to OpenAI API via `OpenAIModelWithFallback` wrapper - transparent to users |
+| OpenAI API unavailable | Medium | Graceful degradation with informative error message |
 | Qdrant downtime | Medium | Cache embeddings locally |
 | Web Speech API unsupported | Low | Graceful degradation (typing only) |
 | Urdu detection accuracy | Low | Add manual language toggle |
 | 7-day retention cleanup | Low | Scheduled cron job |
+| MCP server scale issues | Low | Single-server architecture scales with main backend - no separate process management |
 
 ---
 

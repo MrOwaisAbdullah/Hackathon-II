@@ -10,10 +10,17 @@ Reference:
 - OpenAI SDK: https://github.com/openai/openai-python
 - OpenAI Agents SDK: https://github.com/openai/openai-agents-python
 """
-from openai import AsyncOpenAI
+import asyncio
+import logging
+from typing import Any, Optional
+
+from openai import AsyncOpenAI, APIError, APIStatusError
 from agents import OpenAIChatCompletionsModel, set_default_openai_api, set_tracing_disabled
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Global client and model instances
 _openrouter_client: AsyncOpenAI | None = None
@@ -21,7 +28,165 @@ _openai_fallback_client: AsyncOpenAI | None = None
 _default_model: OpenAIChatCompletionsModel | None = None
 
 # Disable tracing (not using OpenAI's tracing endpoint)
-set_tracing_disabled(True)
+# set_tracing_disabled(True)
+
+
+class OpenAIModelWithFallback:
+    """Model wrapper that automatically falls back from OpenRouter to OpenAI on 429 errors.
+
+    This class wraps the OpenAI Agents SDK's OpenAIChatCompletionsModel to provide
+    automatic fallback behavior when OpenRouter returns rate limit errors (429).
+
+    The wrapper intercepts chat completion API calls and:
+    1. First tries the primary model (OpenRouter)
+    2. If a 429 rate limit error occurs, automatically retries with fallback (OpenAI)
+    3. Logs the fallback for monitoring
+
+    Args:
+        primary_model: The primary OpenAIChatCompletionsModel (usually OpenRouter)
+        fallback_model: The fallback OpenAIChatCompletionsModel (direct OpenAI API)
+
+    Example:
+        >>> primary = get_openrouter_model("google/gemini-2.0-flash-exp:free")
+        >>> fallback = get_openai_fallback_model("gpt-5-nano-2025-08-07")
+        >>> model = OpenAIModelWithFallback(primary, fallback)
+        >>> agent = Agent(name="assistant", model=model)
+    """
+
+    def __init__(
+        self,
+        primary_model: OpenAIChatCompletionsModel,
+        fallback_model: OpenAIChatCompletionsModel,
+    ) -> None:
+        """Initialize the fallback wrapper.
+
+        Args:
+            primary_model: Primary model (e.g., OpenRouter)
+            fallback_model: Fallback model (e.g., direct OpenAI API)
+        """
+        self._primary = primary_model
+        self._fallback = fallback_model
+        self._using_fallback = False
+
+    @property
+    def name(self) -> str:
+        """Return the model name from the primary model."""
+        return getattr(self._primary, "model", "unknown")
+
+    async def _is_rate_limit_error(self, error: Exception) -> bool:
+        """Check if an error is a rate limit (429) error.
+
+        OpenRouter returns 429 with various formats:
+        - APIStatusError with status_code=429
+        - APIError with code=429 in the error message
+        """
+        if isinstance(error, APIStatusError):
+            return error.status_code == 429
+        if isinstance(error, APIError):
+            # Check error message for 429 code
+            error_msg = str(error)
+            return "429" in error_msg or "rate.limited" in error_msg.lower()
+        return False
+
+    async def complete(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        model: str | None = None,
+        **kwargs: Any,
+    ) -> ChatCompletion:
+        """Complete a chat request with automatic fallback on 429 errors.
+
+        Args:
+            messages: Chat completion messages
+            model: Optional model override (not used, kept for compatibility)
+            **kwargs: Additional completion parameters
+
+        Returns:
+            ChatCompletion response
+
+        Raises:
+            Exception: If both primary and fallback models fail
+        """
+        # Try primary model first
+        try:
+            self._using_fallback = False
+            return await self._primary.complete(messages=messages, **kwargs)
+        except Exception as e:
+            # Check if this is a rate limit error
+            if await self._is_rate_limit_error(e):
+                logger.warning(
+                    f"OpenRouter rate limited (429). Falling back to OpenAI API..."
+                )
+                self._using_fallback = True
+
+                try:
+                    return await self._fallback.complete(messages=messages, **kwargs)
+                except Exception as fallback_error:
+                    logger.error(
+                        f"Fallback to OpenAI API also failed: {fallback_error}"
+                    )
+                    raise fallback_error
+            else:
+                # Not a rate limit error, re-raise
+                logger.error(f"Primary model failed with non-429 error: {e}")
+                raise
+
+    async def stream_complete(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        model: str | None = None,
+        **kwargs: Any,
+    ):
+        """Stream complete a chat request with automatic fallback on 429 errors.
+
+        Args:
+            messages: Chat completion messages
+            model: Optional model override (not used, kept for compatibility)
+            **kwargs: Additional completion parameters
+
+        Yields:
+            Chat completion chunks
+
+        Raises:
+            Exception: If both primary and fallback models fail
+        """
+        # Try primary model first
+        try:
+            self._using_fallback = False
+            async for chunk in self._primary.stream_complete(
+                messages=messages, **kwargs
+            ):
+                yield chunk
+        except Exception as e:
+            # Check if this is a rate limit error
+            if await self._is_rate_limit_error(e):
+                logger.warning(
+                    f"OpenRouter rate limited (429) during streaming. Falling back to OpenAI API..."
+                )
+                self._using_fallback = True
+
+                try:
+                    async for chunk in self._fallback.stream_complete(
+                        messages=messages, **kwargs
+                    ):
+                        yield chunk
+                except Exception as fallback_error:
+                    logger.error(
+                        f"Fallback to OpenAI API also failed during streaming: {fallback_error}"
+                    )
+                    raise fallback_error
+            else:
+                # Not a rate limit error, re-raise
+                logger.error(f"Primary model failed during streaming: {e}")
+                raise
+
+    def __getattr__(self, name: str) -> Any:
+        """Forward any other attributes to the primary model.
+
+        This allows the wrapper to act as a transparent proxy for any
+        attributes or methods not explicitly overridden.
+        """
+        return getattr(self._primary, name)
 
 
 def get_openrouter_model(
@@ -97,63 +262,70 @@ def get_openai_fallback_model(
 
 def get_model_with_fallback(
     model_name: str = "google/gemini-2.0-flash-exp:free",
-) -> OpenAIChatCompletionsModel:
-    """Get a model with automatic fallback support.
+) -> OpenAIModelWithFallback | OpenAIChatCompletionsModel:
+    """Get a model with automatic fallback support for 429 rate limit errors.
 
-    This function returns a model configured to use OpenRouter as primary,
-    with automatic fallback to direct OpenAI API if OpenRouter fails.
+    This function returns a model wrapper that automatically falls back from OpenRouter
+    to direct OpenAI API when OpenRouter returns rate limit errors (429).
 
-    The OpenAI Agents SDK will handle retries automatically, but you can
-    manually switch to fallback using get_openai_fallback_model() if needed.
+    The fallback happens transparently during agent execution - no code changes needed.
 
     Args:
         model_name: Model identifier for OpenRouter (e.g., "google/gemini-2.0-flash-exp:free")
             For OpenAI fallback, this will be mapped to the equivalent OpenAI model.
 
     Returns:
-        Configured OpenAIChatCompletionsModel instance
+        OpenAIModelWithFallback wrapper if both keys are configured
+        OpenAIChatCompletionsModel if only one provider is configured
 
     Raises:
         ValueError: If neither OPENROUTER_API_KEY nor OPENAI_API_KEY is configured
 
     Example:
-        >>> # Primary: OpenRouter with fallback configured
+        >>> # Primary: OpenRouter with automatic 429 fallback
         >>> model = get_model_with_fallback()
         >>> agent = Agent(name="assistant", model=model)
         >>>
-        >>> # Or manually use direct OpenAI as fallback
-        >>> fallback_model = get_openai_fallback_model()
-        >>> fallback_agent = Agent(name="assistant", model=fallback_model)
+        >>> # When OpenRouter hits 429, automatically retries with OpenAI
+        >>> result = await Runner.run(agent, "Hello!")
     """
-    # Try OpenRouter first (primary)
-    if settings.openrouter_api_key:
-        try:
-            return get_openrouter_model(model_name)
-        except Exception as e:
-            # Log warning but don't fail yet
-            import logging
-            logging.warning(f"OpenRouter initialization failed: {e}. Trying direct OpenAI API...")
+    has_openrouter = bool(settings.openrouter_api_key)
+    has_openai = bool(settings.openai_api_key)
 
-    # Fallback to direct OpenAI API
-    if settings.openai_api_key:
+    # Both providers available - create fallback wrapper
+    if has_openrouter and has_openai:
+        logger.info(f"Configuring OpenRouter (primary) with OpenAI fallback")
+
         # Map OpenRouter model names to OpenAI model names
         openai_model_map = {
-            "google/gemini-2.0-flash-exp:free": "gpt-4o-mini",
-            "google/gemini-2.0-flash-exp": "gpt-4o-mini",
-            "google/gemini-flash-1.5": "gpt-4o-mini",
-            "google/gemini-2.5-flash": "gpt-4o-mini",
-            "google/gemini-2.5-pro": "gpt-4o",
-            "openai/gpt-4o-mini": "gpt-4o-mini",
-            "openai/gpt-4o": "gpt-4o",
+            "google/gemini-2.0-flash-exp:free": "gpt-5-nano-2025-08-07",
+            "google/gemini-2.0-flash-exp": "gpt-5-nano-2025-08-07",
+            "google/gemini-flash-1.5": "gpt-5-nano-2025-08-07",
+            "google/gemini-2.5-flash": "gpt-5-nano-2025-08-07",
+            "google/gemini-2.5-pro": "gpt-5-nano-2025-08-07",
+            "openai/gpt-4o-mini": "gpt-5-nano-2025-08-07",
+            "openai/gpt-4o": "gpt-5-nano-2025-08-07",
         }
 
         # Get the equivalent OpenAI model name
         openai_model = openai_model_map.get(model_name, "gpt-5-nano-2025-08-07")
 
-        import logging
-        logging.info(f"Using direct OpenAI API with model: {openai_model}")
+        # Create both models
+        primary_model = get_openrouter_model(model_name)
+        fallback_model = get_openai_fallback_model(openai_model)
 
-        return get_openai_fallback_model(openai_model)
+        # Wrap with fallback support
+        return OpenAIModelWithFallback(primary_model, fallback_model)
+
+    # Only OpenRouter available
+    if has_openrouter:
+        logger.info(f"Configuring OpenRouter without fallback (no OPENAI_API_KEY)")
+        return get_openrouter_model(model_name)
+
+    # Only OpenAI available
+    if has_openai:
+        logger.info(f"Configuring OpenAI directly (no OPENROUTER_API_KEY)")
+        return get_openai_fallback_model("gpt-5-nano-2025-08-07")
 
     # Neither API key is configured
     raise ValueError(

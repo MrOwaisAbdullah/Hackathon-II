@@ -513,6 +513,115 @@ def get_weather_validated(input_data: WeatherInput) -> str:
 
 ## Critical Pitfalls & Solutions (From Real-World Implementation)
 
+### ❌ Pitfall #0: OpenAIModelWithFallback Not Compatible with Agent (CRITICAL - Fixed)
+
+**Problem:**
+```python
+# WRONG - OpenAIModelWithFallback wrapper doesn't work with Agent class
+class OpenAIModelWithFallback:
+    def __init__(self, primary_model, fallback_model):
+        self._primary = primary_model
+        self._fallback = fallback_model
+
+# When used with Agent:
+agent = Agent(
+    name="assistant",
+    model=OpenAIModelWithFallback(primary, fallback),  # ❌ Error!
+)
+# Error: "Agent model must be a string, Model, or None, got OpenAIModelWithFallback"
+```
+
+**Solution: Implement Fallback at API Level (Not Model Wrapper)**
+```python
+from agents import OpenAIChatCompletionsModel, AsyncOpenAI, Agent, Runner
+from app.core.config import settings
+
+# ✅ CORRECT: Direct model selection based on provider
+def get_model_by_name(model: str) -> OpenAIChatCompletionsModel:
+    """Get model instance based on model name format.
+
+    Models with "/" go to OpenRouter (e.g., "google/gemini-2.0-flash-exp:free")
+    Models without "/" go to OpenAI direct (e.g., "gpt-4o-mini")
+    """
+    uses_openrouter = "/" in model
+
+    if uses_openrouter:
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=settings.openrouter_api_key,
+            max_retries=0,
+        )
+        return OpenAIChatCompletionsModel(
+            openai_client=client,
+            model=model,
+        )
+    else:
+        client = AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            max_retries=0,
+        )
+        return OpenAIChatCompletionsModel(
+            openai_client=client,
+            model=model,
+        )
+
+# ✅ CORRECT: Implement fallback in API layer, not model layer
+async def run_with_fallback(agent: Agent, message: str):
+    """Run agent with automatic fallback on 429 rate limit."""
+    primary_model = "google/gemini-2.0-flash-exp:free"
+    fallback_model = "gpt-5-nano-2025-08-07"
+
+    # Try primary model first
+    for attempt, model_name in enumerate([primary_model, fallback_model]):
+        try:
+            model_instance = get_model_by_name(model_name)
+            agent_with_model = Agent(
+                name=agent.name,
+                instructions=agent.instructions,
+                model=model_instance,
+                mcp_servers=agent.mcp_servers,
+            )
+            result = await Runner.run(agent_with_model, message)
+            logger.info(f"✅ Success with model: {model_name}")
+            return result
+
+        except Exception as e:
+            error_str = str(e)
+            is_rate_limit = (
+                "429" in error_str or
+                "rate.limited" in error_str.lower() or
+                "RateLimitError" in type(e).__name__
+            )
+
+            if is_rate_limit and attempt < 1:
+                logger.warning(f"⚠️ Rate limit on {model_name}, trying fallback...")
+                continue
+            else:
+                raise
+
+# Usage in API endpoint (app/chatkit/server.py):
+async def respond(thread: ThreadMetadata, new_message: str, context):
+    for attempt, model_name in enumerate([primary_model, fallback_model]):
+        try:
+            async with create_chatbot_agent_context(model=model_name) as agent:
+                result = Runner.run_streamed(agent, input_items, context=agent_context)
+                async for event in stream_agent_response(agent_context, result):
+                    yield event
+                break  # Success!
+        except Exception as e:
+            if is_rate_limit_error(e) and attempt < 1:
+                continue  # Retry with fallback
+            raise  # Re-raise if not rate limit or no more retries
+```
+
+**Key Point:**
+- `OpenAIModelWithFallback` wrapper does NOT work with Agent class
+- Implement fallback at the API/request level, not as a model wrapper
+- Use direct model selection based on model name format
+- Retry with different model on 429 errors
+
+---
+
 ### ❌ Pitfall #1: Not Using OpenAIChatCompletionsModel Wrapper
 
 **Problem:**
@@ -703,6 +812,138 @@ result = Runner.run_streamed(
 
 ---
 
+### ❌ Pitfall #7: MCP Server 404 Error (Critical - streamable_http_path Configuration)
+
+**Problem:**
+```python
+# WRONG - streamable_http_path not set during initialization
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("MyApp")  # ❌ Missing critical parameters!
+# Later in code...
+mcp.settings.streamable_http_path = "/"  # ❌ This is IGNORED!
+
+# When agent tries to connect:
+# POST /mcp HTTP/1.1" 404 Not Found
+# Error: MCP server not found at endpoint
+```
+
+**Root Cause:** `streamable_http_path` and `json_response` MUST be set during `FastMCP()` initialization. Setting them via `mcp.settings` afterwards has no effect.
+
+**Solution:**
+```python
+# ✅ RIGHT - Set during FastMCP() initialization
+from mcp.server.fastmcp import FastMCP
+
+# CRITICAL: streamable_http_path MUST be set during initialization
+# json_response=True enables proper JSON-RPC over HTTP
+mcp = FastMCP(
+    "MyApp",
+    streamable_http_path="/",  # Critical: must be constructor parameter
+    json_response=True,         # Enable JSON-RPC responses
+)
+
+# Then mount in FastAPI
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with mcp.session_manager.run():
+        yield
+
+app = FastAPI(lifespan=lifespan)
+app.mount("/mcp", mcp.streamable_http_app())  # Returns 200 OK
+```
+
+**Reference:** See `.claude/skills/mcp-builder/SKILL.md` for complete MCP server setup.
+
+---
+
+### ❌ Pitfall #8: FastAPI Endpoints Broken After Using Starlette (Critical)
+
+**Problem:**
+```python
+# WRONG - Using Starlette app breaks FastAPI routers
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from fastapi import APIRouter
+
+# Based on GitHub issue #1367, some guides suggest Starlette
+app = Starlette(routes=[
+    Mount("/mcp", mcp.streamable_http_app(), name="mcp"),
+])
+
+# FastAPI routers stop working!
+# Error: AssertionError: fastapi_middleware_astack not found in request scope
+# All API endpoints return 500 Internal Server Error
+```
+
+**Root Cause:** FastAPI routers require special middleware context that isn't available in a plain Starlette app. The `app.mount()` method in FastAPI is different from Starlette's `Mount`.
+
+**Solution:**
+```python
+# ✅ RIGHT - Use FastAPI's mount() method
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with mcp.session_manager.run():
+        yield
+
+app = FastAPI(lifespan=lifespan)
+
+# FastAPI's mount() handles the middleware context correctly
+app.mount("/mcp", mcp.streamable_http_app(), name="mcp")
+
+# Now FastAPI routers work fine
+from fastapi import APIRouter
+router = APIRouter()
+
+@router.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+app.include_router(router)  # ✅ Works!
+```
+
+**Key Point:** Always use `FastAPI` with `app.mount()`, never `Starlette` with `Mount`.
+
+---
+
+### ❌ Pitfall #9: 307 Temporary Redirect (Not Actually a Problem)
+
+**Symptoms:**
+```bash
+# Logs show redirect
+INFO: 127.0.0.1:50466 - "POST /mcp HTTP/1.1" 307 Temporary Redirect
+INFO: 127.0.0.1:50466 - "POST /mcp/ HTTP/1.1" 200 OK
+```
+
+**Question:** "Is this a problem? Why do we need the redirect?"
+
+**Answer:** This is **normal FastAPI behavior**, not a problem!
+
+**Explanation:**
+- FastAPI redirects `/mcp` (without trailing slash) to `/mcp/` (with trailing slash)
+- This is path normalization - FastAPI's standard behavior
+- The redirect is instant and harmless
+- The MCP SDK expects requests at `/mcp/` (with trailing slash)
+
+**Solution:** No fix needed. If you want to avoid the redirect log entry, configure your MCP client to use `/mcp/` directly:
+```python
+# Instead of this (causes 307 redirect):
+mcp_server_url = "http://127.0.0.1:8000/mcp"
+
+# Use this (no redirect):
+mcp_server_url = "http://127.0.0.1:8000/mcp/"
+```
+
+**Note:** This is purely cosmetic - the redirect doesn't affect functionality.
+
+---
+
 ## Quick Setup Pattern (Correct)
 
 Here's the complete correct pattern for using OpenRouter with OpenAI Agents SDK:
@@ -748,6 +989,152 @@ agent = Agent(
 result = await Runner.run(agent, "Hello!")
 print(result.final_output)
 ```
+
+---
+
+## MCP Server Integration (Production-Ready Pattern)
+
+### Overview
+
+Integrate MCP (Model Context Protocol) servers with OpenAI Agents SDK using `MCPServerStreamableHttp`. This enables your agents to use external tools exposed via MCP protocol.
+
+### Critical: Context Manager Pattern for MCP Lifecycle
+
+**❌ WRONG: Creating agent without proper MCP cleanup**
+```python
+# MCP connection never cleaned up - resource leak!
+agent = Agent(
+    name="assistant",
+    instructions="You are helpful",
+    mcp_servers=[mcp_server],
+)
+result = await Runner.run(agent, "Hello")  # Works but leaks resources
+```
+
+**✅ RIGHT: Using async context manager**
+```python
+from agents import Agent, Runner, MCPServerStreamableHttp, OpenAIChatCompletionsModel
+from agents import set_default_openai_api, set_tracing_disabled
+from contextlib import asynccontextmanager
+
+set_tracing_disabled(True)
+set_default_openai_api("chat_completions")
+
+@asynccontextmanager
+async def create_agent_with_mcp(
+    model: str = "google/gemini-2.0-flash-exp:free",
+    mcp_server_url: str = "http://127.0.0.1:8000/mcp",
+):
+    """Create agent with proper MCP server lifecycle management.
+
+    Note: Fallback for rate limits should be implemented at the API/request level,
+    not as a model wrapper. See run_with_fallback() example in this skill.
+    """
+    from openai import AsyncOpenAI
+    from app.core.config import settings
+
+    # Detect model provider by model name format
+    uses_openrouter = "/" in model
+
+    if uses_openrouter:
+        client = AsyncOpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=settings.openrouter_api_key,
+            max_retries=0,
+        )
+    else:
+        client = AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            max_retries=0,
+        )
+
+    model_instance = OpenAIChatCompletionsModel(
+        openai_client=client,
+        model=model,
+    )
+
+    # Connect MCP server with proper lifecycle
+    async with MCPServerStreamableHttp(
+        name="TeamFlow MCP Server",
+        params={"url": mcp_server_url},
+        cache_tools_list=True,
+    ) as mcp_server:
+        agent = Agent(
+            name="teamflow-ai",
+            instructions=TEAMFLOW_AGENT_INSTRUCTIONS,
+            model=model_instance,
+            mcp_servers=[mcp_server],
+        )
+        yield agent
+
+# Usage:
+async with create_agent_with_mcp() as agent:
+    result = await Runner.run(agent, "List all high priority tasks")
+    print(result.final_output)
+# MCP connection automatically cleaned up
+```
+
+### Production-Ready: Single-Server Architecture
+
+**Mount MCP server in FastAPI** instead of running separate process:
+
+```python
+# app/main.py - Single FastAPI application
+from fastapi import FastAPI
+from app.mcp.server import mcp
+
+app = FastAPI()
+
+# Mount MCP server at /mcp endpoint
+app.mount("/mcp", mcp.streamable_http_app(), name="mcp")
+
+# Main API endpoints
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+# Configuration
+# MCP_SERVER_URL=http://127.0.0.1:8000/mcp (default)
+# MCP_SERVER_URL=https://api.teamflow.com/mcp (production)
+```
+
+**Benefits:**
+- Single process deployment
+- Single port exposure
+- Shared lifecycle management
+- Simplified monitoring
+
+### MCP Tools Discovery and Usage
+
+```python
+async def test_mcp_tools():
+    """Test that MCP tools are discoverable and usable."""
+    async with create_agent_with_mcp() as agent:
+        # Get MCP server
+        mcp_server = agent.mcp_servers[0]
+
+        # List all available tools
+        tools = await mcp_server.list_tools()
+        print(f"Discovered {len(tools)} tools:")
+        for tool in tools:
+            print(f"  - {tool.name}: {tool.description[:50]}...")
+
+        # Test tool usage
+        result = await Runner.run(
+            agent,
+            "Please list all projects in the system. Use the list_projects tool."
+        )
+        print(result.final_output)
+```
+
+### Complete MCP Integration Example
+
+See `examples/mcp_integration_example.py` for a complete working example of:
+- Creating MCP server with FastMCP
+- Mounting in FastAPI
+- Connecting via MCPServerStreamableHttp
+- Using tools from agent
+- Proper lifecycle management
 
 ---
 
@@ -798,6 +1185,83 @@ print(result.final_output)
            return True
        except:
            return False
+   ```
+
+4. **Agent Can't Use Tools Due to Poor UX Design**
+
+   **Problem:** Tools that require technical IDs instead of user-friendly identifiers.
+
+   ```python
+   # ❌ WRONG - Tool requires UUID that users don't have
+   @mcp.tool()
+   async def complete_task(task_id: str) -> str:
+       """Mark a task as complete.
+
+       Args:
+           task_id: UUID of the task (e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+       """
+       # ...
+
+   # User says: "Complete the landing page redesign task"
+   # Agent doesn't have the UUID and fails!
+   ```
+
+   **Solution:** Provide user-friendly alternatives with partial matching.
+
+   ```python
+   # ✅ RIGHT - Provide both ID-based and name-based tools
+   @mcp.tool()
+   async def complete_task(task_id: str) -> str:
+       """Complete a task by its exact ID."""
+       # For programmatic access
+
+   @mcp.tool()
+   async def complete_task_by_title(task_title: str) -> str:
+       """Find a task by title and mark it as complete.
+
+       This tool searches for a task by its title (partial matching supported)
+       and marks it as complete. Use this when the user provides a task title
+       instead of a task ID.
+
+       Args:
+           task_title: Title of the task to complete (partial matching supported)
+
+       Returns:
+           Confirmation message with task details
+       """
+       # Search with partial matching (case-insensitive)
+       statement = select(Task).where(
+           Task.title.ilike(f"%{task_title}%")
+       ).order_by(Task.created_at.desc())
+
+       results = session.exec(statement).all()
+
+       if not results:
+           return f"No task found matching: '{task_title}'"
+
+       # Use first (most recent) match
+       task = results[0]
+       task.status = TaskStatus.DONE
+
+       return f"Task completed: {task.title}"
+   ```
+
+   **Agent Instructions Update:**
+   ```python
+   # Tell the agent to use the user-friendly tools
+   AGENT_INSTRUCTIONS = """
+   **IMPORTANT: Use the dedicated "by title" tools when user provides task names:**
+   - `complete_task_by_title(task_title)` - Complete by title (partial matching)
+   - `delete_task_by_title(task_title)` - Delete by title (partial matching)
+   - `archive_task_by_title(task_title)` - Archive by title (partial matching)
+
+   These tools are more user-friendly than requiring task IDs. Use them when
+   the user refers to a task by name.
+
+   Example:
+   - User: "Complete the landing page redesign task"
+   - Agent calls: `complete_task_by_title("landing page redesign")`
+   """
    ```
 
 ## Complete Example

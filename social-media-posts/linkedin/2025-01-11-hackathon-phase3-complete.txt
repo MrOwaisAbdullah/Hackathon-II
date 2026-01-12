@@ -1,0 +1,72 @@
+Hackathon II — Phase 3 is done.
+
+The goal was to build an AI agent.
+Not a chatbot that just talks.
+An agent that actually DOES things.
+
+Frontend on Vercel, backend on HuggingFace Spaces.
+
+Simple enough, right?
+
+Not quite.
+
+Here's what hit me:
+
+Deployment failed 15+ times.
+ESLint errors blocked the build.
+TypeScript broke on ref types.
+Missing UI components appeared out of nowhere.
+
+The biggest blocker?
+
+ChatKit domain verification.
+
+It worked perfectly on localhost.
+But production threw IntegrationError immediately.
+
+I spent hours trying to suppress the error.
+Client-side handlers didn't work.
+Global error listeners didn't catch it.
+
+Turns out, ChatKit's CDN enforces domain verification.
+Even with a self-hosted backend.
+
+The solution wasn't code.
+It was registering the domain at OpenAI dashboard.
+Using NEXT_PUBLIC_CHATKIT_DOMAIN_KEY in Vercel.
+
+Once that was fixed, everything clicked.
+
+What I shipped:
+
+An AI task assistant that can:
+👉 Create tasks and projects
+👉 Update assignments
+👉 Delete completed work
+👉 Manage team workflows
+👉 Track time entries
+👉 Filter by status or assignee
+
+It's a personal agent.
+You chat with it, it takes action.
+
+Plus:
+👉 Voice input integration
+👉 Dark/light theme support
+👉 Fullscreen toggle mode
+👉 Marketing pages (pricing, privacy, terms)
+
+Main lesson from Phase 3:
+
+Local development hides real-world problems.
+Production deployment exposes them fast.
+
+Domain verification, CORS, environment variables.
+These don't show up until you ship.
+
+The best way to learn?
+Deploy early. Break things. Fix them.
+
+Phase 4 starts next week.
+
+#Hackathon2 #AI #OpenAI #Agent #TaskAssistant #NextJS #FastAPI #BuildingInPublic

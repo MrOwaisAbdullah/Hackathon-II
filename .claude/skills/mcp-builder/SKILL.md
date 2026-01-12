@@ -12,11 +12,733 @@ Create MCP (Model Context Protocol) servers that enable LLMs to interact with ex
 
 ## ⚠️ Critical Lessons Learned (From Real-World Implementation)
 
-### Integration with OpenAI Agents SDK
+### Production-Ready Deployment Architecture (NEW - Critical)
+
+**❌ WRONG: Running MCP server as separate process**
+```python
+# Two separate processes - complex deployment
+# Process 1: Main backend on port 8000
+# Process 2: MCP server on port 8001
+# Problems:
+# - Need to manage two processes
+# - Internal networking complexity
+# - Separate lifecycle management
+# - Harder scaling and monitoring
+```
+
+**✅ RIGHT: Mount MCP server in FastAPI (single-server architecture)**
+
+Following the [official MCP Python SDK documentation](https://github.com/modelcontextprotocol/python-sdk):
+
+**CRITICAL**: Set `streamable_http_path="/"` during `FastMCP()` initialization - NOT afterwards!
+
+```python
+# app/mcp/server.py - MCP server creation
+from mcp.server.fastmcp import FastMCP
+
+# CRITICAL: streamable_http_path MUST be set during initialization
+# json_response=True enables proper JSON-RPC over HTTP
+mcp = FastMCP(
+    "TeamFlow",
+    streamable_http_path="/",  # Critical: must be constructor parameter
+    json_response=True,  # Enable JSON-RPC responses
+)
+```
+
+```python
+# app/main.py - FastAPI application
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from app.mcp.server import mcp
+
+# Lifespan with session manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with mcp.session_manager.run():
+        yield
+
+app = FastAPI(
+    lifespan=lifespan,
+)
+
+# Mount MCP server directly using FastAPI's mount() method
+app.mount("/mcp", mcp.streamable_http_app(), name="mcp")
+```
+
+**Key Points:**
+1. `streamable_http_path="/"` - **Must be set during `FastMCP()` initialization, not via `mcp.settings`**
+2. No ASGI wrapper needed - FastMCP handles path translation internally
+3. Use `app.mount()` method for proper sub-application registration
+4. No manual route manipulation needed
+
+**Benefits:**
+- Single process deployment
+- Single port exposure (no internal networking)
+- Shared lifecycle management
+- Simplified monitoring and logging
+- Easier horizontal scaling
+
+**Configuration:**
+```bash
+# Development (default)
+MCP_SERVER_URL=http://127.0.0.1:8000/mcp
+
+# Production (override via environment variable)
+MCP_SERVER_URL=https://api.teamflow.com/mcp
+```
+
+### Complete Working Example: From Scratch (Production-Ready)
+
+This is a complete, working example showing how to create an MCP server with FastMCP and mount it in FastAPI on the same port. This example incorporates all lessons learned from real-world production issues.
+
+**Project Structure:**
+```
+myapp/
+├── app/
+│   ├── __init__.py
+│   ├── main.py          # FastAPI app with mounted MCP server
+│   ├── mcp/
+│   │   ├── __init__.py
+│   │   └── server.py     # MCP server with tools
+│   └── core/
+│       ├── __init__.py
+│       └── config.py     # Settings
+├── requirements.txt
+└── .env                  # Environment variables
+```
+
+---
+
+#### Step 1: Create MCP Server (`app/mcp/server.py`)
+
+```python
+"""MCP server for MyApp using FastMCP.
+
+CRITICAL CONFIGURATION NOTES:
+- streamable_http_path MUST be set during FastMCP() initialization
+- json_response=True enables proper JSON-RPC over HTTP
+- These parameters CANNOT be set via mcp.settings after initialization
+"""
+from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel, Field
+from typing import Optional, List
+
+# Create MCP server instance
+# CRITICAL: streamable_http_path="/" MUST be set during initialization
+# json_response=True enables proper JSON-RPC over HTTP
+mcp = FastMCP(
+    "MyApp",
+    streamable_http_path="/",  # Critical: must be constructor parameter
+    json_response=True,         # Enable JSON-RPC responses
+)
+
+
+# =============================================================================
+# Tool Input Models (Pydantic for validation)
+# =============================================================================
+
+class CreateTaskInput(BaseModel):
+    """Input for creating a new task."""
+    title: str = Field(
+        min_length=1,
+        max_length=200,
+        description="Task title (clear and descriptive)"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Detailed task description"
+    )
+    priority: str = Field(
+        default="MEDIUM",
+        description="Task priority: LOW, MEDIUM, HIGH, URGENT"
+    )
+
+
+class ListTasksInput(BaseModel):
+    """Input for listing tasks."""
+    status: Optional[str] = Field(
+        default=None,
+        description="Filter by status: TODO, IN_PROGRESS, DONE"
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of tasks to return (1-100)"
+    )
+
+
+# =============================================================================
+# MCP Tools
+# =============================================================================
+
+@mcp.tool()
+async def create_task(input: CreateTaskInput) -> str:
+    """
+    Create a new task in the system.
+
+    Usage Tips:
+    - Use clear, descriptive titles (e.g., "Fix login bug" not "Issue")
+    - Include relevant details in description for better context
+    - Set priority based on business impact
+
+    Args:
+        input: Task details including title, description, and priority
+
+    Returns:
+        Confirmation message with task ID and details
+    """
+    # In production, this would interact with your database/service layer
+    import uuid
+    task_id = str(uuid.uuid4())
+
+    return (
+        f"Task created successfully!\n"
+        f"- ID: {task_id}\n"
+        f"- Title: {input.title}\n"
+        f"- Description: {input.description or 'N/A'}\n"
+        f"- Priority: {input.priority}\n"
+        f"- Status: TODO"
+    )
+
+
+@mcp.tool()
+async def list_tasks(input: ListTasksInput) -> str:
+    """
+    List all tasks in the system, optionally filtered by status.
+
+    This tool returns tasks with their current status, priority, and
+    assignment information. Use for overview and task discovery.
+
+    Usage Tips:
+    - Use status filter to focus on specific workflow stages
+    - Combine with other tools for workflow automation
+
+    Args:
+        input: Filtering options including status and result limit
+
+    Returns:
+        Formatted list of tasks with details
+    """
+    # In production, this would query your database
+    return (
+        "Tasks found: 0\n"
+        f"Filter: status={input.status or 'all'}, limit={input.limit}\n"
+        "\n"
+        "Tip: Connect to a database to return actual tasks."
+    )
+
+
+@mcp.tool()
+async def get_task_by_id(task_id: str) -> str:
+    """
+    Get detailed information about a specific task.
+
+    Use this when you need complete task details including:
+    - Full description and acceptance criteria
+    - Assignment and due date
+    - Related tasks or dependencies
+    - Activity history
+
+    Args:
+        task_id: Unique identifier of the task (UUID)
+
+    Returns:
+        Detailed task information or error if not found
+    """
+    # In production, this would query your database
+    return (
+        f"Task not found: {task_id}\n"
+        "\n"
+        "Tip: Connect to a database to return actual task data."
+    )
+
+
+# =============================================================================
+# Server Info (for debugging)
+# =============================================================================
+
+def get_tool_count() -> int:
+    """Return the number of registered tools."""
+    return len(mcp._tool_manager._tools)
+```
+
+---
+
+#### Step 2: Create Configuration (`app/core/config.py`)
+
+```python
+"""Application configuration using Pydantic Settings."""
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Application settings with environment variable support."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+
+    # API Configuration
+    api_v1_prefix: str = "/api/v1"
+    project_name: str = "MyApp API"
+
+    # CORS Configuration
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ]
+
+    # MCP Server Configuration
+    # Development: http://127.0.0.1:8000/mcp
+    # Production: https://api.myapp.com/mcp
+    mcp_server_url: str = "http://127.0.0.1:8000/mcp"
+
+    # AI/ML Configuration
+    openrouter_api_key: str | None = None
+    openai_api_key: str | None = None
+
+
+# Global settings instance
+settings = Settings()
+```
+
+---
+
+#### Step 3: Create FastAPI Application (`app/main.py`)
+
+```python
+"""FastAPI application with mounted MCP server.
+
+This application demonstrates the correct way to mount an MCP server
+in FastAPI using the single-server architecture.
+
+KEY POINTS:
+1. MCP server is mounted at /mcp endpoint using app.mount()
+2. Session manager runs in the lifespan context
+3. All API routes work alongside the MCP endpoint
+4. Single process, single port deployment
+"""
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.core.logging import get_logger
+from app.mcp.server import mcp
+
+logger = get_logger(__name__)
+
+
+# =============================================================================
+# Lifespan Management
+# =============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager.
+
+    This ensures the MCP session manager runs for the lifetime of the
+    FastAPI application. This is CRITICAL for proper MCP server operation.
+
+    Yields:
+        Control back to FastAPI after startup
+    """
+    logger.info("[lifespan] Starting up application...")
+    logger.info(f"[lifespan] MCP server available at: {settings.mcp_server_url}")
+
+    # CRITICAL: Run MCP session manager for the lifetime of the app
+    async with mcp.session_manager.run():
+        yield  # Application runs here
+
+    logger.info("[lifespan] Shutting down application...")
+
+
+# =============================================================================
+# FastAPI Application
+# =============================================================================
+
+# Create FastAPI application
+app = FastAPI(
+    title=settings.project_name,
+    description="FastAPI application with integrated MCP server",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# =============================================================================
+# Middleware
+# =============================================================================
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# =============================================================================
+# API Routes
+# =============================================================================
+
+@app.get("/")
+async def root():
+    """Root endpoint with API information."""
+    return {
+        "message": "MyApp API",
+        "mcp_endpoint": settings.mcp_server_url,
+        "mcp_tools": mcp.get_tool_count(),
+        "docs_url": "/docs",
+    }
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "mcp_server": "running",
+        "mcp_endpoint": settings.mcp_server_url,
+    }
+
+
+# =============================================================================
+# Mount MCP Server
+# =============================================================================
+
+# CRITICAL: Mount MCP server at /mcp endpoint
+# This enables the MCP server to run on the same port as FastAPI
+# The streamable_http_app() returns an ASGI application
+app.mount("/mcp", mcp.streamable_http_app(), name="mcp")
+
+
+# =============================================================================
+# Startup Event (for logging)
+# =============================================================================
+
+@app.get("/debug/mcp")
+async def debug_mcp():
+    """Debug endpoint to view MCP server configuration."""
+    tools = []
+    for tool_name, tool_def in mcp._tool_manager._tools.items():
+        tools.append({
+            "name": tool_name,
+            "description": tool_def.description[:100] + "..." if len(tool_def.description) > 100 else tool_def.description
+        })
+
+    return {
+        "mcp_server_url": settings.mcp_server_url,
+        "total_tools": len(tools),
+        "tools": tools,
+    }
+```
+
+---
+
+#### Step 4: Create Environment File (`.env`)
+
+```bash
+# .env file - Configuration for development
+
+# MCP Server URL (auto-detected, but can override)
+MCP_SERVER_URL=http://127.0.0.1:8000/mcp
+
+# OpenRouter API Key (for using non-OpenAI models)
+# OPENROUTER_API_KEY=sk-or-...
+
+# OpenAI API Key (for direct OpenAI access)
+# OPENAI_API_KEY=sk-...
+```
+
+---
+
+#### Step 5: Create Requirements (`requirements.txt`)
+
+```txt
+# FastAPI and server
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.10.0
+pydantic-settings==2.6.0
+
+# MCP SDK
+mcp==1.1.1
+
+# OpenAI Agents SDK (optional, for using MCP tools with agents)
+openai-agents==0.0.2
+openai>=1.58.0
+
+# Logging
+python-json-logger==2.0.7
+```
+
+---
+
+#### Step 6: Run and Test
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the server
+uvicorn app.main:app --reload --port 8000
+
+# Or using Python
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+**Test the MCP endpoint:**
+```bash
+# Test MCP server is running
+curl http://127.0.0.1:8000/mcp
+
+# Test health endpoint
+curl http://127.0.0.1:8000/health
+
+# Test debug MCP endpoint
+curl http://127.0.0.1:8000/debug/mcp
+```
+
+**Expected output from `/debug/mcp`:**
+```json
+{
+  "mcp_server_url": "http://127.0.0.1:8000/mcp",
+  "total_tools": 3,
+  "tools": [
+    {"name": "create_task", "description": "Create a new task in the system..."},
+    {"name": "list_tasks", "description": "List all tasks in the system..."},
+    {"name": "get_task_by_id", "description": "Get detailed information..."}
+  ]
+}
+```
+
+---
+
+### Common Problems and Solutions
+
+#### Problem 1: 404 Error at `/mcp` Endpoint
+
+**Symptoms:**
+```
+POST /mcp HTTP/1.1" 404 Not Found
+```
+
+**Root Cause:** `streamable_http_path` was not set during `FastMCP()` initialization.
+
+**Solution:**
+```python
+# ❌ WRONG - Setting via settings (doesn't work)
+mcp = FastMCP("MyApp")
+mcp.settings.streamable_http_path = "/"  # This is ignored!
+
+# ✅ RIGHT - Setting during initialization
+mcp = FastMCP(
+    "MyApp",
+    streamable_http_path="/",  # Must be constructor parameter
+    json_response=True,
+)
+```
+
+---
+
+#### Problem 2: AssertionError - fastapi_middleware_astack not found
+
+**Symptoms:**
+```
+AssertionError: fastapi_middleware_astack not found in request scope
+```
+
+**Root Cause:** Using Starlette app instead of FastAPI, or improper mounting.
+
+**Solution:**
+```python
+# ❌ WRONG - Using Starlette directly
+from starlette.applications import Starlette
+app = Starlette()  # FastAPI routers won't work!
+
+# ✅ RIGHT - Use FastAPI
+from fastapi import FastAPI
+app = FastAPI(lifespan=lifespan)
+app.mount("/mcp", mcp.streamable_http_app())
+```
+
+---
+
+#### Problem 3: 307 Temporary Redirect
+
+**Symptoms:**
+```
+POST /mcp HTTP/1.1" 307 Temporary Redirect
+POST /mcp/ HTTP/1.1" 200 OK
+```
+
+**Explanation:** This is **normal FastAPI behavior**. Requests to `/mcp` (without trailing slash) are redirected to `/mcp/` (with trailing slash) for path normalization. The redirect is instant and harmless.
+
+**Solution:** No fix needed. If you want to avoid the redirect, configure your MCP client to use `/mcp/` (with trailing slash) directly.
+
+---
+
+#### Problem 4: Tools Not Discoverable
+
+**Symptoms:** Agent can't see or use MCP tools.
+
+**Root Cause:** MCP server not mounted or session manager not running.
+
+**Solution:**
+```python
+# Ensure session manager runs in lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with mcp.session_manager.run():  # CRITICAL!
+        yield
+
+app = FastAPI(lifespan=lifespan)
+app.mount("/mcp", mcp.streamable_http_app())  # CRITICAL!
+```
+
+---
+
+### Testing with OpenAI Agents SDK
+
+Once your MCP server is running, you can test it with an agent:
+
+```python
+"""Test MCP server integration with OpenAI Agents SDK."""
+import asyncio
+from agents import Agent, Runner, MCPServerStreamableHttp, OpenAIChatCompletionsModel
+from openai import AsyncOpenAI
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def create_test_agent(mcp_server_url: str = "http://127.0.0.1:8000/mcp"):
+    """Create test agent with MCP tools."""
+
+    # Setup model (using OpenRouter as example)
+    client = AsyncOpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="your-openrouter-api-key",
+    )
+
+    model = OpenAIChatCompletionsModel(
+        openai_client=client,
+        model="google/gemini-2.0-flash-exp:free",
+    )
+
+    # Connect to MCP server
+    async with MCPServerStreamableHttp(
+        name="MyApp MCP Server",
+        params={"url": mcp_server_url},
+        cache_tools_list=True,
+    ) as mcp_server:
+        agent = Agent(
+            name="test-agent",
+            instructions="You are a helpful task management assistant.",
+            model=model,
+            mcp_servers=[mcp_server],
+        )
+        yield agent
+
+
+async def test_mcp_tools():
+    """Test that MCP tools are working."""
+    print("Testing MCP server integration...\n")
+
+    async with create_test_agent() as agent:
+        # Test 1: Create a task
+        print("Test 1: Creating a task")
+        result1 = await Runner.run(
+            agent,
+            "Create a high priority task called 'Fix login bug' with description 'Users cannot login on mobile devices'"
+        )
+        print(f"Result: {result1.final_output}\n")
+
+        # Test 2: List tasks
+        print("Test 2: Listing all tasks")
+        result2 = await Runner.run(agent, "List all tasks")
+        print(f"Result: {result2.final_output}\n")
+
+
+if __name__ == "__main__":
+    asyncio.run(test_mcp_tools())
+```
+
+---
+
+### Summary: Production Checklist
+
+Before deploying to production, verify:
+
+- [ ] `streamable_http_path="/"` set during `FastMCP()` initialization
+- [ ] `json_response=True` enabled
+- [ ] MCP server mounted with `app.mount("/mcp", mcp.streamable_http_app())`
+- [ ] Session manager running in lifespan: `async with mcp.session_manager.run()`
+- [ ] Using FastAPI (not plain Starlette)
+- [ ] All API routes still work after mounting MCP server
+- [ ] MCP endpoint returns 200 (not 404)
+- [ ] Tools are discoverable via `/debug/mcp` endpoint
+- [ ] Environment variables configured for production
+- [ ] CORS configured for frontend domain
+
+---
+
+### Integration with OpenAI Agents SDK (Production Pattern)
 
 When integrating MCP tools with the OpenAI Agents SDK:
 
-**1. FastMCP Makes It Easy (Python)**
+**1. Production Pattern: Use MCPServerStreamableHttp**
+
+```python
+from agents import Agent, Runner, MCPServerStreamableHttp
+from contextlib import asynccontextmanager
+from openai import AsyncOpenAI
+from agents import OpenAIChatCompletionsModel
+
+@asynccontextmanager
+async def create_agent_with_mcp(mcp_server_url: str = "http://127.0.0.1:8000/mcp"):
+    """Create agent with proper MCP server lifecycle management."""
+
+    # Setup model
+    client = AsyncOpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=settings.openrouter_api_key,
+    )
+
+    model = OpenAIChatCompletionsModel(
+        openai_client=client,
+        model="google/gemini-2.0-flash-exp:free",
+    )
+
+    # Connect MCP server with proper lifecycle
+    async with MCPServerStreamableHttp(
+        name="TeamFlow MCP Server",
+        params={"url": mcp_server_url},
+        cache_tools_list=True,
+    ) as mcp_server:
+        agent = Agent(
+            name="teamflow-ai",
+            instructions=TEAMFLOW_AGENT_INSTRUCTIONS,
+            model=model,
+            mcp_servers=[mcp_server],
+        )
+        yield agent
+
+# Usage:
+async with create_agent_with_mcp() as agent:
+    result = await Runner.run(agent, "List all high priority tasks")
+    print(result.final_output)
+# MCP connection automatically cleaned up
+```
+
+**2. MCP Server with FastMCP (Python)**
 
 ```python
 from mcp.server.fastmcp import FastMCP
@@ -39,34 +761,26 @@ async def search_knowledge_base(query: str, limit: int = 5) -> str:
     """
     # Implementation here
     return f"Found results for: {query}"
-
-# Tools are automatically available to agents
 ```
 
-**2. Register Tools with Agent**
+**3. Mount MCP Server in FastAPI**
 
 ```python
-from agents import Agent, function_tool
+# app/main.py - Single FastAPI application
+from fastapi import FastAPI
 from app.mcp.server import mcp
 
-# Option A: Extract tools from MCP server
-TEAMFLOW_TOOLS = list(mcp._tool_manager._tools.values())
+app = FastAPI()
 
-agent = Agent(
-    name="teamflow-assistant",
-    instructions="You are a helpful assistant with access to TeamFlow tools.",
-    tools=TEAMFLOW_TOOLS,  # Pass MCP tools directly
-)
+# Mount MCP server at /mcp endpoint
+app.mount("/mcp", mcp.streamable_http_app(), name="mcp")
 
-# Option B: Use @function_tool decorator with MCP logic underneath
-@function_tool
-async def search_docs(query: str) -> str:
-    """Search documentation using RAG pipeline."""
-    # Delegates to MCP tool internally
-    return await search_knowledge_base(query)
+# Configuration
+# MCP_SERVER_URL=http://127.0.0.1:8000/mcp (default)
+# MCP_SERVER_URL=https://api.teamflow.com/mcp (production)
 ```
 
-**3. Tool Design Best Practices**
+**4. Tool Design Best Practices**
 
 - **Clear Descriptions**: Help agents understand when to use each tool
 - **Structured Inputs**: Use Pydantic models for complex parameters
@@ -149,6 +863,13 @@ async def search_knowledge_base_v2(input: SearchInput) -> str:
 - **❌ No Input Validation**: Accept any string → **✅** Use Pydantic with constraints
 - **❌ Generic Errors**: "Error occurred" → **✅** "Qdrant connection failed. Check QDRANT_URL env var."
 - **❌ No Usage Examples**: Just parameter list → **✅** Include "Usage Tips" in docstring
+- **❌ Separate MCP Server Process**: Running MCP on separate port → **✅** Mount at `/mcp` in FastAPI
+- **❌ No MCP Lifecycle Management**: Direct agent creation → **✅** Use async context manager pattern
+- **❌ Hardcoded MCP URLs**: `http://127.0.0.1:8001/mcp` → **✅** Use `settings.mcp_server_url` with env override
+- **❌ Setting streamable_http_path via settings**: `mcp.settings.streamable_http_path="/"` → **✅** Must be set during `FastMCP()` initialization
+- **❌ Missing session manager**: Not running `mcp.session_manager.run()` → **✅** Use `async with mcp.session_manager.run():` in lifespan
+- **❌ Manual route insertion**: `Mount("/mcp", app=...); app.routes.insert(0, mount)` doesn't work reliably → **✅** Use `app.mount("/mcp", mcp.streamable_http_app())`
+- **❌ Custom ASGI wrapper**: Creating custom path translation wrapper → **✅** Not needed when `streamable_http_path="/"` is set during init
 
 **5. Testing MCP Tools with Agents**
 

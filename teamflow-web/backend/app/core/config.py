@@ -48,6 +48,10 @@ class Settings(BaseSettings):
         default="",
         description="OpenRouter API key for embeddings and AI models",
     )
+    mcp_server_url: str = Field(
+        default="http://127.0.0.1:8000/mcp",
+        description="MCP server URL (now mounted on main API at /mcp endpoint)",
+    )
     qdrant_url: str = Field(
         default="http://localhost:6333",
         description="Qdrant Cloud URL",

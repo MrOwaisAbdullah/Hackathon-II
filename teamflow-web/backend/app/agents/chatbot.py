@@ -8,12 +8,24 @@ The agent supports:
 - Analytics (profitability, workload summary)
 - AI recommendations (suggest assignee)
 - Streaming responses for real-time UX
+
+MCP Integration:
+- Uses MCPServerStreamableHttp from OpenAI Agents SDK
+- Connects to TeamFlow MCP server via HTTP (localhost)
+- Tools are automatically discovered and invoked by the SDK
+
+IMPORTANT: MCPServerStreamableHttp requires async context management.
+Use create_chatbot_agent_context() for proper MCP server lifecycle.
 """
-from typing import AsyncIterator
+from typing import AsyncIterator, AsyncContextManager
+from contextlib import asynccontextmanager
 
 from agents import Agent, Runner, RunConfig, ModelResponse
+from agents.mcp import MCPServerStreamableHttp
 
-from app.mcp.server import mcp
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 # Agent instructions
@@ -86,7 +98,22 @@ A query is "complex" if it requires:
 **Task Update Operations:**
 - Tasks can be: completed (mark as DONE), archived (hide from view), deleted (permanent removal)
 - Tasks can be updated: priority, due date, status
-- Use task titles for identification (partial matching supported)
+
+**IMPORTANT: Use the dedicated "by title" tools when user provides task names:**
+- `complete_task_by_title(task_title)` - Complete a task by its title (partial matching)
+- `delete_task_by_title(task_title)` - Delete a task by its title (partial matching)
+- `archive_task_by_title(task_title)` - Archive a task by its title (partial matching)
+
+These tools are more user-friendly than requiring task IDs. Use them when the user refers to a task by name.
+
+Example workflow:
+- User: "Complete the landing page redesign task"
+- Agent calls: `complete_task_by_title("landing page redesign")` → Finds and completes the task
+
+If you need the task ID for other operations:
+1. Call `list_tasks()` to retrieve all tasks
+2. Search through the results to find the task by title (partial matching supported)
+3. Extract the task ID from the format: "**Task Title** (ID: task-uuid-here)"
 
 **Time Entry Best Practices:**
 - Duration is specified in minutes (e.g., 60 for 1 hour, 30 for 30 minutes)
@@ -115,97 +142,134 @@ A query is "complex" if it requires:
 When users ask for help, guide them through available capabilities."""
 
 
-def create_chatbot_agent(
+@asynccontextmanager
+async def create_chatbot_agent_context(
     instructions: str | None = None,
     model: str = "google/gemini-2.0-flash-exp:free",
-    use_fallback: bool = True,
-) -> Agent:
-    """Create a TeamFlow chatbot agent with MCP tools.
+    mcp_server_url: str | None = None,
+) -> AsyncContextManager[Agent]:
+    """Create a TeamFlow chatbot agent with MCP tools using MCPServerStreamableHttp.
 
-    This function initializes an OpenAI Agents SDK agent configured with:
-    - Gemini 2.0 Flash Experimental model via OpenRouter (primary, fast, free tier)
-    - Direct Gemini API fallback (when OpenRouter unavailable)
-    - Tools from the MCP server for task management operations
-    - Custom instructions for TeamFlow-specific behavior
+    This is an async context manager that properly manages the MCP server lifecycle.
+    The MCP server is connected when entering the context and disconnected when exiting.
+
+    IMPORTANT: Use this function with 'async with' to ensure proper MCP server lifecycle:
+
+        async with create_chatbot_agent_context() as agent:
+            result = await Runner.run(agent, "Hello!")
+            print(result.final_output)
 
     Args:
         instructions: Custom agent instructions (optional).
             Defaults to TEAMFLOW_AGENT_INSTRUCTIONS.
         model: Model identifier via OpenRouter. Defaults to "google/gemini-2.0-flash-exp:free".
-        use_fallback: Enable automatic fallback to direct Gemini API. Defaults to True.
+        mcp_server_url: URL of the TeamFlow MCP server.
+            Defaults to settings.mcp_server_url (http://127.0.0.1:8000/mcp in production).
 
-    Returns:
-        Configured Agent instance ready to run
+    Yields:
+        Configured Agent instance with connected MCP server
 
     Example:
-        >>> agent = create_chatbot_agent()
-        >>> result = await run_chatbot_stream(agent, "List all high priority tasks")
-        >>> async for chunk in result:
-        ...     print(chunk, end="")
+        >>> async with create_chatbot_agent_context() as agent:
+        ...     result = await Runner.run(agent, "List all high priority tasks")
+        ...     print(result.final_output)
     """
-    # Get the model with fallback support
+    from app.core.config import settings
+    from app.agents.client import get_openrouter_model, get_openai_fallback_model
+
+    # Use MCP server URL from settings if not provided
+    if mcp_server_url is None:
+        mcp_server_url = settings.mcp_server_url
+
+    # Detect model provider based on model name
+    # - Models with "/" (e.g., "openai/gpt-4o-mini", "google/gemini-2.0-flash-exp:free") → OpenRouter
+    # - Models without "/" (e.g., "gpt-4o-mini", "gpt-4o") → OpenAI direct API
+    uses_openrouter = "/" in model
+
+    # Get the model instance based on provider
+    if uses_openrouter:
+        if not settings.openrouter_api_key:
+            raise ValueError(
+                f"Model '{model}' requires OpenRouter, but OPENROUTER_API_KEY is not configured. "
+                f"Please set OPENROUTER_API_KEY in your environment or .env file."
+            )
+        model_instance = get_openrouter_model(model_name=model)
+        logger.info(f"Using OpenRouter for model: {model}")
+    else:
+        # Direct OpenAI API
+        if not settings.openai_api_key:
+            raise ValueError(
+                f"Model '{model}' requires OpenAI API, but OPENAI_API_KEY is not configured. "
+                f"Please set OPENAI_API_KEY in your environment or .env file."
+            )
+        model_instance = get_openai_fallback_model(model_name=model)
+        logger.info(f"Using OpenAI direct API for model: {model}")
+
+    # Create MCP server connection for HTTP transport
+    # Use async context manager to ensure proper connection lifecycle
+    async with MCPServerStreamableHttp(
+        name="TeamFlow MCP Server",
+        params={
+            "url": mcp_server_url,
+        },
+        cache_tools_list=True,  # Cache the tools list for performance
+    ) as mcp_server:
+        # Create agent with MCP server
+        agent = Agent(
+            name="teamflow-ai",
+            instructions=instructions or TEAMFLOW_AGENT_INSTRUCTIONS,
+            model=model_instance,
+            mcp_servers=[mcp_server],
+        )
+
+        # Yield the agent with connected MCP server
+        yield agent
+
+
+# Legacy function for backwards compatibility (does NOT connect MCP server)
+# DEPRECATED: Use create_chatbot_agent_context() instead
+async def create_chatbot_agent(
+    instructions: str | None = None,
+    model: str = "google/gemini-2.0-flash-exp:free",
+    use_fallback: bool = True,
+    mcp_server_url: str = "http://127.0.0.1:8001/mcp",
+) -> Agent:
+    """Create a TeamFlow chatbot agent (LEGACY - without MCP connection).
+
+    WARNING: This function creates an agent but does NOT connect the MCP server.
+    The agent will fail when trying to use tools.
+
+    Use create_chatbot_agent_context() instead for proper MCP integration.
+
+    Args:
+        instructions: Custom agent instructions (optional).
+        model: Model identifier via OpenRouter.
+        use_fallback: Enable automatic fallback to direct Gemini API.
+        mcp_server_url: URL of the TeamFlow MCP server.
+
+    Returns:
+        Agent instance (MCP server NOT connected - use with caution)
+    """
     from app.agents.client import get_model_with_fallback, get_openrouter_model
 
     if use_fallback:
-        # Use fallback logic: try OpenRouter first, fall back to direct Gemini
         model_instance = get_model_with_fallback(model_name=model)
     else:
-        # Use only OpenRouter (will raise error if unavailable)
         model_instance = get_openrouter_model(model_name=model)
 
-    # Import tools from agents/tools.py
-    from app.agents.tools import (
-        search_knowledge_base,
-        add_task,
-        list_tasks,
-        assign_task,
-        complete_task,
-        delete_task,
-        archive_task,
-        update_task_priority,
-        update_task_due_date,
-        update_task_status,
-        list_projects,
-        create_project,
-        get_project_details,
-        get_profitability,
-        workload_summary,
-        suggest_assignee,
-        add_time_entry,
-        list_time_entries,
-        get_time_for_task,
-        update_time_entry,
-        delete_time_entry,
+    # Create MCP server but DON'T connect it
+    # This is for backwards compatibility only
+    mcp_server = MCPServerStreamableHttp(
+        name="TeamFlow MCP Server",
+        params={"url": mcp_server_url},
+        cache_tools_list=True,
     )
 
-    # Create agent with tools registered
     agent = Agent(
         name="teamflow-ai",
         instructions=instructions or TEAMFLOW_AGENT_INSTRUCTIONS,
         model=model_instance,
-        tools=[
-            search_knowledge_base,
-            add_task,
-            list_tasks,
-            assign_task,
-            complete_task,
-            delete_task,
-            archive_task,
-            update_task_priority,
-            update_task_due_date,
-            update_task_status,
-            list_projects,
-            create_project,
-            get_project_details,
-            get_profitability,
-            workload_summary,
-            suggest_assignee,
-            add_time_entry,
-            list_time_entries,
-            get_time_for_task,
-            update_time_entry,
-            delete_time_entry,
-        ],
+        mcp_servers=[mcp_server],
     )
 
     return agent
@@ -227,7 +291,7 @@ async def run_chatbot_stream(
     - Real-time tool usage visibility
 
     Args:
-        agent: Agent instance from create_chatbot_agent()
+        agent: Agent instance from create_chatbot_agent_context()
         message: User message/input to process
         max_turns: Maximum number of agent turns (default: 5).
             Controls how many tool calls/LLM requests the agent can make.
@@ -236,10 +300,9 @@ async def run_chatbot_stream(
         str: Response chunks as they are generated
 
     Example:
-        >>> agent = create_chatbot_agent()
-        >>> message = "Create a task for fixing the navbar bug"
-        >>> async for chunk in run_chatbot_stream(agent, message):
-        ...     print(chunk, end="")
+        >>> async with create_chatbot_agent_context() as agent:
+        ...     async for chunk in run_chatbot_stream(agent, "Create a task"):
+        ...         print(chunk, end="")
 
     Note:
         The agent uses tools from the MCP server. Ensure the MCP server
@@ -286,7 +349,7 @@ async def run_chatbot_stream_events(
     custom UI patterns.
 
     Args:
-        agent: Agent instance from create_chatbot_agent()
+        agent: Agent instance from create_chatbot_agent_context()
         message: User message/input to process
         max_turns: Maximum number of agent turns (default: 5)
 
@@ -294,13 +357,12 @@ async def run_chatbot_stream_events(
         ModelResponse: Agent events including tokens, tool calls, and results
 
     Example:
-        >>> agent = create_chatbot_agent()
-        >>> message = "What's the workload summary?"
-        >>> async for event in run_chatbot_stream_events(agent, message):
-        ...     if event.type == "tokens":
-        ...         print(event.content, end="")
-        ...     elif event.type == "tool_call":
-        ...         print(f"[Calling tool: {event.tool_name}]")
+        >>> async with create_chatbot_agent_context() as agent:
+        ...     async for event in run_chatbot_stream_events(agent, "What's the workload?"):
+        ...         if event.type == "tokens":
+        ...             print(event.content, end="")
+        ...         elif event.type == "tool_call":
+        ...             print(f"[Calling tool: {event.tool_name}]")
 
     Note:
         This is a placeholder for the actual streaming implementation.

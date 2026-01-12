@@ -462,3 +462,136 @@ T083-T084: Test voice
 2. Begin implementation starting with Phase 1 (Setup)
 3. Use parallel execution opportunities to accelerate development
 4. Follow MVP scope for first iteration
+
+---
+
+## Production-Ready Architecture Updates (2025-01-12)
+
+The following architectural improvements have been implemented to simplify production deployment and improve reliability:
+
+### Single-Server MCP Architecture
+
+**Change**: MCP server is now mounted as a sub-route at `/mcp` endpoint within the main FastAPI application.
+
+**Benefits**:
+- Single process deployment (no separate MCP server process)
+- Single port exposure (no internal networking)
+- Shared lifecycle management
+- Simplified monitoring and logging
+- Easier horizontal scaling
+
+**Files Modified**:
+- `app/main.py`: Added `app.mount("/mcp", mcp.streamable_http_app())`
+- `app/core/config.py`: Added `mcp_server_url` setting (default: `http://127.0.0.1:8000/mcp`)
+- `app/agents/chatbot.py`: Updated default MCP URL to use `settings.mcp_server_url`
+
+### MCP-Only Tool Architecture
+
+**Change**: Removed all `@function_tool` decorated functions. The agent now uses MCP tools exclusively via `MCPServerStreamableHttp`.
+
+**Benefits**:
+- Consistent tool discovery and invocation
+- Proper MCP protocol compliance
+- Easier tool management and versioning
+- Better separation of concerns
+
+**Files Modified**:
+- `app/agents/tools.py`: DELETED (2420 lines of @function_tool decorated functions)
+- `app/agents/mcp_integration.py`: DELETED (old wrapper functions)
+- `app/agents/orchestrator.py`: Simplified to use only MCP agent
+- `app/chatkit/server.py`: Updated to use `create_chatbot_agent_context()`
+
+### Complete 21-Tool Implementation
+
+**Change**: Implemented all 21 MCP tools across 6 categories as specified in the agent instructions.
+
+**Tool Categories**:
+- Knowledge Base (1): `search_knowledge_base`
+- Task Management (4): `add_task`, `list_tasks`, `assign_task`, `complete_task`
+- Task Updates (5): `update_task_priority`, `update_task_due_date`, `update_task_status`, `archive_task`, `delete_task`
+- Project Management (3): `list_projects`, `create_project`, `get_project_details`
+- Analytics (2): `get_profitability`, `workload_summary`
+- Recommendations (1): `suggest_assignee`
+- Time Entry (5): `add_time_entry`, `list_time_entries`, `get_time_for_task`, `update_time_entry`, `delete_time_entry`
+
+**Files Modified**:
+- `app/mcp/tools.py`: Added `register_project_tools()`, `register_task_update_tools()`, `register_time_entry_tools()`
+- `app/mcp/server.py`: Updated to register new tool categories
+
+### Automatic Model Fallback
+
+**Change**: Implemented `OpenAIModelWithFallback` wrapper that automatically falls back from OpenRouter to OpenAI API when 429 rate limit errors occur.
+
+**Benefits**:
+- Transparent to users (no error exposure)
+- Automatic retry with fallback model
+- Logging for monitoring and debugging
+- Production-ready rate limit handling
+
+**Files Modified**:
+- `app/agents/client.py`: Created `OpenAIModelWithFallback` wrapper class
+- `app/agents/client.py`: Updated `get_model_with_fallback()` to use wrapper
+- `app/agents/__init__.py`: Exported `OpenAIModelWithFallback` class
+
+**Fallback Configuration**:
+- Primary: OpenRouter with `google/gemini-2.0-flash-exp:free`
+- Fallback: OpenAI API with `gpt-5-nano-2025-08-07`
+
+### Context Manager Pattern
+
+**Change**: Enforced async context manager pattern for proper MCP server lifecycle management.
+
+**Usage**:
+```python
+async with create_chatbot_agent_context(use_fallback=True) as agent:
+    result = await Runner.run(agent, "List all high priority tasks")
+    print(result.final_output)
+```
+
+**Benefits**:
+- Proper MCP connection lifecycle
+- Automatic cleanup on exit
+- No resource leaks
+- Production-ready error handling
+
+### Testing
+
+**Test Script**: `test_mcp_integration.py`
+
+**Test Coverage**:
+1. MCP Server Direct Connection
+2. Agent Creation with Context Manager
+3. Simple Query
+4. Tool Discovery (All 21 tools)
+5. Tool Usage (list_projects)
+
+**Running Tests**:
+```bash
+# Terminal 1: Start backend (MCP server runs automatically)
+uvicorn app.main:app --reload
+
+# Terminal 2: Run tests
+python test_mcp_integration.py
+```
+
+### Deployment Notes
+
+**Environment Variables**:
+```bash
+# MCP Server URL (auto-configured in production)
+MCP_SERVER_URL=https://api.teamflow.com/mcp
+
+# AI Model Keys (both required for fallback)
+OPENROUTER_API_KEY=sk-or-...
+OPENAI_API_KEY=sk-...
+```
+
+**Health Check**:
+- `GET /health` - Main application health
+- `GET /mcp` - MCP server endpoint (returns MCP protocol response)
+
+**Post-Deployment Validation**:
+1. Verify health check: `curl https://api.teamflow.com/health`
+2. Verify MCP endpoint: `curl https://api.teamflow.com/mcp`
+3. Test tool discovery via agent
+4. Trigger rate limit to test fallback (if using free tier)

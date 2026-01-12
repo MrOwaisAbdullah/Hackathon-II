@@ -96,27 +96,36 @@ As an Agency Owner, I want the AI to analyze team workload and suggest optimal t
 - **FR-015**: System MUST handle complex multi-step queries that require both data retrieval and reasoning
 
 **Tool Integration (MCP SDK)**:
-- **FR-016**: System MUST use the Official MCP SDK to expose service layer methods as tools to the AI agent
+- **FR-016**: System MUST use the Official MCP SDK (FastMCP) to expose service layer methods as tools to the AI agent
 - **FR-017**: System MUST support tool discovery, invocation, and response handling via the MCP protocol
 - **FR-018**: System MUST wrap existing services (TaskService, ProjectService, AnalyticsService) as MCP-compatible tools
+- **FR-019**: System MUST implement all 21 tools across 6 categories: Knowledge Base (1), Task Management (4), Task Updates (5), Project Management (3), Analytics (2), Recommendations (1), Time Entry (5)
+- **FR-020**: System MUST use MCP-only tool architecture via `MCPServerStreamableHttp` (no direct @function_tool decorators)
+- **FR-021**: System MUST mount MCP server as sub-route at `/mcp` endpoint for production-ready single-server architecture
 
 **Conversation & Session Management**:
-- **FR-019**: System MUST maintain conversation context across multiple related queries within a single session
-- **FR-020**: System MUST allow users to request clarifications or ask follow-up questions to previous responses
-- **FR-021**: System MUST support streaming responses for real-time feedback during long-running AI operations
-- **FR-022**: System MUST authenticate chat sessions using existing user authentication (no separate login for chat)
-- **FR-023**: System MUST provide chat history persistence for 7 days per authenticated user
+- **FR-022**: System MUST maintain conversation context across multiple related queries within a single session
+- **FR-023**: System MUST allow users to request clarifications or ask follow-up questions to previous responses
+- **FR-024**: System MUST support streaming responses for real-time feedback during long-running AI operations
+- **FR-025**: System MUST authenticate chat sessions using existing user authentication (no separate login for chat)
+- **FR-026**: System MUST provide chat history persistence for 7 days per authenticated user
 
 **Fullscreen Chat UI**:
-- **FR-028**: System MUST provide a fullscreen chat mode option that allows users to expand the chat widget to fill the entire browser window, similar to ChatGPT's chat interface, with responsive layout adaptation for desktop and mobile screens
-- **FR-029**: System MUST provide an "AI Assistant" button in the main navigation sidebar that opens the fullscreen chat interface when clicked, offering easy access to the chatbot from anywhere in the application
-- **FR-030**: System MUST restrict the floating chat widget visibility to authenticated dashboard routes only. The widget MUST appear on dashboard routes (/dashboard, /tasks, /projects, /time-entries, /team, /settings, /archive) and MUST NOT appear on public pages (/, /contact, /about, /privacy), authentication pages (/login, /signup), or the fullscreen /chat page which provides an alternative fullscreen interface
+- **FR-031**: System MUST provide a fullscreen chat mode option that allows users to expand the chat widget to fill the entire browser window, similar to ChatGPT's chat interface, with responsive layout adaptation for desktop and mobile screens
+- **FR-032**: System MUST provide an "AI Assistant" button in the main navigation sidebar that opens the fullscreen chat interface when clicked, offering easy access to the chatbot from anywhere in the application
+- **FR-033**: System MUST restrict the floating chat widget visibility to authenticated dashboard routes only. The widget MUST appear on dashboard routes (/dashboard, /tasks, /projects, /time-entries, /team, /settings, /archive) and MUST NOT appear on public pages (/, /contact, /about, /privacy), authentication pages (/login, /signup), or the fullscreen /chat page which provides an alternative fullscreen interface
 
 **Error Handling & Fallbacks**:
-- **FR-024**: System MUST inform users when AI services are unavailable or rate-limited and allow read-only knowledge base queries during outage
-- **FR-025**: System MUST validate user permissions based on RBAC roles (Admin/Manager/Member/Viewer) before executing commands that modify or query data
-- **FR-026**: System MUST ask clarifying questions when user commands are ambiguous or missing required information
-- **FR-027**: System MUST gracefully handle malformed queries and guide users toward correct phrasing
+- **FR-027**: System MUST inform users when AI services are unavailable or rate-limited and allow read-only knowledge base queries during outage
+- **FR-028**: System MUST validate user permissions based on RBAC roles (Admin/Manager/Member/Viewer) before executing commands that modify or query data
+- **FR-029**: System MUST ask clarifying questions when user commands are ambiguous or missing required information
+- **FR-030**: System MUST gracefully handle malformed queries and guide users toward correct phrasing
+
+**Model Fallback & Rate Limiting**:
+- **FR-034**: System MUST implement automatic fallback from OpenRouter to OpenAI API when 429 rate limit errors occur
+- **FR-035**: System MUST use `OpenAIModelWithFallback` wrapper to intercept 429 errors and retry with fallback model transparently
+- **FR-036**: System MUST log fallback actions for monitoring and debugging
+- **FR-037**: System MUST use `gpt-5-nano-2025-08-07` as the fallback model for OpenAI API
 
 ### Key Entities
 
@@ -178,6 +187,93 @@ As an Agency Owner, I want the AI to analyze team workload and suggest optimal t
 9. **Text Selection Integration**: The system assumes the ChatKit UI supports text selection features that can be used for "Ask AI about this" functionality. If not available in the library, this feature may be deferred or implemented with workarounds.
 
 10. **MCP Tool Integration**: The system assumes use of the Official MCP SDK to expose Python functions (wrapping existing service layer methods) as tools to the AI agent. The MCP SDK provides the standard protocol for tool discovery, invocation, and response handling. The `mcp-builder` skill (`.claude/skills/mcp-builder/`) should be used for implementation guidance on MCP server development best practices.
+
+11. **Production-Ready Deployment Architecture**: The system assumes a single-server architecture where the MCP server is mounted as a sub-route at `/mcp` endpoint within the main FastAPI application, eliminating the need for separate MCP server processes in production deployments.
+
+## Production Deployment Architecture
+
+### Single-Server Architecture
+
+The system implements a production-ready deployment architecture where both the main FastAPI backend and the MCP server run in a single process on a single port. This approach simplifies deployment, scaling, and monitoring.
+
+**Architecture Diagram:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                     Single FastAPI Process (Port 8000)                         │
+│  ┌──────────────────────────────────────────────────────────────────────────┐ │
+│  │  Main API Endpoints                                                       │ │
+│  │  - /api/v1/* (REST API for tasks, projects, users, etc.)                 │ │
+│  │  - /api/v1/chat/* (ChatKit server endpoints)                             │ │
+│  │  - /health, /metrics                                                     │ │
+│  └──────────────────────────────────────────────────────────────────────────┘ │
+│  ┌──────────────────────────────────────────────────────────────────────────┐ │
+│  │  MCP Server (Mounted at /mcp)                                            │ │
+│  │  - 21 tools exposed via FastMCP                                         │ │
+│  │  - MCPServerStreamableHttp integration with OpenAI Agents SDK            │ │
+│  │  - Automatic tool discovery and invocation                              │ │
+│  └──────────────────────────────────────────────────────────────────────────┘ │
+│  ┌──────────────────────────────────────────────────────────────────────────┐ │
+│  │  Agent Orchestrator                                                      │ │
+│  │  - OpenAI Agents SDK with OpenRouter + OpenAI fallback                  │ │
+│  │  - Automatic 429 rate limit handling with transparent fallback           │ │
+│  │  - Context manager pattern for proper MCP lifecycle                     │ │
+│  └──────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Benefits:**
+
+1. **Single Process Deployment** - Deploy one container/VM instead of two
+2. **Single Port Exposure** - No internal networking between services
+3. **Shared Lifecycle** - Startup/shutdown together, synchronized health checks
+4. **Simplified Monitoring** - One set of logs, one health check endpoint
+5. **Easier Scaling** - Just scale the main backend, MCP scales with it
+
+**Configuration:**
+
+The MCP server URL is configurable via environment variable:
+
+```bash
+# Default (development)
+MCP_SERVER_URL=http://127.0.0.1:8000/mcp
+
+# Production override
+MCP_SERVER_URL=https://api.teamflow.com/mcp
+```
+
+**MCP Tools Inventory (21 tools total):**
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| Knowledge Base | 1 | `search_knowledge_base` |
+| Task Management | 4 | `add_task`, `list_tasks`, `assign_task`, `complete_task` |
+| Task Updates | 5 | `update_task_priority`, `update_task_due_date`, `update_task_status`, `archive_task`, `delete_task` |
+| Project Management | 3 | `list_projects`, `create_project`, `get_project_details` |
+| Analytics | 2 | `get_profitability`, `workload_summary` |
+| Recommendations | 1 | `suggest_assignee` |
+| Time Entry | 5 | `add_time_entry`, `list_time_entries`, `get_time_for_task`, `update_time_entry`, `delete_time_entry` |
+
+**Model Fallback Strategy:**
+
+The system implements automatic fallback from OpenRouter to OpenAI API when rate limits (429 errors) occur:
+
+1. **Primary**: OpenRouter with `google/gemini-2.0-flash-exp:free`
+2. **Fallback**: OpenAI API with `gpt-5-nano-2025-08-07`
+3. **Mechanism**: `OpenAIModelWithFallback` wrapper intercepts API calls and automatically retries on 429 errors
+4. **Logging**: All fallback actions are logged for monitoring and debugging
+
+**Agent Context Manager Pattern:**
+
+The system uses an async context manager pattern for proper MCP server lifecycle management:
+
+```python
+async with create_chatbot_agent_context(use_fallback=True) as agent:
+    result = await Runner.run(agent, "List all high priority tasks")
+    print(result.final_output)
+```
+
+This ensures the MCP server connection is properly established when entering the context and cleaned up when exiting.
 
 ## Out of Scope
 

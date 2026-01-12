@@ -23,8 +23,7 @@ from app.agents.prompts import (
     detect_language,
     Language,
 )
-from app.agents.chatbot import create_chatbot_agent
-from app.agents.tools import TEAMFLOW_TOOLS
+from app.agents.chatbot import create_chatbot_agent_context
 from app.services.chat_service import ChatService
 from app.models.chat import Message
 
@@ -69,116 +68,6 @@ class AgentOrchestrator:
         self.max_history_turns = max_history_turns
         self.max_context_tokens = max_context_tokens
         self.min_context_queries = min_context_queries
-        self._agent: Optional[Agent] = None
-        self._fallback_agent: Optional[Agent] = None  # Fallback agent for runtime errors
-
-    def get_agent(self) -> Agent:
-        """Get or create the Agent instance with fallback support.
-
-        Uses create_chatbot_agent which provides:
-        - Primary: OpenRouter with Gemini 2.0 Flash
-        - Fallback: Direct Gemini API when OpenRouter fails
-
-        Returns:
-            Configured Agent with TeamFlow tools
-        """
-        if self._agent is None:
-            # Use create_chatbot_agent for fallback support
-            instructions = self._build_agent_instructions()
-            self._agent = create_chatbot_agent(
-                instructions=instructions,
-                model=self.model,
-                use_fallback=True,  # Enable automatic fallback
-            )
-
-        return self._agent
-
-    def get_fallback_agent(self) -> Agent:
-        """Get or create the fallback Agent using direct OpenAI API.
-
-        This is used when the primary agent encounters runtime errors
-        (e.g., 429 rate limit from OpenRouter).
-
-        Returns:
-            Configured Agent with TeamFlow tools using direct OpenAI API
-        """
-        if self._fallback_agent is None:
-            from app.agents.client import get_openai_fallback_model
-            from agents import Agent
-
-            # Map OpenRouter model to OpenAI model
-            openai_model_map = {
-                "google/gemini-2.0-flash-exp:free": "gpt-5-nano-2025-08-07",
-                "google/gemini-2.0-flash-exp": "gpt-5-nano-2025-08-07",
-                "google/gemini-flash-1.5": "gpt-4o-mini",
-                "google/gemini-2.5-flash": "gpt-4o-mini",
-                "google/gemini-2.5-pro": "gpt-4o",
-            }
-            openai_model = openai_model_map.get(self.model, "gpt-5-nano-2025-08-07")
-
-            # Create direct OpenAI model
-            model_instance = get_openai_fallback_model(openai_model)
-
-            # Import tools
-            from app.agents.tools import (
-                search_knowledge_base,
-                add_task,
-                list_tasks,
-                assign_task,
-                complete_task,
-                delete_task,
-                archive_task,
-                update_task_priority,
-                update_task_due_date,
-                update_task_status,
-                list_projects,
-                create_project,
-                get_project_details,
-                get_profitability,
-                workload_summary,
-                suggest_assignee,
-                add_time_entry,
-                list_time_entries,
-                get_time_for_task,
-                update_time_entry,
-                delete_time_entry,
-            )
-
-            # Create fallback agent
-            instructions = self._build_agent_instructions()
-            self._fallback_agent = Agent(
-                name="teamflow-assistant-fallback",
-                instructions=instructions,
-                model=model_instance,
-                tools=[
-                    search_knowledge_base,
-                    add_task,
-                    list_tasks,
-                    assign_task,
-                    complete_task,
-                    delete_task,
-                    archive_task,
-                    update_task_priority,
-                    update_task_due_date,
-                    update_task_status,
-                    list_projects,
-                    create_project,
-                    get_project_details,
-                    get_profitability,
-                    workload_summary,
-                    suggest_assignee,
-                    add_time_entry,
-                    list_time_entries,
-                    get_time_for_task,
-                    update_time_entry,
-                    delete_time_entry,
-                ],
-            )
-
-            import logging
-            logging.info(f"Created fallback agent using direct OpenAI API: {openai_model}")
-
-        return self._fallback_agent
 
     def _build_agent_instructions(self) -> str:
         """Build agent instructions with language awareness.
@@ -405,9 +294,6 @@ class AgentOrchestrator:
                 content=user_message,
             )
 
-            # Get agent and run
-            agent = self.get_agent()
-
             # Build context message
             context_prompt = build_context_prompt(
                 user_message=user_message,
@@ -415,24 +301,29 @@ class AgentOrchestrator:
                 language_override=language,
             )
 
-            # Run agent with streaming
-            if stream:
-                async for event in self._run_agent_stream(agent, context_prompt, conversation_id):
-                    yield event
-            else:
-                # Non-streaming mode (for testing)
-                result = await Runner.run(agent, input=context_prompt)
-                response_content = result.final_output
+            # Run agent with streaming - use context manager for MCP server lifecycle
+            async with create_chatbot_agent_context(
+                instructions=self._build_agent_instructions(),
+                model=self.model,
+            ) as agent:
+                # Run agent with streaming
+                if stream:
+                    async for event in self._run_agent_stream(agent, context_prompt, conversation_id):
+                        yield event
+                else:
+                    # Non-streaming mode (for testing)
+                    result = await Runner.run(agent, input=context_prompt)
+                    response_content = result.final_output
 
-                # Save assistant response
-                await self.chat_service.add_message_internal(
-                    conversation_id=conversation_id,
-                    role="assistant",
-                    content=response_content,
-                )
+                    # Save assistant response
+                    await self.chat_service.add_message_internal(
+                        conversation_id=conversation_id,
+                        role="assistant",
+                        content=response_content,
+                    )
 
-                yield {"type": "response", "data": {"content": response_content}}
-                yield {"type": "done", "data": {}}
+                    yield {"type": "response", "data": {"content": response_content}}
+                    yield {"type": "done", "data": {}}
 
         except Exception as e:
             yield {
@@ -450,12 +341,9 @@ class AgentOrchestrator:
         conversation_id: str,
     ) -> AsyncIterator[dict]:
         """
-        Run agent with streaming response and automatic fallback on errors.
+        Run agent with streaming response.
 
-        This method implements runtime fallback:
-        1. Tries the primary agent first
-        2. On 429 rate limit or similar errors, retries with fallback agent (direct Gemini)
-        3. Streams the response token-by-token
+        The agent uses MCP tools for all operations.
 
         Args:
             agent: The Agent instance
@@ -463,64 +351,23 @@ class AgentOrchestrator:
             conversation_id: Conversation ID for saving responses
 
         Yields:
-            Stream events (token, fallback_triggered, error, done)
+            Stream events (token, error, done)
         """
         import logging
 
         try:
-            # Try running with the primary agent
+            # Run agent
             result = await Runner.run(agent, input=message)
-        except Exception as primary_error:
-            error_str = str(primary_error).lower()
-            error_code = getattr(primary_error, 'code', None)
-
-            # Check if this is a 429 rate limit or similar error that warrants fallback
-            is_rate_limit = (
-                '429' in error_str or
-                error_code == 429 or
-                'rate limit' in error_str or
-                'rate-limited' in error_str or
-                'provider returned error' in error_str
-            )
-
-            if is_rate_limit:
-                logging.warning(f"Primary agent hit rate limit (429): {primary_error}. Using fallback agent...")
-
-                # Yield fallback event so UI can inform user
-                yield {
-                    "type": "fallback_triggered",
-                    "data": {
-                        "reason": "rate_limit",
-                        "message": "Primary API rate limited. Switching to direct Gemini API..."
-                    }
+        except Exception as e:
+            logging.error(f"Agent execution failed: {e}")
+            yield {
+                "type": "error",
+                "data": {
+                    "message": str(e),
+                    "type": type(e).__name__,
                 }
-
-                try:
-                    # Retry with fallback agent
-                    fallback_agent = self.get_fallback_agent()
-                    result = await Runner.run(fallback_agent, input=message)
-                    logging.info("Fallback agent succeeded")
-                except Exception as fallback_error:
-                    logging.error(f"Fallback agent also failed: {fallback_error}")
-                    yield {
-                        "type": "error",
-                        "data": {
-                            "message": f"Primary API rate limited and fallback failed: {str(fallback_error)}",
-                            "type": type(fallback_error).__name__,
-                        }
-                    }
-                    return
-            else:
-                # Not a rate limit error - just surface the original error
-                logging.error(f"Agent execution failed: {primary_error}")
-                yield {
-                    "type": "error",
-                    "data": {
-                        "message": str(primary_error),
-                        "type": type(primary_error).__name__,
-                    }
-                }
-                return
+            }
+            return
 
         # Stream the response
         response_text = result.final_output or ""
