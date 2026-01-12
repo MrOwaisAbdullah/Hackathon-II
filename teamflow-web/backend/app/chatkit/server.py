@@ -599,7 +599,7 @@ class TeamFlowChatKitServer(ChatKitServer):
 
                                 assistant_item = AssistantMessageItem(
                                     id=unique_message_id,
-                                    content=[AssistantMessageContent(type="text", text=message_text)],
+                                    content=[AssistantMessageContent(type="output_text", text=message_text)],
                                 )
 
                                 events_to_yield.append(ThreadItemAddedEvent(item=assistant_item))
@@ -622,7 +622,7 @@ class TeamFlowChatKitServer(ChatKitServer):
 
                                 assistant_item = AssistantMessageItem(
                                     id=unique_message_id,
-                                    content=[AssistantMessageContent(type="text", text=result.final_output)],
+                                    content=[AssistantMessageContent(type="output_text", text=result.final_output)],
                                 )
                                 yield ThreadItemAddedEvent(item=assistant_item)
 
@@ -933,7 +933,7 @@ class TeamFlowChatKitServer(ChatKitServer):
 
                         assistant_item = AssistantMessageItem(
                             id=message_id,
-                            content=[AssistantMessageContent(type="text", text=message_text)],
+                            content=[AssistantMessageContent(type="output_text", text=message_text)],
                         )
 
                         yield ThreadItemAddedEvent(item=assistant_item)
@@ -943,7 +943,7 @@ class TeamFlowChatKitServer(ChatKitServer):
                 if not message_yielded and hasattr(result, 'final_output') and result.final_output:
                     assistant_item = AssistantMessageItem(
                         id=message_id,
-                        content=[AssistantMessageContent(type="text", text=result.final_output)],
+                        content=[AssistantMessageContent(type="output_text", text=result.final_output)],
                     )
                     yield ThreadItemAddedEvent(item=assistant_item)
 
