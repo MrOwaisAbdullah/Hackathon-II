@@ -181,10 +181,14 @@ async def create_chatbot_agent_context(
     if mcp_server_url is None:
         mcp_server_url = settings.mcp_server_url
 
+    logger.info(f"[create_chatbot_agent_context] Starting with model: {model}, MCP URL: {mcp_server_url}")
+
     # Detect model provider based on model name
     # - Models with "/" (e.g., "openai/gpt-4o-mini", "google/gemini-2.0-flash-exp:free") → OpenRouter
     # - Models without "/" (e.g., "gpt-4o-mini", "gpt-4o") → OpenAI direct API
     uses_openrouter = "/" in model
+
+    logger.info(f"[create_chatbot_agent_context] Using OpenRouter: {uses_openrouter}")
 
     # Get the model instance based on provider
     if uses_openrouter:
@@ -194,7 +198,7 @@ async def create_chatbot_agent_context(
                 f"Please set OPENROUTER_API_KEY in your environment or .env file."
             )
         model_instance = get_openrouter_model(model_name=model)
-        logger.info(f"Using OpenRouter for model: {model}")
+        logger.info(f"[create_chatbot_agent_context] ✓ OpenRouter model created: {model}")
     else:
         # Direct OpenAI API
         if not settings.openai_api_key:
@@ -207,6 +211,8 @@ async def create_chatbot_agent_context(
 
     # Create MCP server connection for HTTP transport
     # Use async context manager to ensure proper connection lifecycle
+    logger.info(f"[create_chatbot_agent_context] About to connect MCP server at {mcp_server_url}...")
+
     async with MCPServerStreamableHttp(
         name="TeamFlow MCP Server",
         params={
@@ -214,16 +220,21 @@ async def create_chatbot_agent_context(
         },
         cache_tools_list=True,  # Cache the tools list for performance
     ) as mcp_server:
+        logger.info(f"[create_chatbot_agent_context] ✓ MCP server connected")
+
         # Create agent with MCP server
+        logger.info(f"[create_chatbot_agent_context] Creating agent with MCP server...")
         agent = Agent(
             name="teamflow-ai",
             instructions=instructions or TEAMFLOW_AGENT_INSTRUCTIONS,
             model=model_instance,
             mcp_servers=[mcp_server],
         )
+        logger.info(f"[create_chatbot_agent_context] ✓ Agent created, about to yield")
 
         # Yield the agent with connected MCP server
         yield agent
+        logger.info(f"[create_chatbot_agent_context] Agent yielded (context exiting)")
 
 
 # Legacy function for backwards compatibility (does NOT connect MCP server)

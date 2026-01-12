@@ -538,15 +538,26 @@ class TeamFlowChatKitServer(ChatKitServer):
                 try:
                     logger.info(f"[ChatKit respond] Attempt {attempt + 1}/{len([primary_model, fallback_model] if settings.openai_api_key else [primary_model])} using model: {model_to_use}")
 
+                    # CRITICAL: Determine MCP server URL for current environment
+                    # In production (HuggingFace Spaces), use localhost instead of 127.0.0.1
+                    import os
+                    is_production = os.getenv("SPACE_ID") is not None or os.getenv("HUGGINGFACE_SPACE_ID") is not None
+                    mcp_url = "http://localhost:8000/mcp" if is_production else settings.mcp_server_url
+                    logger.info(f"[ChatKit respond] MCP server URL: {mcp_url} (production={is_production})")
+
                     # Run the agent with context manager for MCP server lifecycle
+                    logger.info(f"[ChatKit respond] Entering create_chatbot_agent_context...")
                     async with create_chatbot_agent_context(
                         model=model_to_use,
+                        mcp_server_url=mcp_url,
                     ) as agent_to_use:
+                        logger.info(f"[ChatKit respond] Agent context created successfully!")
                         logger.info(f"[ChatKit respond] About to run agent...")
                         logger.info(f"[ChatKit respond] input_items count: {len(input_items) if input_items else 0}")
 
                         # CRITICAL: Use Runner.run_streamed() for streaming responses
                         # Then iterate through result.stream_events() to get events
+                        # IMPORTANT: Runner.run_streamed() is SYNCHRONOUS - do NOT await
                         result = Runner.run_streamed(
                             agent_to_use,
                             input_items,  # Pass conversation history
@@ -615,6 +626,13 @@ class TeamFlowChatKitServer(ChatKitServer):
                     last_error = e
                     error_str = str(e)
 
+                    # CRITICAL: Log detailed exception info
+                    logger.error(f"[ChatKit respond] ❌ Exception in attempt {attempt + 1}/{len([primary_model, fallback_model] if settings.openai_api_key else [primary_model])}")
+                    logger.error(f"[ChatKit respond] Exception type: {type(e).__name__}")
+                    logger.error(f"[ChatKit respond] Exception message: {error_str}")
+                    import traceback
+                    logger.error(f"[ChatKit respond] Traceback:\n{traceback.format_exc()}")
+
                     # Check if this is a rate limit error (429)
                     is_rate_limit = (
                         "429" in error_str or
@@ -622,6 +640,20 @@ class TeamFlowChatKitServer(ChatKitServer):
                         "RateLimitError" in type(e).__name__ or
                         "too many requests" in error_str.lower()
                     )
+
+                    # Check if this is a connection error (MCP server)
+                    is_connection_error = (
+                        "ConnectError" in type(e).__name__ or
+                        "Connection" in type(e).__name__ or
+                        "connect" in error_str.lower() or
+                        "refused" in error_str.lower() or
+                        "timeout" in error_str.lower()
+                    )
+
+                    if is_connection_error:
+                        logger.error(f"[ChatKit respond] 🔗 MCP Server connection error detected!")
+                        logger.error(f"[ChatKit respond] The MCP server may not be running at the configured URL.")
+                        logger.error(f"[ChatKit respond] Check that the backend server is running and the /mcp endpoint is accessible.")
 
                     if is_rate_limit and attempt < 1:  # Only retry if we have fallback attempts left
                         logger.warning(f"[ChatKit respond] ⚠️ Rate limit detected with {model_to_use}, retrying with fallback: {fallback_model}")
