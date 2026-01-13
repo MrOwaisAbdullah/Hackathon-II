@@ -48,7 +48,7 @@ export function Sheet({ open, onOpenChange, children, side = 'left', className }
                     : { y: '100%' }
             }
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className={`fixed z-50 bg-card border border-border shadow-xl h-full w-80 ${
+            className={`fixed z-50 bg-zinc-900 border border-zinc-700 shadow-xl h-full w-80 ${
               side === 'left' ? 'left-0 top-0' : side === 'right' ? 'right-0 top-0' : side === 'top' ? 'top-0 left-0 right-0' : 'bottom-0 left-0 right-0'
             } ${className || ''}`}
           >
@@ -67,11 +67,11 @@ interface SheetHeaderProps {
 
 export function SheetHeader({ title, onClose }: SheetHeaderProps) {
   return (
-    <div className="flex items-center justify-between p-4 md:p-6 border-b border-border">
-      <h2 className="text-lg font-bold text-foreground">{title}</h2>
+    <div className="flex items-center justify-between p-4 md:p-6 border-b border-zinc-700 bg-zinc-900">
+      <h2 className="text-lg font-bold text-zinc-50">{title}</h2>
       <button
         onClick={onClose}
-        className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-muted-foreground hover:text-foreground transition-colors"
+        className="p-2 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-zinc-50 transition-colors"
       >
         <X size={20} />
       </button>

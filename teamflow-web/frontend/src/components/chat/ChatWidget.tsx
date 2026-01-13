@@ -184,26 +184,31 @@ export function ChatWidget({
 
   return (
     <>
-      {/* Floating toggle button - only show when using internal state */}
-      {isOpenProp === undefined && (
+      {/* Floating toggle button - only show when using internal state and not in fullscreen */}
+      {isOpenProp === undefined && !isFullscreen && (
         <button
           onClick={handleToggle}
-          className="fixed z-[9999] flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-2xl transition-all hover:scale-105 hover:brightness-110"
+          // Use z-40 to stay behind modals (z-50) but above most content
+          className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-2xl transition-all hover:scale-105 hover:brightness-110"
           style={{
             bottom: (position as string).includes('bottom') ? '1.5rem' : undefined,
             top: (position as string).includes('top') ? '1.5rem' : undefined,
             left: (position as string).includes('left') ? '1.5rem' : undefined,
             right: (position as string).includes('right') ? '1.5rem' : undefined,
           }}
-          aria-label="Toggle chat"
+          aria-label={isOpen ? "Close chat" : "Open chat"}
         >
-          <MessageCircle className="h-6 w-6" strokeWidth={1.5} />
+          {isOpen ? (
+            <X className="h-6 w-6" strokeWidth={1.5} />
+          ) : (
+            <MessageCircle className="h-6 w-6" strokeWidth={1.5} />
+          )}
         </button>
       )}
 
       {/* Error banner */}
       {error && (
-        <div className="fixed top-4 right-4 z-[10000] max-w-sm rounded-lg bg-destructive/10 border border-destructive/20 p-4 shadow-lg">
+        <div className="fixed top-4 right-4 z-40 max-w-sm rounded-lg bg-destructive/10 border border-destructive/20 p-4 shadow-lg">
           <div className="flex items-start">
             <p className="text-sm text-destructive">{error}</p>
             <button
@@ -220,20 +225,20 @@ export function ChatWidget({
       {isOpen && (
         <div
           className={`
-            fixed z-[9998] bg-background shadow-2xl border border-border transition-all duration-300
+            fixed z-50 bg-background shadow-2xl border border-border transition-all duration-300
             flex flex-col
             ${isFullscreen ? 'inset-0 rounded-none' : 'rounded-lg'}
             ${isFullscreen ? 'top-0 left-0 right-0 bottom-0' : ''}
-            ${!isFullscreen ? (isMobile ? 'bottom-20 right-2 left-2' : 'bottom-24 right-6') : ''}
+            ${!isFullscreen ? (isMobile ? 'bottom-20 right-4 left-4' : 'bottom-24 right-6') : ''}
             ${!isFullscreen && (position as string).includes('left') && !isMobile ? 'left-6' : ''}
           `}
           style={{
-            width: isFullscreen ? '100vw' : (isMobile ? 'calc(100vw - 16px)' : '400px'),
+            width: isFullscreen ? '100vw' : (isMobile ? 'calc(100vw - 32px)' : '400px'),
             height: isFullscreen ? '100vh' : '600px',
           }}
         >
           {/* Status bar */}
-          <div className="px-4 py-2 bg-muted border-b border-border rounded-t-lg">
+          <div className={`px-4 py-2 bg-muted border-b border-border ${isFullscreen ? '' : 'rounded-t-lg'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className={`w-2 h-2 rounded-full ${isInitialized ? 'bg-accent' : 'bg-yellow-500'}`} />
@@ -292,7 +297,7 @@ export function ChatWidget({
           </div>
 
           {/* ChatKit component */}
-          <div className="flex-1 overflow-hidden rounded-b-lg">
+          <div className={`flex-1 overflow-hidden ${isFullscreen ? '' : 'rounded-b-lg'}`}>
             <ChatKit
               control={control}
               ref={ref as any}
