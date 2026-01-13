@@ -30,7 +30,7 @@ export function MobileNav() {
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(true)}
-        className="lg:hidden p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-foreground transition-colors"
+        className="lg:hidden p-2 rounded-lg hover:bg-zinc-800 text-foreground hover:text-lime-400 transition-colors"
         aria-label="Open menu"
       >
         <Menu size={24} />

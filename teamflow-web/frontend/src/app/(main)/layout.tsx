@@ -29,7 +29,7 @@ export default function DashboardLayout({
           </div>
 
           {/* Page Content */}
-          <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
+          <div className="p-4 sm:p-6 md:p-8 pb-16 sm:pb-20 max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

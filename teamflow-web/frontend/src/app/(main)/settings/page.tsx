@@ -242,13 +242,14 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={() => handleNotificationToggle(setting.key)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-7 w-13 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
                       settings[setting.key as keyof typeof settings] ? "bg-primary" : "bg-muted"
                     }`}
+                    style={{ width: '3.25rem' }}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm ${
-                        settings[setting.key as keyof typeof settings] ? "translate-x-6" : "translate-x-1"
+                      className={`inline-block h-5 w-5 sm:h-4 sm:w-4 transform rounded-full bg-white transition shadow-sm ${
+                        settings[setting.key as keyof typeof settings] ? "translate-x-7 sm:translate-x-6" : "translate-x-1"
                       }`}
                     />
                   </button>

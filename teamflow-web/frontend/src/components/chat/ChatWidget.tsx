@@ -229,7 +229,7 @@ export function ChatWidget({
             flex flex-col
             ${isFullscreen ? 'inset-0 rounded-none' : 'rounded-lg'}
             ${isFullscreen ? 'top-0 left-0 right-0 bottom-0' : ''}
-            ${!isFullscreen ? (isMobile ? 'bottom-20 right-4 left-4' : 'bottom-24 right-6') : ''}
+            ${!isFullscreen ? (isMobile ? 'bottom-28 right-4 left-4' : 'bottom-24 right-6') : ''}
             ${!isFullscreen && (position as string).includes('left') && !isMobile ? 'left-6' : ''}
           `}
           style={{

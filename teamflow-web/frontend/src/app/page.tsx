@@ -58,19 +58,19 @@ export default function HomePage() {
             The agency operating system for high-performance teams.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 href="/signup"
-                className="px-8 py-4 bg-lime-400 text-black rounded-xl hover:bg-lime-300 transition-all font-bold text-lg shadow-xl shadow-lime-400/20 flex items-center gap-2"
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-lime-400 text-black rounded-xl hover:bg-lime-300 transition-all font-bold text-base sm:text-lg shadow-xl shadow-lime-400/20 flex items-center gap-2"
               >
-                Start Free Trial <ArrowRight className="w-5 h-5" />
+                Start Free Trial <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 href="/login"
-                className="px-8 py-4 bg-zinc-900 text-white border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all font-bold text-lg"
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-zinc-900 text-white border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all font-bold text-base sm:text-lg"
               >
                 Live Demo
               </Link>
@@ -170,11 +170,11 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
           <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">READY TO SHIP?</h2>
           <p className="text-xl text-zinc-400 mb-12">Join 10,000+ teams building the future with TeamFlow.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup" className="px-10 py-5 bg-lime-400 text-black text-xl font-bold rounded-xl hover:bg-lime-300 transition-colors shadow-lg shadow-lime-400/20">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+            <Link href="/signup" className="px-6 py-3 sm:px-8 sm:py-4 bg-lime-400 text-black text-base sm:text-lg font-bold rounded-xl hover:bg-lime-300 transition-colors shadow-lg shadow-lime-400/20">
               Start Your Free Trial
             </Link>
-            <Link href="/login" className="px-10 py-5 bg-zinc-900 text-white text-xl font-bold rounded-xl border border-zinc-800 hover:bg-zinc-800 transition-colors">
+            <Link href="/login" className="px-6 py-3 sm:px-8 sm:py-4 bg-zinc-900 text-white text-base sm:text-lg font-bold rounded-xl border border-zinc-800 hover:bg-zinc-800 transition-colors">
               Talk to Sales
             </Link>
           </div>
