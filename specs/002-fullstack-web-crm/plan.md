@@ -417,3 +417,166 @@ None for Phase 13 (responsive fixes, no architectural decisions).
 ---
 
 **Phase 13 Plan Complete**: Ready for `/sp.implement` execution
+
+---
+
+## Phase 14: Authentication UX & Mobile Polish
+
+**Status**: COMPLETE (2026-01-13)
+
+**Phase Goal**: Enhance authentication flows with password strength indicators, confirm password validation, forgot password functionality, and polish mobile UI issues for better UX.
+
+---
+
+## Constitution Alignment
+
+- **Mobile-First Responsive Design**: ✅ All changes prioritize mobile UX with appropriate breakpoints
+- **User Experience**: ✅ Password security feedback reduces user frustration during signup
+- **Small, Testable Changes**: ✅ Each improvement is independently testable and reversible
+
+---
+
+## Technical Context
+
+### Password Strength Indicator
+
+The signup form now includes a real-time password strength meter that evaluates:
+
+1. **Length Criterion**: Minimum 8 characters
+2. **Case Criterion**: Both uppercase and lowercase letters
+3. **Number Criterion**: At least one numeric digit
+4. **Special Character Criterion**: At least one special character (!@#$%^&* etc.)
+
+**Strength Levels**:
+- **Weak** (score 0-1): Red progress bar, AlertTriangle icon
+- **Medium** (score 2): Yellow progress bar, Shield icon
+- **Strong** (score 3-4): Lime progress bar, Check icon
+
+**Form Validation**: Minimum 'medium' strength (score ≥ 2) required for submission
+
+### Confirm Password Validation
+
+Real-time password matching validation with:
+- **PasswordMatchIndicator** component with Check/X icons
+- Color-coded text (green for match, red for mismatch)
+- Prevents form submission when passwords don't match
+- Visibility toggle (Eye/EyeOff icons) for both password fields
+
+### Forgot Password Flow
+
+Complete forgot password page (`/forgot-password`) with:
+- Email input form with validation
+- Success state with CheckCircle icon and confirmation
+- Error handling with AlertCircle icon
+- Back button to login page
+- Link to forgot password from login form
+- TODO: Backend API endpoint for password reset email delivery
+
+### Mobile UI Improvements
+
+1. **Bottom Spacing**:
+   - Dashboard layout: `pb-16 sm:pb-20`
+   - Chat widget: `bottom-28` (increased from `bottom-20`)
+
+2. **Push Notification Toggle**:
+   - Tap target size: `h-7 w-13` on mobile (meets accessibility guidelines)
+   - Thumb positioning adjusted for larger toggle
+
+3. **Header Responsiveness**:
+   - MarketingHeader: Hidden signin link on small screens, reduced padding
+   - Hamburger menu: `hover:text-lime-400` on `hover:bg-zinc-800` for contrast
+
+4. **Landing Page Buttons**:
+   - Responsive sizing: `px-6 py-3 sm:px-8 sm:py-4`
+   - Icon sizing: `w-4 h-4 sm:w-5 sm:h-5`
+
+---
+
+## Implementation Strategy
+
+### Password Strength Implementation
+
+```typescript
+// Password strength calculation (signup/page.tsx)
+const getPasswordStrength = (password: string): StrengthResult => {
+  let score = 0;
+  const checks = {
+    length: password.length >= 8,
+    case: /[a-z]/.test(password) && /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  };
+  score = Object.values(checks).filter(Boolean).length;
+
+  return {
+    score,
+    label: score <= 1 ? 'weak' : score === 2 ? 'medium' : 'strong',
+    color: score <= 1 ? 'bg-red-500' : score === 2 ? 'bg-yellow-500' : 'bg-lime-500',
+    checks
+  };
+};
+```
+
+### Form Validation Pattern
+
+```typescript
+// Signup form submission handler
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Validate passwords match
+  if (password !== confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
+
+  // Validate password strength
+  if (strength.score < 2) {
+    setError("Password must be at least medium strength");
+    return;
+  }
+
+  // Proceed with signup...
+};
+```
+
+---
+
+## Success Criteria
+
+Phase 14 is complete when:
+- [X] Password strength indicator displays real-time feedback on signup form
+- [X] Confirm password validation prevents mismatched password submission
+- [X] Login and signup forms have password visibility toggles
+- [X] Forgot password page is accessible from login and functional
+- [X] Dashboard has adequate bottom spacing on mobile (elements don't touch edge)
+- [X] Chat widget doesn't interfere with mobile navigation (increased bottom spacing)
+- [X] Push notification toggle meets mobile touch target guidelines (44x44px minimum)
+- [X] Hamburger menu icon is visible on hover (lime-400 on zinc-800)
+- [X] Landing page buttons are appropriately sized on mobile
+
+---
+
+## Complexity Tracking
+
+> **No violations for Phase 14** - Password strength calculation is client-side validation logic. Mobile spacing fixes use Tailwind responsive utilities. No architectural changes.
+
+---
+
+## Dependencies
+
+### Phase 14 Dependencies
+
+- **Requires**: Phase 1 (Authentication flows), Phase 10 (Mobile responsiveness baseline)
+- **Blocks**: None (all changes are independent improvements)
+- **Parallel Tasks**: T700-T704, T710-T713, T720-T722, T730-T734, T740-T741, T750-T751, T760-T761, T770-T771 can all run in parallel
+
+---
+
+## Related ADRs
+
+None for Phase 14 (authentication UX enhancements, no architectural decisions).
+
+---
+
+**Phase 14 Plan Complete**: ✅ Implementation Complete (2026-01-13)

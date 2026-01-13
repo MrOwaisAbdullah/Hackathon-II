@@ -519,6 +519,17 @@ This section documents the complete user journey from first visit to active usag
 - **FR-084**: All touch targets MUST be at least 44x44px on mobile devices for accessibility
 - **FR-085**: Mobile viewport layouts MUST stack vertically (flex-col on mobile, flex-row on desktop) with appropriate breakpoints
 
+#### Authentication UX Enhancements
+- **FR-086**: Signup form MUST include a password strength indicator that evaluates password strength based on minimum 8 characters, uppercase + lowercase letters, at least one number, and special character
+- **FR-087**: Signup form MUST include a confirm password field with real-time validation that passwords match
+- **FR-088**: System MUST provide a forgot password flow that allows users to request a password reset link via email
+- **FR-089**: Login and signup forms MUST include password visibility toggle buttons (eye icons) for improved UX
+- **FR-090**: Mobile UI MUST have adequate bottom spacing (pb-16 to pb-20) on dashboard pages to prevent elements from touching the screen edge
+- **FR-091**: Chat widget on mobile MUST have increased bottom spacing (bottom-28) to avoid interfering with navigation
+- **FR-092**: Push notification toggle button on mobile MUST have adequate tap target size (h-7 w-13 minimum)
+- **FR-093**: Hamburger menu icon on hover MUST use a contrasting color (lime-400) against dark background (bg-zinc-800)
+- **FR-094**: Landing page buttons MUST use responsive sizing (px-6 py-3 on mobile, px-8 py-4 on desktop)
+
 #### Data Persistence
 - **FR-041**: System MUST persist all data (tasks, users, time entries) to a database
 - **FR-042**: System MUST handle optimistic UI updates with server synchronization
@@ -782,7 +793,7 @@ None at this time. All requirements have been specified with reasonable defaults
 This feature is complete when:
 
 - [ ] All P1 and P2 user stories are implemented and passing
-- [ ] All functional requirements (FR-001 through FR-047) are met
+- [ ] All functional requirements (FR-001 through FR-094) are met
 - [ ] All success criteria (SC-001 through SC-010) are verified
 - [ ] Dashboard loads with stagger animations within 2 seconds
 - [ ] Task drag-and-drop works with visual feedback (tilt, glow, snap)

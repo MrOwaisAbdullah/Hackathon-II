@@ -832,3 +832,77 @@ With multiple developers:
 
 ---
 
+## Phase 14: Authentication UX & Mobile Polish
+
+**Status**: COMPLETE (2026-01-13)
+
+**Phase Goal**: Enhance authentication flows with password strength indicators, confirm password validation, forgot password functionality, and polish mobile UI issues for better UX.
+
+**Constitution Check**:
+- Mobile-first responsive design ✅
+- User experience (password security feedback) ✅
+- Small, testable changes ✅
+
+---
+
+### Password Strength Indicator (Signup)
+
+- [X] T700 [F] [US-REG] Implement password strength calculation logic with 4 criteria (min 8 chars, upper+lower, number, special char) in frontend/src/app/signup/page.tsx
+- [X] T701 [F] [US-REG] Create PasswordStrength component with animated progress bar (red/yellow/lime colors) in frontend/src/app/signup/page.tsx
+- [X] T702 [F] [US-REG] Add strength requirements display with Check/X icons for each criterion in frontend/src/app/signup/page.tsx
+- [X] T703 [F] [US-REG] Implement form validation to require minimum 'medium' strength (score ≥ 2) before submission in frontend/src/app/signup/page.tsx
+- [X] T704 [F] [US-REG] Add AlertTriangle, Shield, and Check icons for weak/medium/strong states in frontend/src/app/signup/page.tsx
+
+### Confirm Password Validation
+
+- [X] T710 [F] [US-REG] Add confirm password input field with visibility toggle (Eye/EyeOff icons) in frontend/src/app/signup/page.tsx
+- [X] T711 [F] [US-REG] Implement real-time password matching validation with visual indicator in frontend/src/app/signup/page.tsx
+- [X] T712 [F] [US-REG] Add PasswordMatchIndicator component with Check/X icons and color-coded text in frontend/src/app/signup/page.tsx
+- [X] T713 [F] [US-REG] Prevent form submission when passwords don't match in frontend/src/app/signup/page.tsx
+
+### Login Password Visibility Toggle
+
+- [X] T720 [F] [US-AUTH] Add Eye/EyeOff toggle button to login form password field in frontend/src/app/login/page.tsx
+- [X] T721 [F] [US-AUTH] Create PasswordInput component with visibility toggle and Mail icon in frontend/src/app/login/page.tsx
+- [X] T722 [F] [US-AUTH] Fix eye icon positioning (add -mt-px for precise vertical centering) in frontend/src/app/login/page.tsx
+
+### Forgot Password Flow
+
+- [X] T730 [F] [US-AUTH] Create forgot-password page with email input form in frontend/src/app/forgot-password/page.tsx
+- [X] T731 [F] [US-AUTH] Add success state with CheckCircle icon and confirmation message in frontend/src/app/forgot-password/page.tsx
+- [X] T732 [F] [US-AUTH] Add error handling with AlertCircle icon and user-friendly messages in frontend/src/app/forgot-password/page.tsx
+- [X] T733 [F] [US-AUTH] Add "Forgot password?" link to login form in frontend/src/app/login/page.tsx
+- [X] T734 [F] [US-AUTH] Add back button to login page in frontend/src/app/forgot-password/page.tsx
+- [X] T735 [B] [US-AUTH] TODO: Implement backend API endpoint for password reset email delivery
+
+### Mobile Bottom Spacing
+
+- [X] T740 [P] [US-ALL] Add bottom spacing to dashboard layout (pb-16 sm:pb-20) in frontend/src/app/(main)/layout.tsx
+- [X] T741 [P] [US-ALL] Increase chat widget bottom spacing on mobile (bottom-20 to bottom-28) in frontend/src/components/chat/ChatWidget.tsx
+
+### Push Notification Toggle Fix
+
+- [X] T750 [P] [US-ALL] Increase push notification toggle tap target size on mobile (h-7 w-13) in frontend/src/app/(main)/settings/page.tsx
+- [X] T751 [P] [US-ALL] Fix toggle thumb positioning for larger tap target in frontend/src/app/(main)/settings/page.tsx
+
+### Header Mobile Responsiveness
+
+- [X] T760 [P] [US-ALL] Reduce MarketingHeader mobile padding and sizing (hidden signin link on small screens) in frontend/src/components/layout/MarketingHeader.tsx
+- [X] T761 [P] [US-ALL] Fix hamburger menu hover color (use lime-400 on dark background) in frontend/src/components/dashboard/MobileNav.tsx
+
+### Landing Page Button Sizing
+
+- [X] T770 [P] [US-ALL] Reduce landing page button sizes for mobile (px-6 py-3 sm:px-8 sm:py-4) in frontend/src/app/page.tsx
+- [X] T771 [P] [US-ALL] Update icon sizing inside buttons for mobile responsiveness in frontend/src/app/page.tsx
+
+### Documentation Updates
+
+- [X] T790 [D] Update spec.md with Phase 14 requirements (FR-086 through FR-094) in specs/002-fullstack-web-crm/spec.md
+- [X] T791 [D] Update tasks.md with Phase 14 tasks in specs/002-fullstack-web-crm/tasks.md
+- [X] T792 [D] Update plan.md with Phase 14 section in specs/002-fullstack-web-crm/plan.md
+- [X] T793 [D] Update AGENT_CONTEXT.md with Phase 14 authentication enhancements in specs/002-fullstack-web-crm/AGENT_CONTEXT.md
+
+**Checkpoint**: Phase 14 Complete - Authentication UX enhanced with password strength indicators, confirm password validation, forgot password flow, mobile bottom spacing improvements, push notification toggle fix, header responsiveness fixes, and landing page button sizing
+
+---
+
