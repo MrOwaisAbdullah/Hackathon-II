@@ -944,6 +944,110 @@ mcp_server_url = "http://127.0.0.1:8000/mcp/"
 
 ---
 
+### ❌ Pitfall #10: Incorrectly Awaiting Runner.run_streamed() (CRITICAL - Common Mistake)
+
+**Problem:**
+```python
+# WRONG - Runner.run_streamed() is SYNCHRONOUS, do NOT await!
+async def stream_response(agent: Agent, message: str):
+    result = await Runner.run_streamed(agent, message)  # ❌ WRONG!
+    async for event in result.stream_events():
+        yield event
+```
+
+**Correct Pattern:**
+```python
+# ✅ RIGHT - Runner.run_streamed() is synchronous, stream_events() is async
+async def stream_response(agent: Agent, message: str):
+    # Step 1: Call run_streamed() SYNCHRONOUSLY (no await)
+    result = Runner.run_streamed(agent, message)
+
+    # Step 2: Iterate over stream_events() ASYNCHRONOUSLY
+    async for event in result.stream_events():
+        if event.type == "run_item_stream_event" and event.item.type == "message_output_item":
+            message_text = ItemHelpers.text_message_output(event.item)
+            print(message_text)
+```
+
+**Key Point:**
+- `Runner.run_streamed()` is SYNCHRONOUS - returns `RunResultStreaming` immediately
+- `result.stream_events()` is ASYNC GENERATOR - must use `async for` to iterate
+- Do NOT await `Runner.run_streamed()`
+
+**Reference:** See `OPENAI_AGENTS_STREAMING_FIX.md` for complete streaming implementation guide.
+
+---
+
+### ❌ Pitfall #11: ChatKit AssistantMessageItem Missing Required Fields (CRITICAL)
+
+**Problem:**
+```python
+# WRONG - Missing thread_id and created_at
+assistant_item = AssistantMessageItem(
+    id=unique_message_id,
+    content=[AssistantMessageContent(type="output_text", text=message_text)],
+)
+# ValidationError: Field required - thread_id, created_at
+```
+
+**Solution:**
+```python
+from datetime import datetime, timezone
+
+# ✅ RIGHT - Include all required fields
+assistant_item = AssistantMessageItem(
+    id=unique_message_id,
+    thread_id=thread.id,  # REQUIRED - thread metadata
+    created_at=datetime.now(timezone.utc),  # REQUIRED - timestamp
+    content=[AssistantMessageContent(type="output_text", text=message_text)],
+)
+```
+
+**Key Point:** `AssistantMessageItem` requires 4 fields:
+- `id` - unique message identifier
+- `thread_id` - thread metadata (from ThreadMetadata object)
+- `created_at` - timestamp (use UTC timezone for consistency)
+- `content` - list of AssistantMessageContent objects with `type="output_text"`
+
+**Reference:** ChatKit Python SDK documentation - AssistantMessageItem schema.
+
+---
+
+### ❌ Pitfall #12: MCP Server URL in HuggingFace Spaces Production
+
+**Problem:**
+```python
+# WRONG - Hardcoded port 8000 doesn't work in HuggingFace Spaces
+mcp_server_url = "http://127.0.0.1:8000/mcp"  # ❌ Port 8000 doesn't exist in HF Spaces
+```
+
+**Solution:**
+```python
+import os
+
+# ✅ RIGHT - Detect environment and use correct port
+is_production = os.getenv("SPACE_ID") is not None or os.getenv("HUGGINGFACE_SPACE_ID") is not None
+
+if is_production:
+    # In HuggingFace Spaces, backend runs on port 7860 (or PORT env var)
+    port = os.getenv("PORT", "7860")
+    mcp_server_url = f"http://localhost:{port}/mcp"
+else:
+    mcp_server_url = "http://127.0.0.1:8000/mcp"  # Local development
+```
+
+**Key Point:**
+- HuggingFace Spaces runs your app on port 7860 (not 8000)
+- Use `PORT` environment variable to detect the actual port
+- Both backend and MCP server are on the SAME port in production
+
+**Environment Variables in HuggingFace Spaces:**
+- `SPACE_ID` - Set when running in HuggingFace Spaces
+- `PORT` - The port your app should listen on (default: 7860)
+- `HUGGINGFACE_SPACE_ID` - Alternative to SPACE_ID
+
+---
+
 ## Quick Setup Pattern (Correct)
 
 Here's the complete correct pattern for using OpenRouter with OpenAI Agents SDK:

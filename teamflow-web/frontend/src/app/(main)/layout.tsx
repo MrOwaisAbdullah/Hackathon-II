@@ -23,13 +23,13 @@ export default function DashboardLayout({
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto relative scroll-smooth">
           {/* Mobile Header */}
-          <div className="lg:hidden sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+          <div className="lg:hidden sticky top-0 z-30 bg-card border-b border-border px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-3">
             <MobileNav />
-            <h1 className="font-bold text-lg text-foreground">TeamFlow</h1>
+            <h1 className="font-bold text-base sm:text-lg text-foreground truncate">TeamFlow</h1>
           </div>
 
           {/* Page Content */}
-          <div className="p-8 max-w-7xl mx-auto w-full">
+          <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

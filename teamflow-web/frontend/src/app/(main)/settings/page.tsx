@@ -117,7 +117,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,12 +132,12 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-card rounded-lg border border-border p-6"
+            className="bg-card rounded-lg border border-border p-4 sm:p-6"
           >
             <h2 className="font-semibold text-lg mb-6">Profile</h2>
 
             {/* Avatar Upload */}
-            <div className="flex items-center gap-6 mb-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="relative group"
@@ -168,12 +168,12 @@ export default function SettingsPage() {
                 />
               </motion.div>
 
-              <div className="flex-1">
+              <div className="flex-1 text-center sm:text-left">
                 <h3 className="font-semibold text-foreground mb-1">Profile Photo</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   Upload a new avatar. JPG, PNG or GIF. Max 2MB.
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
                   <label
                     htmlFor="avatar-upload"
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer text-sm font-medium inline-flex items-center gap-2"
@@ -226,7 +226,7 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-card rounded-lg border border-border p-6"
+            className="bg-card rounded-lg border border-border p-4 sm:p-6"
           >
             <h2 className="font-semibold text-lg mb-4">Notifications</h2>
             <div className="space-y-4">
@@ -262,7 +262,7 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-card rounded-lg border border-destructive/20 p-6"
+            className="bg-card rounded-lg border border-destructive/20 p-4 sm:p-6"
           >
             <h2 className="font-semibold text-lg mb-4 text-destructive">Danger Zone</h2>
 
