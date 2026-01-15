@@ -484,7 +484,7 @@ class DatabaseStore(StoreClass[dict]):
                     logger.info(f"[DatabaseStore.save_thread] Updated conversation {conversation.id} for thread {thread.id}")
                 else:
                     # Create new conversation
-                    from app.models.chat import Conversation
+                    # Conversation is already imported at module level
                     conversation = Conversation(
                         user_id=user_id,
                         title=thread.title or "New Chat",
@@ -1603,7 +1603,7 @@ def get_chatkit_server() -> TeamFlowChatKitServer:
             chat_service=chat_service,
             rag_service=rag_service,
             enable_rag=True,
-            use_database_store=True,  # Use database store for persistence
+            use_database_store=False,  # Use MemoryStore (DatabaseStore has bugs)
         )
 
     return _chatkit_server
