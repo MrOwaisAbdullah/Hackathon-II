@@ -114,7 +114,7 @@ class AddTaskInput(BaseModel):
     project_id: Optional[UUID] = Field(None, description="Project ID (optional)")
     assignee_id: Optional[UUID] = Field(None, description="User ID to assign task to")
     priority: Optional[str] = Field(None, description="Priority: LOW, MEDIUM, or HIGH")
-    status: Optional[str] = Field(None, description="Status: TODO, IN_PROGRESS, BLOCKED, or DONE")
+    status: Optional[str] = Field(None, description="Status: TODO, DOING, REVIEW, or DONE")
     due_date: Optional[datetime] = Field(None, description="Due date for the task")
 
 
@@ -233,7 +233,7 @@ def register_task_tools(mcp: FastMCP):
             project_id: Project ID (optional)
             assignee_id: User ID to assign task to
             priority: Priority: LOW, MEDIUM, or HIGH
-            status: Status: TODO, IN_PROGRESS, BLOCKED, or DONE
+            status: Status: TODO, DOING, REVIEW, or DONE
 
         Returns:
             Confirmation message with task ID
@@ -275,8 +275,8 @@ def register_task_tools(mcp: FastMCP):
             # Map string statuses to enum
             status_map = {
                 'todo': TaskStatus.TODO,
-                'in_progress': TaskStatus.IN_PROGRESS,
-                'blocked': TaskStatus.BLOCKED,
+                'doing': TaskStatus.DOING,
+                'review': TaskStatus.REVIEW,
                 'done': TaskStatus.DONE,
             }
 
@@ -362,8 +362,8 @@ def register_task_tools(mcp: FastMCP):
             # Map status string to enum
             status_map = {
                 'todo': TaskStatus.TODO,
-                'in_progress': TaskStatus.IN_PROGRESS,
-                'blocked': TaskStatus.BLOCKED,
+                'doing': TaskStatus.DOING,
+                'review': TaskStatus.REVIEW,
                 'done': TaskStatus.DONE,
             }
             task_status = status_map.get(status.lower()) if status else None
@@ -743,7 +743,7 @@ def register_analytics_tools(mcp: FastMCP):
                 active_tasks = session.exec(
                     select(Task).where(
                         Task.assignee_id == member.id,
-                        Task.status.in_(['TODO', 'IN_PROGRESS', 'BLOCKED'])
+                        Task.status.in_(['TODO', 'DOING', 'REVIEW'])
                     )
                 ).all()
 
@@ -861,7 +861,7 @@ def register_recommendation_tools(mcp: FastMCP):
                 current_tasks = session.exec(
                     select(Task).where(
                         Task.assignee_id == member.id,
-                        Task.status.in_(['TODO', 'IN_PROGRESS', 'BLOCKED'])
+                        Task.status.in_(['TODO', 'DOING', 'REVIEW'])
                     )
                 ).all()
                 task_count = len(current_tasks)
@@ -1140,7 +1140,7 @@ def register_project_tools(mcp: FastMCP):
             in_progress_tasks = session.exec(
                 select(func.count(Task.id)).where(
                     Task.project_id == project_uuid,
-                    Task.status == TaskStatus.IN_PROGRESS
+                    Task.status == TaskStatus.DOING
                 )
             ).one()
 
@@ -1315,7 +1315,7 @@ def register_task_update_tools(mcp: FastMCP):
 
         Args:
             task_id: Task ID to update
-            status: New status (TODO, IN_PROGRESS, BLOCKED, DONE)
+            status: New status (TODO, DOING, REVIEW, DONE)
 
         Returns:
             Confirmation message
@@ -1340,14 +1340,14 @@ def register_task_update_tools(mcp: FastMCP):
             # Map status string to enum
             status_map = {
                 'todo': TaskStatus.TODO,
-                'in_progress': TaskStatus.IN_PROGRESS,
-                'blocked': TaskStatus.BLOCKED,
+                'doing': TaskStatus.DOING,
+                'review': TaskStatus.REVIEW,
                 'done': TaskStatus.DONE,
             }
 
             new_status = status_map.get(status.lower())
             if not new_status:
-                return f"Error: Invalid status '{status}'. Use TODO, IN_PROGRESS, BLOCKED, or DONE."
+                return f"Error: Invalid status '{status}'. Use TODO, DOING, REVIEW, or DONE."
 
             # Update task using service
             task_service = TaskService()

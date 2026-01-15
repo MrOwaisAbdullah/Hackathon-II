@@ -238,10 +238,10 @@ class TimeEntryService:
         # Get total time for all tasks in project
         total_minutes_result = session.exec(
             select(
-                col(TimeEntry.duration_minutes).sum()
+                func.sum(TimeEntry.duration_minutes)
             ).where(
                 and_(
-                    col(TimeEntry.task_id).in_(task_ids),
+                    TimeEntry.task_id.in_(task_ids),
                     TimeEntry.agency_id == agency_id,
                 )
             )

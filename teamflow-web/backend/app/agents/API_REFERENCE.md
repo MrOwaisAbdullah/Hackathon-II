@@ -445,7 +445,7 @@ Create a new task in TeamFlow.
 - `project_id` (str, optional) - Project ID
 - `assignee_id` (str, optional) - User ID to assign
 - `priority` (str, optional) - Priority: LOW, MEDIUM, HIGH
-- `status` (str, optional) - Status: TODO, IN_PROGRESS, BLOCKED, DONE
+- `status` (str, optional) - Status: TODO, DOING, REVIEW, DONE
 
 **Returns:** Confirmation message with task ID
 

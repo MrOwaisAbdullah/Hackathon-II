@@ -91,7 +91,7 @@ def test_tasks(db_session: Session, test_project, test_users):
             agency_id=test_project.agency_id,
             assignee_id=test_users[0].id,  # Alice - Python/FastAPI
             priority=TaskPriority.HIGH,
-            status=TaskStatus.IN_PROGRESS,
+            status=TaskStatus.DOING,
         ),
         Task(
             title="Fix navbar bug",
@@ -109,7 +109,7 @@ def test_tasks(db_session: Session, test_project, test_users):
             agency_id=test_project.agency_id,
             assignee_id=test_users[2].id,  # Charlie - Python/PostgreSQL
             priority=TaskPriority.HIGH,
-            status=TaskStatus.IN_PROGRESS,
+            status=TaskStatus.DOING,
         ),
     ]
     for task in tasks:
@@ -370,16 +370,16 @@ class TestTaskManagementTools:
 
         for tool_name, tool_func in mcp._tool_manager._tools.items():
             if tool_name == "list_tasks":
-                # Filter by IN_PROGRESS status
+                # Filter by DOING status
                 result = tool_func(
                     project_id=str(test_project.id),
-                    status="in_progress",
+                    status="doing",
                 )
 
                 # Verify filtering works
                 assert "Found" in result
-                # Should only show IN_PROGRESS tasks
-                assert "IN_PROGRESS" in result
+                # Should only show DOING tasks
+                assert "DOING" in result
                 break
 
     def test_assign_task_reassigns_task(
