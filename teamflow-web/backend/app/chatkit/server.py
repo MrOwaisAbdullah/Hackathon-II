@@ -51,6 +51,8 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.services.chat_service import ChatService
 from app.services.rag_service import RAGService
+from app.models.chat import Conversation, Message
+from sqlmodel import select
 
 logger = get_logger(__name__)
 
@@ -418,6 +420,561 @@ class MemoryStore(StoreClass[dict]):
         """Get all items for a thread."""
         state = self._threads.get(thread_id)
         return state.items if state else []
+
+
+class DatabaseStore(StoreClass[dict]):
+    """Database-backed store for ChatKit threads and items.
+
+    Persists conversations and messages to PostgreSQL via ChatService.
+    This provides true persistence across server restarts.
+
+    Thread ID Mapping:
+    - ChatKit thread IDs (e.g., "thread_abc123") are mapped to database Conversation IDs
+    - The mapping is stored in thread metadata
+    - On load_thread, we look up the conversation by external_id
+    """
+
+    def __init__(self, chat_service: ChatService):
+        """Initialize the database store.
+
+        Args:
+            chat_service: ChatService instance for database operations
+        """
+        from app.db.session import Session
+        self._chat_service = chat_service
+        self._session_factory = Session
+        self._thread_id_cache: Dict[str, UUID] = {}  # thread_id -> conversation_id cache
+
+    async def save_thread(
+        self,
+        thread: ThreadMetadata,
+        context: dict,
+    ) -> None:
+        """Save or update thread metadata to database."""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            user_id_str = context.get("user_id")
+            if not user_id_str:
+                logger.warning("[DatabaseStore.save_thread] No user_id in context")
+                return
+
+            from uuid import UUID
+            user_id = UUID(user_id_str)
+
+            with self._session_factory() as session:
+                # Check if conversation exists for this thread
+                conversation = session.exec(
+                    select(Conversation).where(
+                        Conversation.external_id == thread.id,
+                        Conversation.user_id == user_id,
+                    )
+                ).first()
+
+                if conversation:
+                    # Update existing conversation
+                    conversation.title = thread.title or "New Chat"
+                    conversation.updated_at = datetime.utcnow()
+                    # Store metadata in external_metadata
+                    if thread.metadata:
+                        import json
+                        conversation.external_metadata = thread.metadata
+                    session.commit()
+                    logger.info(f"[DatabaseStore.save_thread] Updated conversation {conversation.id} for thread {thread.id}")
+                else:
+                    # Create new conversation
+                    from app.models.chat import Conversation
+                    conversation = Conversation(
+                        user_id=user_id,
+                        title=thread.title or "New Chat",
+                        external_id=thread.id,
+                        external_metadata=thread.metadata or {},
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow(),
+                    )
+                    session.add(conversation)
+                    session.commit()
+                    logger.info(f"[DatabaseStore.save_thread] Created conversation {conversation.id} for thread {thread.id}")
+
+                # Cache the mapping
+                self._thread_id_cache[thread.id] = conversation.id
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.save_thread] Error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+    async def add_thread_item(
+        self,
+        thread_id: str,
+        item: ThreadItem,
+        context: dict,
+    ) -> None:
+        """Add an item to a thread (persist to database)."""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            user_id_str = context.get("user_id")
+            if not user_id_str:
+                logger.warning("[DatabaseStore.add_thread_item] No user_id in context")
+                return
+
+            from uuid import UUID
+            user_id = UUID(user_id_str)
+
+            # Get conversation ID for this thread
+            conversation_id = self._thread_id_cache.get(thread_id)
+            if not conversation_id:
+                # Look up in database
+                with self._session_factory() as session:
+                    conversation = session.exec(
+                        select(Conversation).where(
+                            Conversation.external_id == thread_id,
+                            Conversation.user_id == user_id,
+                        )
+                    ).first()
+                    if conversation:
+                        conversation_id = conversation.id
+                        self._thread_id_cache[thread_id] = conversation_id
+                    else:
+                        logger.warning(f"[DatabaseStore.add_thread_item] No conversation found for thread {thread_id}")
+                        return
+
+            # Import MessageRole
+            from app.models.chat import Message, MessageRole
+
+            # Determine role based on item type
+            if item.type == "user_message":
+                role = MessageRole.USER
+                # Extract content from UserMessageItem
+                content = ""
+                if hasattr(item, 'content') and item.content:
+                    content_str = str(item.content)
+                    # Handle both string and list content
+                    if content_str.startswith('[') and '"type":' in content_str:
+                        # It's a list of content parts
+                        import json
+                        try:
+                            parts = json.loads(content_str)
+                            for part in parts:
+                                if part.get('type') == 'input_text':
+                                    content = part.get('text', '')
+                                    break
+                        except:
+                            content = content_str
+                    else:
+                        content = content_str
+            elif item.type == "assistant_message":
+                role = MessageRole.ASSISTANT
+                # Extract content from AssistantMessageItem
+                content = ""
+                if hasattr(item, 'content') and item.content:
+                    content_list = item.content if isinstance(item.content, list) else [item.content]
+                    for part in content_list:
+                        if hasattr(part, 'type') and part.type == "output_text":
+                            content = getattr(part, 'text', '')
+                            break
+                        elif isinstance(part, str):
+                            content += part
+            elif item.type == "client_tool_call":
+                role = MessageRole.USER  # Tool calls from client are treated as user messages
+                content = f"[Tool Call: {getattr(item, 'name', 'unknown')}]"
+            else:
+                logger.warning(f"[DatabaseStore.add_thread_item] Unknown item type: {item.type}")
+                return
+
+            if not content:
+                logger.warning(f"[DatabaseStore.add_thread_item] No content extracted from item {item.id}")
+                return
+
+            # Save message to database
+            with self._session_factory() as session:
+                message = Message(
+                    conversation_id=conversation_id,
+                    role=role,
+                    content=content,
+                    created_at=datetime.utcnow(),
+                )
+                session.add(message)
+
+                # Update conversation's updated_at
+                conversation = session.get(Conversation, conversation_id)
+                if conversation:
+                    conversation.updated_at = datetime.utcnow()
+
+                session.commit()
+                logger.info(f"[DatabaseStore.add_thread_item] Saved message {message.id} for thread {thread_id}, role={role}")
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.add_thread_item] Error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+    async def save_item(
+        self,
+        thread_id: str,
+        item: ThreadItem,
+        context: dict,
+    ) -> None:
+        """Save an item (for updates) - currently not supported for database store."""
+        # ChatKit uses this to update items during streaming
+        # For database store, we only save the final version in add_thread_item
+        pass
+
+    async def load_thread(
+        self,
+        thread_id: str,
+        context: dict,
+    ) -> ThreadMetadata | None:
+        """Load thread metadata by ID from database."""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            user_id_str = context.get("user_id")
+            if not user_id_str:
+                logger.warning("[DatabaseStore.load_thread] No user_id in context")
+                return None
+
+            from uuid import UUID
+            user_id = UUID(user_id_str)
+
+            with self._session_factory() as session:
+                conversation = session.exec(
+                    select(Conversation).where(
+                        Conversation.external_id == thread_id,
+                        Conversation.user_id == user_id,
+                    )
+                ).first()
+
+                if conversation:
+                    # Cache the mapping
+                    self._thread_id_cache[thread_id] = conversation.id
+
+                    return ThreadMetadata(
+                        id=thread_id,
+                        title=conversation.title or "New Chat",
+                        created_at=conversation.created_at,
+                        metadata=conversation.external_metadata or {},
+                    )
+                else:
+                    logger.info(f"[DatabaseStore.load_thread] No conversation found for thread {thread_id}")
+                    return None
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.load_thread] Error: {e}")
+            return None
+
+    async def load_threads(
+        self,
+        context: dict,
+        limit: int = 100,
+        after: str | None = None,
+        order: str = "desc",
+    ) -> Page[ThreadMetadata]:
+        """Load all threads with pagination from database."""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            user_id_str = context.get("user_id")
+            if not user_id_str:
+                logger.warning("[DatabaseStore.load_threads] No user_id in context")
+                return Page(data=[], has_more=False, after=None)
+
+            from uuid import UUID
+            user_id = UUID(user_id_str)
+
+            with self._session_factory() as session:
+                query = select(Conversation).where(
+                    Conversation.user_id == user_id,
+                    Conversation.is_archived == False,
+                )
+
+                # Sort by updated_at
+                if order == "desc":
+                    query = query.order_by(Conversation.updated_at.desc())
+                else:
+                    query = query.order_by(Conversation.updated_at.asc())
+
+                conversations = session.exec(query.limit(limit + 1)).all()
+
+                has_more = len(conversations) > limit
+                slice_conversations = conversations[:limit]
+
+                threads = []
+                for conv in slice_conversations:
+                    if conv.external_id:
+                        self._thread_id_cache[conv.external_id] = conv.id
+                        threads.append(ThreadMetadata(
+                            id=conv.external_id,
+                            title=conv.title or "New Chat",
+                            created_at=conv.created_at,
+                            metadata=conv.external_metadata or {},
+                        ))
+
+                return Page(
+                    data=threads,
+                    has_more=has_more,
+                    after=threads[-1].id if has_more else None,
+                )
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.load_threads] Error: {e}")
+            return Page(data=[], has_more=False, after=None)
+
+    async def load_thread_items(
+        self,
+        thread_id: str,
+        after: str | None,
+        limit: int,
+        order: str,
+        context: dict,
+    ) -> Page[ThreadItem]:
+        """Load thread items with pagination from database.
+
+        Note: This converts database messages to ChatKit ThreadItem format.
+        This is lossy - some ChatKit-specific data may not be preserved.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            user_id_str = context.get("user_id")
+            if not user_id_str:
+                logger.warning("[DatabaseStore.load_thread_items] No user_id in context")
+                return Page(data=[], has_more=False, after=None)
+
+            from uuid import UUID
+            user_id = UUID(user_id_str)
+
+            # Get conversation ID
+            conversation_id = self._thread_id_cache.get(thread_id)
+            if not conversation_id:
+                with self._session_factory() as session:
+                    conversation = session.exec(
+                        select(Conversation).where(
+                            Conversation.external_id == thread_id,
+                            Conversation.user_id == user_id,
+                        )
+                    ).first()
+                    if conversation:
+                        conversation_id = conversation.id
+                        self._thread_id_cache[thread_id] = conversation_id
+                    else:
+                        logger.info(f"[DatabaseStore.load_thread_items] No conversation found for thread {thread_id}")
+                        return Page(data=[], has_more=False, after=None)
+
+            # Load messages from database
+            with self._session_factory() as session:
+                query = select(Message).where(
+                    Message.conversation_id == conversation_id,
+                )
+
+                # Sort by created_at
+                if order == "desc":
+                    query = query.order_by(Message.created_at.desc())
+                else:
+                    query = query.order_by(Message.created_at.asc())
+
+                messages = session.exec(query.limit(limit + 1)).all()
+
+                has_more = len(messages) > limit
+                slice_messages = messages[:limit]
+
+                # Convert messages to ThreadItem format
+                from chatkit.types import UserMessageItem, UserMessageContent, AssistantMessageItem, AssistantMessageContent
+
+                items = []
+                for msg in slice_messages:
+                    if msg.role == MessageRole.USER:
+                        # Create UserMessageItem
+                        item = UserMessageItem(
+                            id=f"user_msg_{msg.id}",
+                            thread_id=thread_id,
+                            created_at=msg.created_at,
+                            content=[UserMessageContent(type="input_text", text=msg.content)],
+                        )
+                    elif msg.role == MessageRole.ASSISTANT:
+                        # Create AssistantMessageItem
+                        item = AssistantMessageItem(
+                            id=f"assistant_msg_{msg.id}",
+                            thread_id=thread_id,
+                            created_at=msg.created_at,
+                            content=[AssistantMessageContent(type="output_text", text=msg.content)],
+                        )
+                    else:
+                        # Skip system messages
+                        continue
+
+                    items.append(item)
+
+                return Page(
+                    data=items,
+                    has_more=has_more,
+                    after=items[-1].id if has_more else None,
+                )
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.load_thread_items] Error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return Page(data=[], has_more=False, after=None)
+
+    async def load_item(
+        self,
+        thread_id: str,
+        item_id: str,
+        context: dict,
+    ) -> ThreadItem | None:
+        """Load an item by ID from database."""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Parse item_id to extract message UUID
+            # Format: "user_msg_{uuid}" or "assistant_msg_{uuid}"
+            if item_id.startswith("user_msg_"):
+                msg_uuid = UUID(item_id.replace("user_msg_", ""))
+            elif item_id.startswith("assistant_msg_"):
+                msg_uuid = UUID(item_id.replace("assistant_msg_", ""))
+            else:
+                logger.warning(f"[DatabaseStore.load_item] Unknown item ID format: {item_id}")
+                return None
+
+            # Get conversation ID for this thread
+            conversation_id = self._thread_id_cache.get(thread_id)
+            if not conversation_id:
+                user_id_str = context.get("user_id")
+                if not user_id_str:
+                    return None
+                from uuid import UUID
+                user_id = UUID(user_id_str)
+
+                with self._session_factory() as session:
+                    conversation = session.exec(
+                        select(Conversation).where(
+                            Conversation.external_id == thread_id,
+                            Conversation.user_id == user_id,
+                        )
+                    ).first()
+                    if conversation:
+                        conversation_id = conversation.id
+                        self._thread_id_cache[thread_id] = conversation_id
+                    else:
+                        return None
+
+            # Load message from database
+            with self._session_factory() as session:
+                message = session.get(Message, msg_uuid)
+                if not message or message.conversation_id != conversation_id:
+                    return None
+
+                # Convert to ThreadItem
+                from chatkit.types import UserMessageItem, UserMessageContent, AssistantMessageItem, AssistantMessageContent
+
+                if message.role == MessageRole.USER:
+                    return UserMessageItem(
+                        id=item_id,
+                        thread_id=thread_id,
+                        created_at=message.created_at,
+                        content=[UserMessageContent(type="input_text", text=message.content)],
+                    )
+                elif message.role == MessageRole.ASSISTANT:
+                    return AssistantMessageItem(
+                        id=item_id,
+                        thread_id=thread_id,
+                        created_at=message.created_at,
+                        content=[AssistantMessageContent(type="output_text", text=message.content)],
+                    )
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.load_item] Error: {e}")
+
+        return None
+
+    async def delete_thread(
+        self,
+        thread_id: str,
+        context: dict,
+    ) -> None:
+        """Delete (archive) a thread."""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            user_id_str = context.get("user_id")
+            if not user_id_str:
+                return
+
+            from uuid import UUID
+            user_id = UUID(user_id_str)
+
+            with self._session_factory() as session:
+                conversation = session.exec(
+                    select(Conversation).where(
+                        Conversation.external_id == thread_id,
+                        Conversation.user_id == user_id,
+                    )
+                ).first()
+
+                if conversation:
+                    # Soft delete (archive)
+                    conversation.is_archived = True
+                    conversation.updated_at = datetime.utcnow()
+                    session.commit()
+                    logger.info(f"[DatabaseStore.delete_thread] Archived conversation for thread {thread_id}")
+
+                    # Clear from cache
+                    if thread_id in self._thread_id_cache:
+                        del self._thread_id_cache[thread_id]
+
+        except Exception as e:
+            logger.error(f"[DatabaseStore.delete_thread] Error: {e}")
+
+    async def delete_thread_item(
+        self,
+        thread_id: str,
+        item_id: str,
+        context: dict,
+    ) -> None:
+        """Delete an item from a thread (not implemented for database store)."""
+        # Message deletion is complex with foreign keys
+        # For now, we don't support individual message deletion
+        pass
+
+    async def undo_delete_thread_item(
+        self,
+        thread_id: str,
+        item_id: str,
+        context: dict,
+    ) -> bool:
+        """Undo deletion (not implemented for database store)."""
+        return False
+
+    async def save_attachment(self, attachment, context: dict) -> None:
+        """Save an attachment (not implemented)."""
+        raise NotImplementedError("Attachments not supported")
+
+    async def load_attachment(self, attachment_id: str, context: dict):
+        """Load an attachment (not implemented)."""
+        raise NotImplementedError("Attachments not supported")
+
+    async def delete_attachment(self, attachment_id: str, context: dict) -> None:
+        """Delete an attachment (not implemented)."""
+        raise NotImplementedError("Attachments not supported")
+
+    def generate_item_id(self, item_type: str, thread: ThreadMetadata, context) -> str:
+        """Generate a unique item ID."""
+        import uuid
+        return f"{item_type}_{uuid.uuid4().hex[:16]}"
+
+    def generate_thread_id(self, context) -> str:
+        """Generate a unique thread ID."""
+        import uuid
+        return f"thread_{uuid.uuid4().hex[:16]}"
 
 
 class TeamFlowChatKitServer(ChatKitServer):
@@ -996,21 +1553,26 @@ def create_chatkit_server(
     chat_service: Optional[ChatService] = None,
     rag_service: Optional[RAGService] = None,
     enable_rag: bool = True,
+    use_database_store: bool = True,  # New parameter to control store type
 ) -> TeamFlowChatKitServer:
     """Create a TeamFlow ChatKit server instance.
 
     Args:
-        data_store: Custom ChatKit store (defaults to MemoryStore)
+        data_store: Custom ChatKit store (defaults to DatabaseStore if chat_service provided)
         chat_service: ChatService for database operations
         rag_service: RAGService for knowledge base
         enable_rag: Whether to enable RAG
+        use_database_store: Whether to use DatabaseStore (default: True)
 
     Returns:
         Configured TeamFlowChatKitServer instance
     """
-    # Use default in-memory store if not provided
+    # Use DatabaseStore if chat_service provided and use_database_store is True
     if data_store is None:
-        data_store = MemoryStore()
+        if chat_service and use_database_store:
+            data_store = DatabaseStore(chat_service=chat_service)
+        else:
+            data_store = MemoryStore()
 
     return TeamFlowChatKitServer(
         data_store=data_store,
@@ -1028,7 +1590,7 @@ def get_chatkit_server() -> TeamFlowChatKitServer:
     """Get or create the singleton ChatKit server instance.
 
     Returns:
-        TeamFlowChatKitServer instance
+        TeamFlowChatKitServer instance with DatabaseStore for persistence
     """
     global _chatkit_server
 
@@ -1041,6 +1603,7 @@ def get_chatkit_server() -> TeamFlowChatKitServer:
             chat_service=chat_service,
             rag_service=rag_service,
             enable_rag=True,
+            use_database_store=True,  # Use database store for persistence
         )
 
     return _chatkit_server

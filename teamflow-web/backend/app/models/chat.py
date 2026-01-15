@@ -32,6 +32,10 @@ class Conversation(SQLModel, table=True):
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     is_archived: bool = Field(default=False, index=True)
 
+    # External system integration (for ChatKit thread mapping)
+    external_id: Optional[str] = Field(default=None, max_length=255, index=True)  # ChatKit thread ID
+    external_metadata: Optional[dict] = Field(default=None, sa_column=Column(JSON))
+
     # Relationships
     messages: List["Message"] = Relationship(back_populates="conversation")
 

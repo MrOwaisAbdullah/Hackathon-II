@@ -7,6 +7,7 @@ import { useProjects, useDeleteProject } from "@/lib/query";
 import { ProjectForm } from "@/components/project/ProjectForm";
 import { ProjectCard } from "@/components/project/ProjectCard";
 import { ProjectDrawer } from "@/components/project/ProjectDrawer";
+import { ProfitabilityCard } from "@/components/analytics/ProfitabilityCard";
 import { useProjectDrawer } from "@/hooks/useProjectDrawer";
 import { Button } from "@/components/ui/button";
 import type { Project } from "@/types";
@@ -69,6 +70,16 @@ export default function ProjectsPage() {
               New Project
             </Button>
           </motion.div>
+        </motion.div>
+
+        {/* Profitability Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <ProfitabilityCard />
         </motion.div>
 
         {/* Loading State */}
