@@ -67,6 +67,7 @@ export interface Project {
   description?: string;
   agency_id: UUID;
   status: ProjectStatus;
+  hourly_rate?: number;
   created_at: string;
   updated_at: string | null;
 }
@@ -161,6 +162,7 @@ export interface ProjectCreate {
   name: string;
   description?: string;
   status?: ProjectStatus;
+  hourly_rate?: number;
 }
 
 /** Project update request */
@@ -168,5 +170,6 @@ export interface ProjectUpdate {
   name?: string;
   description?: string;
   status?: ProjectStatus;
+  hourly_rate?: number;
 }
 

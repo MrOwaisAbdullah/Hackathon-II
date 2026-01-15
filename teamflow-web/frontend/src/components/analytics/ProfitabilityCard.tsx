@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { DollarSign, TrendingUp, TrendingDown, Clock, BarChart3 } from 'lucide-react';
 
@@ -27,11 +27,7 @@ export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProfitability();
-  }, [projectId, agencyId]);
-
-  const fetchProfitability = async () => {
+  const fetchProfitability = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -47,7 +43,11 @@ export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchProfitability();
+  }, [fetchProfitability]);
 
   if (loading) {
     return (
