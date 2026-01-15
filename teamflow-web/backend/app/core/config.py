@@ -118,6 +118,21 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be at least 32 characters in production")
         return v
 
+    @field_validator("mcp_server_url")
+    @classmethod
+    def validate_mcp_server_url(cls, v: str, info) -> str:
+        """Warn if using localhost in production - MCP won't work for agents."""
+        environment = info.data.get("environment", "development")
+        if environment == "production" and ("127.0.0.1" in v or "localhost" in v):
+            import warnings
+            warnings.warn(
+                "MCP_SERVER_URL points to localhost in production. "
+                "Agents will NOT be able to connect to MCP tools. "
+                "Set MCP_SERVER_URL to your deployed backend URL (e.g., "
+                "https://your-space.hf.space/mcp for HuggingFace Spaces)."
+            )
+        return v
+
     class Config:
         env_file = ".env"
         case_sensitive = False

@@ -570,6 +570,71 @@ async def health_check(
     )
 
 
+@router.get("/mcp/diagnostics")
+async def mcp_diagnostics():
+    """
+    Comprehensive MCP server diagnostics.
+
+    Returns detailed information about:
+    - MCP server configuration
+    - Available tools list
+    - Connection information
+    - Environment settings
+
+    Useful for debugging MCP connectivity issues.
+    """
+    diagnostics = {
+        "mcp_server_url": settings.mcp_server_url,
+        "environment": settings.environment,
+        "is_localhost": "127.0.0.1" in settings.mcp_server_url or "localhost" in settings.mcp_server_url,
+        "tools": {
+            "knowledge_base": ["search_knowledge_base"],
+            "task_management": [
+                "add_task", "list_tasks", "assign_task", "complete_task",
+                "complete_task_by_title", "delete_task", "delete_task_by_title",
+                "archive_task", "archive_task_by_title"
+            ],
+            "task_update": [
+                "update_task_priority", "update_task_due_date", "update_task_status"
+            ],
+            "analytics": ["get_profitability", "workload_summary"],
+            "recommendations": ["suggest_assignee"],
+            "project_management": [
+                "list_projects", "create_project", "get_project_details"
+            ],
+            "time_entries": [
+                "add_time_entry", "list_time_entries", "get_time_for_task",
+                "update_time_entry", "delete_time_entry"
+            ],
+        },
+        "total_tools": sum(len(v) if isinstance(v, list) else 1 for v in {
+            "search_knowledge_base": 1,
+            **{k: len(v) for k, v in {
+                "task_management": ["add_task", "list_tasks", "assign_task", "complete_task",
+                                   "complete_task_by_title", "delete_task", "delete_task_by_title",
+                                   "archive_task", "archive_task_by_title"],
+                "task_update": ["update_task_priority", "update_task_due_date", "update_task_status"],
+                "analytics": ["get_profitability", "workload_summary"],
+                "recommendations": ["suggest_assignee"],
+                "project_management": ["list_projects", "create_project", "get_project_details"],
+                "time_entries": ["add_time_entry", "list_time_entries", "get_time_for_task",
+                                "update_time_entry", "delete_time_entry"]
+            }.items()}
+        }.values()),
+        "status": "configured"
+    }
+
+    # Try to verify MCP server is actually accessible
+    try:
+        from app.mcp.server import mcp
+        diagnostics["server_available"] = True
+    except Exception as e:
+        diagnostics["server_available"] = False
+        diagnostics["error"] = str(e)
+
+    return diagnostics
+
+
 @router.get("/conversations")
 async def list_conversations(
     limit: int = 20,

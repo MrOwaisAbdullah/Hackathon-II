@@ -648,7 +648,7 @@ def register_analytics_tools(mcp: FastMCP):
             elif hourly_rate:
                 revenue = total_hours * hourly_rate
             else:
-                return f"Project {project.title} has no budget or hourly rate set. Cannot calculate profitability."
+                return f"Project {project.name} has no budget or hourly rate set. Cannot calculate profitability."
 
             # Calculate profit and margin
             profit = revenue - total_cost
@@ -656,7 +656,7 @@ def register_analytics_tools(mcp: FastMCP):
 
             # Format response
             response = [
-                f"Profitability Analysis for Project: {project.title}",
+                f"Profitability Analysis for Project: {project.name}",
                 f"",
                 f"**Financial Metrics:**",
                 f"- Revenue: ${revenue:,.2f}",
@@ -993,9 +993,9 @@ def register_project_tools(mcp: FastMCP):
                 query = query.where(Project.agency_id == UUID(agency_id))
             if status:
                 status_map = {
-                    'active': ProjectStatus.ACTIVE,
-                    'completed': ProjectStatus.COMPLETED,
-                    'on_hold': ProjectStatus.ON_HOLD,
+                    'active': ProjectStatus.active,
+                    'completed': ProjectStatus.completed,
+                    'on_hold': ProjectStatus.on_hold,
                 }
                 project_status = status_map.get(status.lower())
                 if project_status:
@@ -1015,7 +1015,7 @@ def register_project_tools(mcp: FastMCP):
 
             for i, project in enumerate(projects[:limit], 1):
                 lines.append(
-                    f"{i}. **{project.title}** (ID: {project.id})\n"
+                    f"{i}. **{project.name}** (ID: {project.id})\n"
                     f"   - Status: {project.status}\n"
                     f"   - Created: {project.created_at.strftime('%Y-%m-%d') if project.created_at else 'N/A'}"
                 )
@@ -1069,16 +1069,16 @@ def register_project_tools(mcp: FastMCP):
 
             # Map status string to enum
             status_map = {
-                'active': ProjectStatus.ACTIVE,
-                'completed': ProjectStatus.COMPLETED,
-                'on_hold': ProjectStatus.ON_HOLD,
+                'active': ProjectStatus.active,
+                'completed': ProjectStatus.completed,
+                'on_hold': ProjectStatus.on_hold,
             }
 
-            # Create ProjectCreate object
+            # Create ProjectCreate object (model uses 'name' field, not 'title')
             project_data = ProjectCreate(
-                title=title,
+                name=title,
                 description=description,
-                status=status_map.get(status.lower(), ProjectStatus.ACTIVE) if status else ProjectStatus.ACTIVE,
+                status=status_map.get(status.lower(), ProjectStatus.active) if status else ProjectStatus.active,
             )
 
             # Create project using service
@@ -1088,7 +1088,7 @@ def register_project_tools(mcp: FastMCP):
             return (
                 f"Project created successfully!\n"
                 f"- ID: {project.id}\n"
-                f"- Title: {project.title}\n"
+                f"- Name: {project.name}\n"
                 f"- Status: {project.status}"
             )
 
@@ -1146,7 +1146,7 @@ def register_project_tools(mcp: FastMCP):
 
             # Format response
             lines = [
-                f"Project Details: {project.title}",
+                f"Project Details: {project.name}",
                 f"",
                 f"**Basic Information:**",
                 f"- ID: {project.id}",
