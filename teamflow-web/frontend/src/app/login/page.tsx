@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 
 // Password input with visibility toggle (reusable component)
 const PasswordInput = ({
