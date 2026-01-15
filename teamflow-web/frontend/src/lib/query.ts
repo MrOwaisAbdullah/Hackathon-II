@@ -232,7 +232,7 @@ export function useCreateProject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description?: string; status?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; status?: string; hourly_rate?: number }) => {
       const response = await api.post('/api/v1/projects', data);
       return response.data;
     },
@@ -254,7 +254,7 @@ export function useUpdateProject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name?: string; description?: string; status?: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { name?: string; description?: string; status?: string; hourly_rate?: number } }) => {
       const response = await api.patch(`/api/v1/projects/${id}`, data);
       return response.data;
     },

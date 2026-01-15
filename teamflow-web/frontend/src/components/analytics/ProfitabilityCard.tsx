@@ -19,10 +19,9 @@ interface ProfitabilityData {
 
 interface ProfitabilityCardProps {
   projectId?: string;
-  agencyId?: string;
 }
 
-export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProps) {
+export function ProfitabilityCard({ projectId }: ProfitabilityCardProps) {
   const [data, setData] = useState<ProfitabilityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

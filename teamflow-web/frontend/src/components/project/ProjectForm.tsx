@@ -72,10 +72,16 @@ export function ProjectForm({ project, onClose, onSuccess }: ProjectFormProps) {
     }
 
     try {
+      // Convert hourly_rate to number if present
+      const dataToSubmit = {
+        ...formData,
+        hourly_rate: formData.hourly_rate ? Number(formData.hourly_rate) : undefined,
+      };
+
       if (isEditing && project) {
-        await updateProject.mutateAsync({ id: project.id, data: formData });
+        await updateProject.mutateAsync({ id: project.id, data: dataToSubmit });
       } else {
-        await createProject.mutateAsync(formData as ProjectCreate);
+        await createProject.mutateAsync(dataToSubmit as ProjectCreate);
       }
       onSuccess?.();
       onClose();
@@ -175,7 +181,7 @@ export function ProjectForm({ project, onClose, onSuccess }: ProjectFormProps) {
                 id="hourly_rate"
                 type="number"
                 value={formData.hourly_rate || ''}
-                onChange={(e) => handleChange('hourly_rate', e.target.value ? parseInt(e.target.value) : undefined)}
+                onChange={(e) => handleChange('hourly_rate', e.target.value)}
                 placeholder="e.g. 50"
                 disabled={isLoading}
                 min="0"

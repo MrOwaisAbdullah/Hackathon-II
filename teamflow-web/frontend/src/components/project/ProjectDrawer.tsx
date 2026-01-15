@@ -67,7 +67,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
         name: editedName,
         description: editedDescription || undefined,
         status: editedStatus || undefined,
-        hourly_rate: editedHourlyRate,
+        hourly_rate: editedHourlyRate ? Number(editedHourlyRate) : undefined,
       },
     });
 
