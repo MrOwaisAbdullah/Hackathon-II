@@ -628,60 +628,60 @@ def register_analytics_tools(mcp: FastMCP):
 
             time_entry_service = TimeEntryService()
 
-            # Get all time entries for this project
-            time_entries = time_entry_service.list_time_entries(
-                agency_id=str(project.agency_id),
+            # Use the dedicated profitability method from the service
+            profitability_data = time_entry_service.get_profitability_for_project(
                 project_id=project_uuid,
+                agency_id=project.agency_id,
                 session=session
             )
 
-            # Calculate actual hours and cost
-            total_hours = sum(entry.hours for entry in time_entries if entry.hours)
-            total_cost = total_hours * 50  # Assuming $50/hour average cost
+            # Extract data from service response
+            total_hours = profitability_data.get("total_hours", 0)
+            total_cost = profitability_data.get("total_cost", 0)
+            total_revenue = profitability_data.get("total_revenue", 0)
+            profit = profitability_data.get("profit", 0)
+            margin = profitability_data.get("profit_margin", 0)
+            total_tasks = profitability_data.get("total_tasks", 0)
+            completed_tasks = profitability_data.get("completed_tasks", 0)
 
-            # Calculate revenue (from project budget or hourly rate)
-            budget = getattr(project, 'budget', None)
-            hourly_rate = getattr(project, 'hourly_rate', None)
-
-            if budget:
-                revenue = budget
-            elif hourly_rate:
-                revenue = total_hours * hourly_rate
-            else:
-                return f"Project {project.name} has no budget or hourly rate set. Cannot calculate profitability."
-
-            # Calculate profit and margin
-            profit = revenue - total_cost
-            margin = (profit / revenue * 100) if revenue > 0 else 0
+            # If no hourly rate is set, we can't calculate meaningful profitability
+            if not project.hourly_rate or total_hours == 0:
+                return (
+                    f"Profitability Analysis for Project: {project.name}\n"
+                    f"\n"
+                    f"**Project Status:**\n"
+                    f"- Total tasks: {total_tasks}\n"
+                    f"- Completed tasks: {completed_tasks}\n"
+                    f"- Total hours logged: {total_hours}\n"
+                    f"\n"
+                    f"⚠️ This project has no hourly_rate configured. "
+                    f"Please set an hourly_rate to enable profitability calculations."
+                )
 
             # Format response
             response = [
                 f"Profitability Analysis for Project: {project.name}",
                 f"",
+                f"**Project Status:**",
+                f"- Total tasks: {total_tasks}",
+                f"- Completed tasks: {completed_tasks}",
+                f"- Total hours logged: {total_hours}",
+                f"",
                 f"**Financial Metrics:**",
-                f"- Revenue: ${revenue:,.2f}",
-                f"- Cost: ${total_cost:,.2f} (based on {total_hours:.1f} hours @ $50/hr)",
+                f"- Revenue: ${total_revenue:,.2f}",
+                f"- Cost: ${total_cost:,.2f}",
                 f"- Profit: ${profit:,.2f}",
                 f"- Margin: {margin:.1f}%",
                 f"",
             ]
 
-            # Add comparison to budget if available
-            if budget:
-                budget_used_pct = (revenue / budget * 100) if budget > 0 else 0
-                response.extend([
-                    f"**Budget Comparison:**",
-                    f"- Budget: ${budget:,.2f}",
-                    f"- Used: ${revenue:,.2f} ({budget_used_pct:.1f}%)",
-                ])
-
-                # Add status message
-                if margin < 0:
-                    response.append(f"- Status: ⚠️ OVER BUDGET (loss of ${abs(profit):,.2f})")
-                elif margin < 20:
-                    response.append(f"- Status: ⚠️ Low margin (target: 20%+)")
-                else:
-                    response.append(f"- Status: ✅ Healthy margin")
+            # Add status message based on margin
+            if margin < 0:
+                response.append(f"- Status: ⚠️ LOSS (negative margin)")
+            elif margin < 20:
+                response.append(f"- Status: ⚠️ Low margin (target: 20%+)")
+            else:
+                response.append(f"- Status: ✅ Healthy margin")
 
             return "\n".join(response)
 
