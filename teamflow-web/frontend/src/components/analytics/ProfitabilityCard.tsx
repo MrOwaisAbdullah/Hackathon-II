@@ -51,11 +51,11 @@ export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProp
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-zinc-800 rounded w-1/3"></div>
-          <div className="h-8 bg-zinc-800 rounded"></div>
-          <div className="h-8 bg-zinc-800 rounded"></div>
+          <div className="h-4 bg-muted rounded w-1/3"></div>
+          <div className="h-8 bg-muted rounded"></div>
+          <div className="h-8 bg-muted rounded"></div>
         </div>
       </div>
     );
@@ -63,16 +63,19 @@ export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProp
 
   if (error) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-red-900/50 p-6">
-        <p className="text-red-400 text-sm">{error}</p>
+      <div className="bg-card rounded-xl border border-destructive/50 p-6">
+        <p className="text-destructive text-sm">{error}</p>
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
-        <p className="text-zinc-500 text-sm">No profitability data available</p>
+      <div className="bg-card rounded-xl border border-border p-6">
+        <p className="text-muted-foreground text-sm">No profitability data available</p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Add hourly rates to projects and log time entries to see profitability metrics.
+        </p>
       </div>
     );
   }
@@ -100,47 +103,47 @@ export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProp
           title="Total Revenue"
           value={`$${totals.total_revenue.toFixed(2)}`}
           icon={<DollarSign className="h-5 w-5" />}
-          color="text-lime-400"
-          bgColor="bg-lime-400/10"
+          color="text-accent"
+          bgColor="bg-accent/10"
         />
         <SummaryCard
           title="Total Cost"
           value={`$${totals.total_cost.toFixed(2)}`}
           icon={<BarChart3 className="h-5 w-5" />}
-          color="text-red-400"
-          bgColor="bg-red-400/10"
+          color="text-destructive"
+          bgColor="bg-destructive/10"
         />
         <SummaryCard
           title="Total Profit"
           value={`$${totals.profit.toFixed(2)}`}
           icon={totals.profit >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-          color={totals.profit >= 0 ? "text-lime-400" : "text-red-400"}
-          bgColor={totals.profit >= 0 ? "bg-lime-400/10" : "bg-red-400/10"}
+          color={totals.profit >= 0 ? "text-accent" : "text-destructive"}
+          bgColor={totals.profit >= 0 ? "bg-accent/10" : "bg-destructive/10"}
         />
         <SummaryCard
           title="Total Hours"
           value={`${totals.total_hours.toFixed(1)}h`}
           icon={<Clock className="h-5 w-5" />}
-          color="text-blue-400"
-          bgColor="bg-blue-400/10"
+          color="text-blue-500"
+          bgColor="bg-blue-500/10"
         />
       </div>
 
       {/* Overall Profit Margin */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Overall Profit Margin</h3>
-          <span className={`text-2xl font-bold ${totalProfitMargin >= 0 ? 'text-lime-400' : 'text-red-400'}`}>
+          <h3 className="text-lg font-semibold">Overall Profit Margin</h3>
+          <span className={`text-2xl font-bold ${totalProfitMargin >= 0 ? 'text-accent' : 'text-destructive'}`}>
             {totalProfitMargin.toFixed(1)}%
           </span>
         </div>
-        <div className="w-full bg-zinc-800 rounded-full h-3">
+        <div className="w-full bg-muted rounded-full h-3">
           <div
             className={`h-3 rounded-full transition-all ${
-              totalProfitMargin >= 20 ? 'bg-lime-500' :
+              totalProfitMargin >= 20 ? 'bg-accent' :
               totalProfitMargin >= 10 ? 'bg-yellow-500' :
               totalProfitMargin >= 0 ? 'bg-orange-500' :
-              'bg-red-500'
+              'bg-destructive'
             }`}
             style={{ width: `${Math.max(0, Math.min(100, totalProfitMargin))}%` }}
           />
@@ -148,11 +151,11 @@ export function ProfitabilityCard({ projectId, agencyId }: ProfitabilityCardProp
       </div>
 
       {/* Project Breakdown */}
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
-        <div className="p-6 border-b border-zinc-800">
-          <h3 className="text-lg font-semibold text-white">Project Breakdown</h3>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h3 className="text-lg font-semibold">Project Breakdown</h3>
         </div>
-        <div className="divide-y divide-zinc-800">
+        <div className="divide-y divide-border">
           {data.map((project) => (
             <ProjectRow key={project.project_id} project={project} />
           ))}
@@ -176,11 +179,11 @@ function SummaryCard({
   bgColor: string;
 }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-zinc-500 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-white">{value}</p>
+          <p className="text-sm text-muted-foreground mb-1">{title}</p>
+          <p className="text-2xl font-bold">{value}</p>
         </div>
         <div className={`p-3 rounded-lg ${bgColor} ${color}`}>
           {icon}
@@ -194,11 +197,11 @@ function ProjectRow({ project }: { project: ProfitabilityData }) {
   const isProfitable = project.profit >= 0;
 
   return (
-    <div className="p-4 hover:bg-zinc-800/50 transition-colors">
+    <div className="p-4 hover:bg-muted/50 transition-colors">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h4 className="font-medium text-white mb-1">{project.project_name}</h4>
-          <div className="flex items-center gap-4 text-sm text-zinc-500">
+          <h4 className="font-medium mb-1">{project.project_name}</h4>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>{project.completed_tasks}/{project.total_tasks} tasks</span>
             <span>•</span>
             <span>{project.total_hours.toFixed(1)}h</span>
@@ -207,10 +210,10 @@ function ProjectRow({ project }: { project: ProfitabilityData }) {
           </div>
         </div>
         <div className="text-right">
-          <p className={`text-lg font-semibold ${isProfitable ? 'text-lime-400' : 'text-red-400'}`}>
+          <p className={`text-lg font-semibold ${isProfitable ? 'text-accent' : 'text-destructive'}`}>
             {isProfitable ? '+' : ''}${project.profit.toFixed(2)}
           </p>
-          <p className={`text-xs ${project.profit_margin >= 20 ? 'text-lime-400' : project.profit_margin >= 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+          <p className={`text-xs ${project.profit_margin >= 20 ? 'text-accent' : project.profit_margin >= 0 ? 'text-yellow-500' : 'text-destructive'}`}>
             {project.profit_margin.toFixed(1)}% margin
           </p>
         </div>
@@ -218,16 +221,16 @@ function ProjectRow({ project }: { project: ProfitabilityData }) {
 
       {/* Progress bar */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-zinc-500">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Completion</span>
           <span>{project.completion_percentage}%</span>
         </div>
-        <div className="w-full bg-zinc-800 rounded-full h-2">
+        <div className="w-full bg-muted rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all ${
-              project.completion_percentage >= 75 ? 'bg-lime-500' :
+              project.completion_percentage >= 75 ? 'bg-accent' :
               project.completion_percentage >= 50 ? 'bg-yellow-500' :
-              'bg-zinc-600'
+              'bg-muted-foreground'
             }`}
             style={{ width: `${project.completion_percentage}%` }}
           />
@@ -236,13 +239,13 @@ function ProjectRow({ project }: { project: ProfitabilityData }) {
 
       {/* Revenue/Cost breakdown */}
       <div className="mt-3 grid grid-cols-2 gap-4">
-        <div className="bg-zinc-800/50 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 mb-1">Revenue</p>
-          <p className="text-sm font-semibold text-lime-400">${project.total_revenue.toFixed(2)}</p>
+        <div className="bg-muted/30 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground mb-1">Revenue</p>
+          <p className="text-sm font-semibold text-accent">${project.total_revenue.toFixed(2)}</p>
         </div>
-        <div className="bg-zinc-800/50 rounded-lg p-3">
-          <p className="text-xs text-zinc-500 mb-1">Cost</p>
-          <p className="text-sm font-semibold text-red-400">${project.total_cost.toFixed(2)}</p>
+        <div className="bg-muted/30 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground mb-1">Cost</p>
+          <p className="text-sm font-semibold text-destructive">${project.total_cost.toFixed(2)}</p>
         </div>
       </div>
     </div>

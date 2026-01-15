@@ -34,6 +34,7 @@ interface ProjectDrawerProps {
     name: string;
     description?: string;
     status: ProjectStatus;
+    hourly_rate?: number;
     created_at?: string;
   };
 }
@@ -45,6 +46,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [editedStatus, setEditedStatus] = useState<ProjectStatus | null>();
+  const [editedHourlyRate, setEditedHourlyRate] = useState<number | undefined>();
 
   // Sync local state with project data whenever project changes
   useEffect(() => {
@@ -52,6 +54,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
       setEditedName(project.name);
       setEditedDescription(project.description || "");
       setEditedStatus(project.status);
+      setEditedHourlyRate(project.hourly_rate);
     }
   }, [project]);
 
@@ -64,6 +67,7 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
         name: editedName,
         description: editedDescription || undefined,
         status: editedStatus || undefined,
+        hourly_rate: editedHourlyRate,
       },
     });
 
@@ -73,7 +77,8 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
   const hasChanges = project && (
     editedName !== project.name ||
     editedDescription !== (project.description || "") ||
-    editedStatus !== project.status
+    editedStatus !== project.status ||
+    editedHourlyRate !== project.hourly_rate
   );
 
   return (
@@ -162,6 +167,25 @@ export function ProjectDrawer({ isOpen, onClose, project }: ProjectDrawerProps) 
                           <SelectItem value={ProjectStatus.ARCHIVED}>Archived</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Hourly Rate - Full Width (Editable) */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Hourly Rate ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={editedHourlyRate || ''}
+                        onChange={(e) => setEditedHourlyRate(e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full px-3 py-2 border-2 border-input rounded-xl bg-background focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80"
+                        placeholder="e.g. 50"
+                        min="0"
+                        step="1"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Required for profitability calculations (cost per hour)
+                      </p>
                     </div>
 
                     {/* Created Date - Full Width (Read-only) */}

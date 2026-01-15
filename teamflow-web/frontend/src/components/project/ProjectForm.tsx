@@ -30,6 +30,7 @@ export function ProjectForm({ project, onClose, onSuccess }: ProjectFormProps) {
     name: project?.name || '',
     description: project?.description || '',
     status: project?.status || ProjectStatus.ACTIVE,
+    hourly_rate: project?.hourly_rate || undefined,
   });
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -163,6 +164,27 @@ export function ProjectForm({ project, onClose, onSuccess }: ProjectFormProps) {
                 rows={3}
                 className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80 transition-colors resize-none"
               />
+            </div>
+
+            {/* Hourly Rate */}
+            <div>
+              <label htmlFor="hourly_rate" className="block text-sm font-semibold text-foreground mb-2">
+                Hourly Rate ($)
+              </label>
+              <input
+                id="hourly_rate"
+                type="number"
+                value={formData.hourly_rate || ''}
+                onChange={(e) => handleChange('hourly_rate', e.target.value ? parseInt(e.target.value) : undefined)}
+                placeholder="e.g. 50"
+                disabled={isLoading}
+                min="0"
+                step="1"
+                className="w-full px-4 py-3 rounded-lg border-2 border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-accent/10 focus:border-accent hover:border-input/80 transition-colors"
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Required for profitability calculations (cost per hour)
+              </p>
             </div>
 
             {/* Status */}
