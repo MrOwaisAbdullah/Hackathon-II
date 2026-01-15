@@ -375,7 +375,7 @@ def _create_openrouter_client() -> AsyncOpenAI:
         base_url="https://openrouter.ai/api/v1",
         api_key=settings.openrouter_api_key,
         max_retries=0,  # Disable automatic retries - let our fallback logic handle it
-        timeout=30.0,
+        timeout=300.0,  # 5 minutes - increased for HuggingFace Spaces cold starts
     )
 
     return client
@@ -403,7 +403,7 @@ def _create_openai_fallback_client() -> AsyncOpenAI:
     client = AsyncOpenAI(
         api_key=settings.openai_api_key,
         max_retries=0,  # Disable automatic retries
-        timeout=30.0,
+        timeout=300.0,  # 5 minutes - increased for HuggingFace Spaces cold starts
     )
 
     return client
