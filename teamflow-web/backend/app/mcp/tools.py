@@ -239,7 +239,7 @@ def register_task_tools(mcp: FastMCP):
             Confirmation message with task ID
         """
         from uuid import UUID
-        from sqlmodel import Session
+        from sqlmodel import Session, select
         from app.db.session import get_session
         from app.models.task import TaskCreate, TaskPriority, TaskStatus
         from app.services.task_service import TaskService
