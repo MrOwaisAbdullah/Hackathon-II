@@ -224,6 +224,7 @@ def register_task_tools(mcp: FastMCP):
         assignee_id: Optional[str] = None,
         priority: Optional[str] = None,
         status: Optional[str] = None,
+        due_date: Optional[str] = None,
     ) -> str:
         """Create a new task in TeamFlow.
 
@@ -234,11 +235,13 @@ def register_task_tools(mcp: FastMCP):
             assignee_id: User ID to assign task to
             priority: Priority: LOW, MEDIUM, or HIGH
             status: Status: TODO, DOING, REVIEW, or DONE
+            due_date: Due date in YYYY-MM-DD format (optional)
 
         Returns:
             Confirmation message with task ID
         """
         from uuid import UUID
+        from datetime import datetime
         from sqlmodel import Session, select
         from app.db.session import get_session
         from app.models.task import TaskCreate, TaskPriority, TaskStatus
@@ -280,6 +283,14 @@ def register_task_tools(mcp: FastMCP):
                 'done': TaskStatus.DONE,
             }
 
+            # Parse due_date if provided
+            parsed_due_date = None
+            if due_date:
+                try:
+                    parsed_due_date = datetime.strptime(due_date, "%Y-%m-%d").date()
+                except ValueError:
+                    return f"Error: Invalid due_date format. Use YYYY-MM-DD (e.g., 2026-01-23)"
+
             # Create TaskCreate object
             task_data = TaskCreate(
                 title=title,
@@ -288,11 +299,15 @@ def register_task_tools(mcp: FastMCP):
                 assignee_id=UUID(assignee_id) if assignee_id else None,
                 priority=priority_map.get(priority.lower(), TaskPriority.MEDIUM) if priority else TaskPriority.MEDIUM,
                 status=status_map.get(status.lower(), TaskStatus.TODO) if status else TaskStatus.TODO,
+                due_date=parsed_due_date,
             )
 
             # Create task using service
             task_service = TaskService()
             task = task_service.create_task(task_data, agency_id, session)
+
+            # Format due date for response
+            due_date_str = task.due_date.strftime('%Y-%m-%d') if task.due_date else 'Not set'
 
             return (
                 f"Task created successfully!\n"
@@ -300,6 +315,7 @@ def register_task_tools(mcp: FastMCP):
                 f"- Title: {task.title}\n"
                 f"- Priority: {task.priority}\n"
                 f"- Status: {task.status}\n"
+                f"- Due Date: {due_date_str}\n"
                 f"- Assigned to: {task.assignee.full_name if task.assignee else 'Unassigned'}"
             )
 
