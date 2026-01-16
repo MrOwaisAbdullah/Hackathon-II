@@ -40,6 +40,9 @@ TOOL_ROLE_PERMISSIONS = {
     # Knowledge Base Tools - Available to all roles
     "search_knowledge_base": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER},
 
+    # User Management Tools
+    "list_users": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER},
+
     # Task Management Tools
     "add_task": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER},
     "list_tasks": {UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER, UserRole.VIEWER},
@@ -156,6 +159,100 @@ class SuggestAssigneeInput(BaseModel):
     """Input schema for suggest_assignee tool."""
 
     task_id: UUID = Field(..., description="Task ID to find best assignee for")
+
+
+# User Management Tools
+
+
+def register_user_tools(mcp: FastMCP):
+    """Register user management tools with MCP server."""
+
+    @mcp.tool()
+    def list_users(
+        agency_id: Optional[str] = None,
+        search: Optional[str] = None,
+        limit: int = 50,
+    ) -> str:
+        """List team members/users in TeamFlow.
+
+        Use this tool when you need to:
+        - Find a user by name to assign a task
+        - See all available team members
+        - Match partial names to user IDs
+
+        Args:
+            agency_id: Filter by agency ID (optional)
+            search: Search term to filter users by name or email (partial match)
+            limit: Maximum number of users to return (default: 50)
+
+        Returns:
+            List of users with their IDs, names, and emails
+
+        Example:
+            >>> list_users(search="owais")
+            Returns users matching "owais" with their IDs
+        """
+        from uuid import UUID
+        from sqlmodel import Session, select
+        from app.db.session import get_session
+        from app.models.user import User
+
+        try:
+            # Get database session
+            session_gen = get_session()
+            session = next(session_gen)
+
+            # Determine agency_id
+            if agency_id:
+                agency_uuid = UUID(agency_id)
+            else:
+                # Use default agency - get from first user
+                first_user = session.exec(select(User).limit(1)).first()
+                if not first_user:
+                    return "Error: No users found in the system."
+                agency_uuid = first_user.agency_id
+
+            # Build query
+            query = select(User).where(User.agency_id == agency_uuid)
+
+            # Add search filter if provided
+            if search:
+                search_pattern = f"%{search}%"
+                query = query.where(
+                    (User.name.ilike(search_pattern)) |
+                    (User.email.ilike(search_pattern))
+                )
+
+            # Order by name and limit
+            query = query.order_by(User.name).limit(limit)
+            users = session.exec(query).all()
+
+            if not users:
+                if search:
+                    return f"No users found matching '{search}' in the agency."
+                return "No users found in the agency."
+
+            # Format results
+            lines = [
+                f"Found {len(users)} user(s):",
+                f"",
+            ]
+
+            for i, user in enumerate(users[:limit], 1):
+                # Get display name - User model has 'name' field, not 'full_name'
+                display_name = user.name or user.email
+                lines.append(
+                    f"{i}. **{display_name}** (ID: {user.id})\n"
+                    f"   - Email: {user.email}\n"
+                    f"   - Role: {user.role}"
+                )
+
+            return "\n".join(lines)
+
+        except ValueError as e:
+            return f"Error: {str(e)}"
+        except Exception as e:
+            return f"Error listing users: {str(e)}"
 
 
 # Knowledge Base Tools (RAG)
@@ -316,7 +413,7 @@ def register_task_tools(mcp: FastMCP):
                 f"- Priority: {task.priority}\n"
                 f"- Status: {task.status}\n"
                 f"- Due Date: {due_date_str}\n"
-                f"- Assigned to: {task.assignee.full_name if task.assignee else 'Unassigned'}"
+                f"- Assigned to: {task.assignee.name if task.assignee else 'Unassigned'}"
             )
 
         except ValueError as e:
@@ -404,7 +501,7 @@ def register_task_tools(mcp: FastMCP):
             ]
 
             for i, task in enumerate(tasks[:limit], 1):
-                assignee_name = task.assignee.full_name if task.assignee else "Unassigned"
+                assignee_name = task.assignee.name if task.assignee else "Unassigned"
                 lines.append(
                     f"{i}. **{task.title}** (ID: {task.id})\n"
                     f"   - Status: {task.status}\n"
@@ -468,7 +565,7 @@ def register_task_tools(mcp: FastMCP):
             return (
                 f"Task assigned successfully!\n"
                 f"- Task: {updated_task.title}\n"
-                f"- Assigned to: {updated_task.assignee.full_name if updated_task.assignee else 'Unassigned'}\n"
+                f"- Assigned to: {updated_task.assignee.name if updated_task.assignee else 'Unassigned'}\n"
                 f"- Status: {updated_task.status}"
             )
 
@@ -750,7 +847,7 @@ def register_analytics_tools(mcp: FastMCP):
             over_capacity = 0
 
             for member in team_members:
-                name = member.full_name or member.email
+                name = member.name or member.email
                 # Limit name length for display
                 if len(name) > 28:
                     name = name[:25] + "..."
@@ -909,7 +1006,7 @@ def register_recommendation_tools(mcp: FastMCP):
 
                 candidates.append({
                     'user_id': str(member.id),
-                    'name': member.full_name or member.email,
+                    'name': member.name or member.email,
                     'email': member.email,
                     'skills': skills_list,
                     'task_count': task_count,
@@ -1783,7 +1880,7 @@ def register_time_entry_tools(mcp: FastMCP):
             ]
 
             for i, entry in enumerate(time_entries[:limit], 1):
-                user_name = entry.user.full_name if entry.user else "Unknown"
+                user_name = entry.user.name if entry.user else "Unknown"
                 task_title = entry.task.title if entry.task else "Unknown"
                 lines.append(
                     f"{i}. **{task_title}** - {entry.hours}h by {user_name}\n"
@@ -1850,7 +1947,7 @@ def register_time_entry_tools(mcp: FastMCP):
             if time_entries:
                 user_hours = {}
                 for entry in time_entries:
-                    user_name = entry.user.full_name if entry.user else "Unknown"
+                    user_name = entry.user.name if entry.user else "Unknown"
                     user_hours[user_name] = user_hours.get(user_name, 0) + (entry.hours or 0)
 
                 lines.append("**Breakdown by User:**")

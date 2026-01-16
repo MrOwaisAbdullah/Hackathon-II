@@ -11,6 +11,7 @@ Transport: Streamable HTTP (recommended for production)
 from mcp.server.fastmcp import FastMCP
 from app.mcp.tools import (
     register_knowledge_base_tools,
+    register_user_tools,
     register_task_tools,
     register_analytics_tools,
     register_recommendation_tools,
@@ -31,6 +32,7 @@ mcp = FastMCP(
 
 # Register all tool categories
 register_knowledge_base_tools(mcp)
+register_user_tools(mcp)
 register_task_tools(mcp)
 register_analytics_tools(mcp)
 register_recommendation_tools(mcp)
