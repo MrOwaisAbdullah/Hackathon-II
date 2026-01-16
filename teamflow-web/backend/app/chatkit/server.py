@@ -1126,7 +1126,7 @@ class TeamFlowChatKitServer(ChatKitServer):
                         result = Runner.run_streamed(
                             agent_to_use,
                             input_items,  # Pass conversation history
-                            context=agent_context
+                            context=agent_context,
                         )
                         logger.info(f"[ChatKit respond] Agent execution started, result type: {type(result).__name__}")
 
