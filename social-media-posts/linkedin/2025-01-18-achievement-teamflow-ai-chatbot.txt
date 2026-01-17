@@ -1,0 +1,86 @@
+I just built an AI chatbot that manages your entire team workflow.
+
+No separate SaaS subscription.
+No API keys to manage.
+Just open source running on your own server.
+
+Here's what TeamFlow AI Chatbot does:
+
+👉 Create tasks in plain English
+"Add a high priority task to fix navbar for Acme project"
+
+👉 Assign work intelligently
+"Who should handle the backend API task?"
+
+👉 Query project data naturally
+"What tasks are blocked or overdue?"
+
+👉 Get AI recommendations
+"Suggest the best person for this React task"
+
+Built with:
+ • OpenAI ChatKit (self-hosted, not their hosted service)
+ • OpenAI Agents SDK with Gemini 2.0 Flash
+ • 21 MCP tools wrapped around existing services
+ • Custom FastAPI backend with RAG pipeline
+ • Single-server production architecture
+
+The tricky part wasn't the AI integration.
+It was making 21 different tools work reliably through chat.
+
+Tools for:
+ • Task management (4 tools)
+ • Task updates (5 tools)
+ • Project management (3 tools)
+ • Analytics (2 tools)
+ • AI recommendations (1 tool)
+ • Time entries (5 tools)
+ • Knowledge base search (1 tool)
+
+All exposed via MCP protocol.
+All callable through natural language.
+All with automatic rate limit fallback.
+
+Here's the setup:
+
+Primary model: OpenRouter with Gemini 2.0 Flash (free tier)
+Fallback model: OpenAI API with GPT-5 Nano
+
+When OpenRouter hits rate limits (429 errors)?
+System automatically retries with OpenAI.
+Transparent to the user.
+Zero downtime.
+
+The architecture keeps it simple:
+One FastAPI process.
+One port to expose.
+MCP server mounted at /mcp endpoint.
+No separate services to manage.
+
+Biggest lesson from this build:
+OpenAI's hosted ChatKit is great for demos.
+But production apps need custom backends.
+
+You need to:
+ • Wrap your own models (Gemini, OpenRouter, etc.)
+ • Handle rate limits gracefully with fallback
+ • Persist chat history yourself
+ • Integrate with your existing services
+
+The OpenAI Agents SDK makes this possible.
+MCPServerStreamableHttp connects everything.
+
+Fullscreen chat mode included.
+Floating widget on dashboard pages.
+Voice input via Web Speech API.
+
+Phase 3 submission is done.
+Code is on GitHub.
+Ready for production use.
+
+Would you use a self-hosted AI chatbot for your team?
+Or do you prefer SaaS subscriptions?
+
+👇
+
+#AI #OpenSource #TeamManagement #Hackathon #Productivity #AgentsSDK #FastAPI #RAG #OpenRouter

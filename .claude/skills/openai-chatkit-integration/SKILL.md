@@ -1471,3 +1471,352 @@ Check the logs for:
 - **Infinite loading/re-renders** → Missing `useMemo` in ThemeContext (see Pitfall #11)
 - **Theme toggle causes loading** → Using `key` prop for theme changes (see Pitfall #12)
 - **Domain verification error** → Domain not registered at OpenAI dashboard (see Pitfall #13)
+- **AI responses not in history** → Not using stream_agent_response() (see Pitfall #14)
+- **Messages overwriting** → Missing `__fake_id__` replacement (see Pitfall #15)
+- **Duplicate task creation** → Agent re-processing old messages (see Pitfall #16)
+- **History loading errors** → Using previous_response_id with wrong model (see Pitfall #17)
+
+---
+
+### ❌ Pitfall #14: AI Responses Not Persisting in Chat History
+
+**Problem:**
+- AI responses appear in the chat during streaming
+- After page refresh, AI responses are missing from history
+- Only user messages are saved to conversation history
+- ChatKit "Failed to load conversation" errors
+
+**Symptoms:**
+```
+# During chat - looks normal:
+User: "Create a task"
+AI: "Task created successfully!" ✅
+
+# After refresh - AI response gone:
+User: "Create a task" ✅
+# AI message is missing! ❌
+```
+
+**Root Cause:**
+Using manual event handling with `ThreadItemAddedEvent` instead of `ThreadItemDoneEvent`. According to ChatKit documentation:
+
+> "ThreadItemAddedEvent does NOT persist the item. ChatKitServer saves on ThreadItemDoneEvent"
+
+When you manually yield events:
+- `ThreadItemAddedEvent` - Introduces a new item to the UI (NOT persisted)
+- `ThreadItemUpdatedEvent` - Mutates a pending item (NOT persisted)
+- `ThreadItemDoneEvent` - Marks item complete AND **persists it**
+
+**WRONG Code (Manual Event Handling):**
+```python
+# ❌ This does NOT persist messages!
+async for event in result.stream_events():
+    if event.type == "run_item_stream_event" and event.item.type == "message_output_item":
+        message_text = ItemHelpers.text_message_output(event.item)
+        assistant_item = AssistantMessageItem(
+            id=unique_message_id,
+            thread_id=thread.id,
+            created_at=datetime.now(timezone.utc),
+            content=[AssistantMessageContent(text=message_text)],
+        )
+        yield ThreadItemAddedEvent(item=assistant_item)  # ❌ Not persisted!
+```
+
+**CORRECT Code (Using stream_agent_response):**
+```python
+# ✅ Use stream_agent_response - handles all event types including persistence
+from chatkit.agents import stream_agent_response
+
+result = Runner.run_streamed(agent, input_items, context=agent_context)
+
+async for event in stream_agent_response(agent_context, result):
+    # This function yields:
+    # - ThreadItemAddedEvent (introduces item)
+    # - ThreadItemUpdatedEvent (mutates pending item)
+    # - ThreadItemDoneEvent (marks complete AND PERSISTS) ✅
+    yield event
+```
+
+**Why This Works:**
+- `stream_agent_response()` is the official ChatKit helper for agent streaming
+- It properly yields `ThreadItemDoneEvent` which persists messages
+- It handles tool calls, workflows, and all ChatKit event types
+- No manual event construction needed
+
+**Related:** ChatKit Thread Stream Events documentation
+
+---
+
+### ❌ Pitfall #15: AI Responses Overwriting Each Other in Live Chat
+
+**Problem:**
+- First AI response appears correctly
+- Second AI response **overwrites** the first instead of appearing below it
+- Third AI response overwrites the second
+- Chat history restore shows messages correctly (so it's a live streaming issue only)
+
+**Symptoms:**
+```
+Message 1: "Hello!" → Shows: "Hello!"
+Message 2: "How are you?" → Shows: "How are you?" (first message gone!)
+Message 3: "Good thanks" → Shows: "Good thanks" (second message gone!)
+```
+
+**Root Cause:**
+The `stream_agent_response()` helper uses `__fake_id__` as a temporary placeholder during streaming. When multiple messages are sent, they all use the same `__fake_id__`, causing the frontend ChatKit client to update the same message instead of creating new ones.
+
+**Solution:**
+```python
+# Generate unique message ID BEFORE streaming
+import uuid
+
+unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+
+async for event in stream_agent_response(agent_context, result):
+    # CRITICAL: Replace __fake_id__ with our unique ID
+    if hasattr(event, 'item'):
+        item = event.item
+        if hasattr(item, 'id') and item.id == "__fake_id__":
+            # Replace __fake_id__ with our unique ID
+            new_item = item.model_copy(update={"id": unique_message_id})
+            event = event.model_copy(update={"item": new_item})
+
+    yield event
+```
+
+**Why This Works:**
+- Each AI response gets a **unique, persistent ID** from the start
+- The frontend sees a **different ID** for each new message
+- Instead of updating the previous message, it creates a **new message**
+- Streaming still works because all events for a single response use the same unique ID
+
+**Dual Approach (More Robust):**
+Also add `__fake_id__` replacement in the Store's `add_thread_item()` and `save_item()` methods:
+
+```python
+# In MemoryStore.add_thread_item()
+if item.id == "__fake_id__":
+    new_id = f"{item.type}_{uuid.uuid4().hex[:16]}"
+    item = item.model_copy(update={"id": new_id})
+
+# In MemoryStore.save_item()
+if item.id == "__fake_id__":
+    new_id = f"{item.type}_{uuid.uuid4().hex[:16]}"
+    item = item.model_copy(update={"id": new_id})
+```
+
+**Benefits of Dual Approach:**
+- Store layer catches items during `ThreadItemAddedEvent` processing
+- respond() layer catches items during streaming
+- Comprehensive logging at both levels helps debugging
+- More robust against SDK changes
+
+**Related Issues:**
+- GitHub Issue: https://github.com/openai/openai-agents-python/issues/1485
+- GitHub Issue: https://github.com/openai/openai-chatkit-advanced-samples/issues/6
+
+---
+
+### ❌ Pitfall #16: Agent Re-processing Old Messages (Duplicate Task Creation)
+
+**Problem:**
+- User says: "Create a task named 'fix navbar'"
+- Agent creates task correctly
+- User says: "Move the fix navbar task to in review"
+- Agent creates ANOTHER task with same name, then moves it
+- User says: "Delete all tasks with name 'fix navbar'"
+- Agent creates YET ANOTHER task instead of deleting
+
+**Symptoms:**
+```
+User: "Create task X" → Agent: Creates task ✅
+User: "Move this task" → Agent: Creates task + moves it ❌
+User: "Delete this task" → Agent: Creates task + deletes it ❌
+```
+
+**Root Cause:**
+The agent receives full conversation history including all previous user messages. The LLM may re-execute old user messages as new instructions, creating duplicates.
+
+**INCORRECT Approaches (Don't Use):**
+
+❌ **Filtering to only latest user message** (loses context):
+```python
+# WRONG - Loses context for "this task" references
+user_items = [item for item in items if isinstance(item, UserMessageItem)]
+latest_user_item = user_items[-1]
+input_items = await simple_to_agent_input([latest_user_item])
+```
+
+❌ **Instruction-based filtering only** (unreliable):
+```python
+# WRONG - LLM may ignore instructions
+instructions = "Only respond to the LATEST user message"
+```
+
+**CORRECT Solution: Use call_model_input_filter**
+```python
+from agents import RunConfig
+from agents.run import CallModelData, ModelInputData
+
+def filter_to_prevent_reexecution(data: CallModelData) -> ModelInputData:
+    """
+    Filter conversation history to prevent re-execution of old user messages.
+    Keep all items for context (the LLM uses agent instructions to prevent re-execution).
+    """
+    items = data.model_data.input
+    if not items:
+        return data.model_data
+
+    # Find the last user message
+    last_user_idx = None
+    for i in reversed(range(len(items))):
+        item = items[i]
+        if hasattr(item, "role") and item.role == "user":
+            last_user_idx = i
+            break
+
+    if last_user_idx is None or last_user_idx == len(items) - 1:
+        return data.model_data
+
+    # Keep all items for context
+    # The agent instructions tell the LLM to only respond to the latest user message
+    logger.info(f"Total items: {len(items)}, latest user message at index: {last_user_idx}")
+
+    return ModelInputData(
+        input=items,  # Keep all items for context
+        instructions=data.model_data.instructions
+    )
+
+# Use the filter
+result = Runner.run_streamed(
+    agent,
+    input_items,  # Full conversation history
+    context=agent_context,
+    run_config=RunConfig(
+        call_model_input_filter=filter_to_prevent_reexecution
+    ),
+)
+```
+
+**Agent Instructions (Critical):**
+Your agent instructions MUST explicitly tell the LLM to only respond to the latest message:
+
+```python
+TEAMFLOW_AGENT_INSTRUCTIONS = """
+**CRITICAL: ONLY respond to the LATEST user message**
+- You will receive a conversation history with multiple user messages
+- ONLY execute tools based on the LAST/RECENT user message
+- Use previous messages ONLY for context (e.g., remembering task names, user preferences)
+- NEVER re-execute actions from previous user messages - this creates duplicates!
+"""
+```
+
+**Why This Works:**
+- `call_model_input_filter` filters conversation history BEFORE it reaches the LLM
+- Full conversation history is preserved for context (understanding "this task" references)
+- Agent instructions tell the LLM to only execute tools for the latest message
+- The combination of filter + instructions prevents duplicate execution
+
+---
+
+### ❌ Pitfall #17: Using previous_response_id with Unsupported Models
+
+**Problem:**
+- Chat history loading fails with "Failed to load conversation" error
+- Loader turns off before AI message appears
+- Error logs show issues with AgentContext creation
+
+**Symptoms:**
+```
+[ChatKit respond] previous_response_id: some_id
+[ChatKit respond] Error: 400 Bad Request
+Failed to load conversation. We encountered an error. Reload to try again.
+```
+
+**Root Cause:**
+The `previous_response_id` parameter is ONLY supported for:
+- OpenAI Responses API
+- OpenAI-hosted models (gpt-4o, gpt-4.1, etc.)
+
+When using alternative models:
+- OpenRouter (any model)
+- Gemini 2.0 Flash via OpenRouter
+- Custom model providers
+
+The `previous_response_id` parameter is **NOT supported** and may cause errors.
+
+**INCORRECT Code:**
+```python
+# ❌ WRONG - previous_response_id doesn't work with OpenRouter/Gemini
+last_response_id = thread.metadata.get("last_response_id")
+
+agent_context = AgentContext(
+    thread=thread,
+    store=self.store,
+    request_context=context,
+    previous_response_id=last_response_id,  # ❌ Not supported for OpenRouter!
+)
+
+result = Runner.run_streamed(
+    agent,
+    input_items,
+    context=agent_context,
+)
+```
+
+**CORRECT Code:**
+```python
+# ✅ CORRECT - Don't use previous_response_id for OpenRouter/Gemini
+agent_context = AgentContext(
+    thread=thread,
+    store=self.store,
+    request_response=context,
+    # NOTE: No previous_response_id for OpenRouter/Gemini models
+    # Rely on __fake_id__ replacement for unique message IDs instead
+)
+
+result = Runner.run_streamed(
+    agent,
+    input_items,
+    context=agent_context,
+)
+```
+
+**Alternative for OpenAI Models:**
+If you ARE using OpenAI models (gpt-4o, gpt-4.1, etc.), you CAN use `previous_response_id`:
+
+```python
+# Only use with OpenAI Responses API
+last_response_id = thread.metadata.get("last_response_id")
+
+agent_context = AgentContext(
+    thread=thread,
+    store=self.store,
+    request_response=context,
+    previous_response_id=last_response_id,  # ✅ Only for OpenAI Responses API
+)
+
+result = Runner.run_streamed(
+    agent,
+    input_items,
+    previous_response_id=last_response_id,  # ✅ Pass directly to Runner
+    auto_previous_response_id=True,  # ✅ Auto-save new response ID
+    context=agent_context,
+)
+
+# Save the new response ID for next turn
+if result.last_response_id:
+    thread.metadata["last_response_id"] = result.last_response_id
+    await self.store.save_thread(thread, context=context)
+```
+
+**How to Detect Which Models Support It:**
+- OpenAI Responses API (gpt-4.1-mini, gpt-4o-mini): ✅ Supported
+- OpenRouter (any model): ❌ NOT supported
+- Gemini (direct or via OpenRouter): ❌ NOT supported
+- Custom model providers: ❌ NOT supported (check documentation)
+
+**Workaround for Unsupported Models:**
+Use `__fake_id__` replacement (Pitfall #15) to ensure each message gets a unique ID, preventing the overwriting issue that `previous_response_id` was meant to solve.
+
+**Related:** OpenAI Agents SDK - Model Features documentation
