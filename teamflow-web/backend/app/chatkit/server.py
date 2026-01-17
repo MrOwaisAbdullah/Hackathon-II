@@ -1129,11 +1129,18 @@ class TeamFlowChatKitServer(ChatKitServer):
             input_items = await simple_to_agent_input(items_page.data)
             logger.info(f"[ChatKit respond] Converted {len(items_page.data)} items to {len(input_items)} agent input items")
 
-            # Create agent context
+            # CRITICAL: Get previous_response_id from thread metadata
+            # This tells the agent to create a NEW response instead of updating the old one
+            last_response_id = thread.metadata.get("last_response_id") if thread.metadata else None
+            last_response_id = last_response_id if isinstance(last_response_id, str) else None
+            logger.info(f"[ChatKit respond] previous_response_id: {last_response_id}")
+
+            # Create agent context with previous_response_id
             agent_context = AgentContext(
                 thread=thread,
                 store=self.store,
-                request_context=context or {}
+                request_context=context or {},
+                previous_response_id=last_response_id,
             )
 
             # Try primary model first, fall back to OpenAI on 429 rate limit
@@ -1200,6 +1207,15 @@ class TeamFlowChatKitServer(ChatKitServer):
                         # - Tool calls, workflows, and all other ChatKit event types
                         async for event in stream_agent_response(agent_context, result):
                             yield event
+
+                        # CRITICAL: Save the new response ID for next turn
+                        # This ensures the next message creates a NEW response instead of updating this one
+                        if hasattr(result, 'last_response_id') and result.last_response_id:
+                            if thread.metadata is None:
+                                thread.metadata = {}
+                            thread.metadata["last_response_id"] = result.last_response_id
+                            await self.store.save_thread(thread, context=context or {})
+                            logger.info(f"[ChatKit respond] Saved last_response_id: {result.last_response_id}")
 
                         logger.info(f"[ChatKit respond] ✓ Successfully completed with model: {model_to_use}")
                         break
