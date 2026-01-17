@@ -1064,8 +1064,20 @@ class TeamFlowChatKitServer(ChatKitServer):
 
             logger.info(f"[ChatKit respond] Thread {thread.id}, Loaded {len(items_page.data)} items")
 
-            # Convert thread items to agent input format
-            input_items = await simple_to_agent_input(items_page.data)
+            # CRITICAL FIX: Only pass the latest user message to the agent
+            # Passing all items causes the agent to re-process old messages, creating duplicates
+            # Filter to get only UserMessageItem types, then take the last one (most recent)
+            from chatkit.types import UserMessageItem
+            user_items = [item for item in items_page.data if isinstance(item, UserMessageItem)]
+            if user_items:
+                # Only pass the most recent user message to the agent
+                latest_user_item = user_items[-1]
+                input_items = await simple_to_agent_input([latest_user_item])
+                logger.info(f"[ChatKit respond] Using only latest user message (filtered from {len(items_page.data)} total items)")
+            else:
+                # Fallback: use all items if no user messages found
+                input_items = await simple_to_agent_input(items_page.data)
+                logger.warning(f"[ChatKit respond] No user messages found, using all {len(items_page.data)} items")
 
             # Create agent context
             agent_context = AgentContext(
