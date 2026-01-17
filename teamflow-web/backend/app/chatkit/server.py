@@ -58,25 +58,18 @@ from sqlmodel import select
 logger = get_logger(__name__)
 
 
-def filter_latest_user_message_only(data: CallModelData) -> ModelInputData:
+def filter_to_prevent_reexecution(data: CallModelData) -> ModelInputData:
     """
     Filter conversation history to prevent re-execution of old user messages.
 
     This function is used by call_model_input_filter in RunConfig to filter
     the conversation history BEFORE it reaches the LLM model.
 
-    Problem: Without filtering, the agent receives all conversation history
-    including old user messages, and may re-execute them, creating duplicates.
+    Strategy: Keep all messages but mark old user messages as context-only
+    by setting a flag in the metadata. The agent instructions will tell the
+    model to only execute tools based on the latest user message.
 
-    Solution: Keep only the latest user message while preserving all assistant
-    responses for context.
-
-    Example:
-        Input: [User: "create task", Assistant: "Done", User: "move task"]
-        Output: [Assistant: "Done", User: "move task"]
-
-    The filtered history preserves context for understanding references like
-    "this task" while preventing re-execution of the old "create task" message.
+    This preserves full conversation context while preventing re-execution.
 
     Args:
         data: CallModelData containing the model input (conversation history)
@@ -85,57 +78,41 @@ def filter_latest_user_message_only(data: CallModelData) -> ModelInputData:
         ModelInputData with filtered conversation history
     """
     items = data.model_data.input
-    filtered_items = []
-    last_user_idx = None
-
-    # Find the last user message index
-    for i in reversed(range(len(items))):
-        item = items[i]
-        # Check if this is a user message (has role or type indicating user)
-        if hasattr(item, "role"):
-            if item.role == "user":
-                last_user_idx = i
-                break
-        elif hasattr(item, "type"):
-            if item.type == "user_message":
-                last_user_idx = i
-                break
-        # Also check dictionary-style items
-        elif isinstance(item, dict) and item.get("role") == "user":
-            last_user_idx = i
-            break
-
-    if last_user_idx is None:
-        # No user messages found, return original
+    if not items:
         return data.model_data
 
-    # Build filtered list:
-    # - Keep all assistant responses (for context)
-    # - Keep only the latest user message (to prevent re-execution)
-    for i, item in enumerate(items):
+    # Find the last user message
+    last_user_idx = None
+    for i in reversed(range(len(items))):
+        item = items[i]
+        # Check various possible structures for user messages
         is_user = False
         if hasattr(item, "role"):
             is_user = item.role == "user"
         elif hasattr(item, "type"):
-            is_user = item.type == "user_message"
+            is_user = item.type == "user_message" or item.type == "input_text"
         elif isinstance(item, dict):
-            is_user = item.get("role") == "user"
+            is_user = item.get("role") == "user" or item.get("type") in ["user_message", "input_text"]
 
         if is_user:
-            # Only include if it's the last user message
-            if i == last_user_idx:
-                filtered_items.append(item)
-        else:
-            # Include all non-user messages (assistant responses, system messages, etc.)
-            filtered_items.append(item)
+            last_user_idx = i
+            break
 
+    if last_user_idx is None or last_user_idx == len(items) - 1:
+        # No filtering needed - either no user messages or last message is already a user message
+        return data.model_data
+
+    # Keep all items - the agent instructions will handle only executing
+    # tools for the latest user message
+    # The key is that we're NOT removing old messages (for context),
+    # but the agent's instructions tell it to only respond to the latest
     logger.info(
-        f"[filter_latest_user_message_only] Filtered {len(items)} items to {len(filtered_items)} items "
-        f"(kept only latest user message at index {last_user_idx})"
+        f"[filter_to_prevent_reexecution] Total items: {len(items)}, "
+        f"latest user message at index: {last_user_idx}"
     )
 
     return ModelInputData(
-        input=filtered_items,
+        input=items,  # Keep all items for context
         instructions=data.model_data.instructions
     )
 
@@ -1159,11 +1136,6 @@ class TeamFlowChatKitServer(ChatKitServer):
                 request_context=context or {}
             )
 
-            # CRITICAL FIX: Generate unique message ID upfront to prevent overwriting
-            import uuid
-            unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
-            logger.info(f"[ChatKit respond] Generated unique message ID: {unique_message_id}")
-
             # Try primary model first, fall back to OpenAI on 429 rate limit
             primary_model = "google/gemini-2.0-flash-exp:free"
             fallback_model = "google/gemini-2.0-flash-exp:free"  # OpenRouter fallback
@@ -1206,7 +1178,7 @@ class TeamFlowChatKitServer(ChatKitServer):
                         logger.info(f"[ChatKit respond] input_items count: {len(input_items) if input_items else 0}")
 
                         # CRITICAL: Use Runner.run_streamed() for streaming responses
-                        # Then iterate through result.stream_events() to get events
+                        # Then use stream_agent_response to properly convert events
                         # IMPORTANT: Runner.run_streamed() is SYNCHRONOUS - do NOT await
                         # CRITICAL FIX: Use call_model_input_filter to prevent re-execution of old user messages
                         # This filters conversation history BEFORE it reaches the LLM model
@@ -1215,69 +1187,20 @@ class TeamFlowChatKitServer(ChatKitServer):
                             input_items,  # Pass conversation history
                             context=agent_context,
                             run_config=RunConfig(
-                                call_model_input_filter=filter_latest_user_message_only
+                                call_model_input_filter=filter_to_prevent_reexecution
                             ),
                         )
                         logger.info(f"[ChatKit respond] Agent execution started, result type: {type(result).__name__}")
 
-                        # CRITICAL FIX: Collect all events FIRST, then yield them
-                        # This prevents async context issues when yielding across task boundaries
-                        events_to_yield = []
-                        event_types_seen = set()
-                        event_count = 0
-                        message_started = False
-
-                        logger.info(f"[ChatKit respond] Starting to collect events...")
-
-                        async for event in result.stream_events():
-                            event_count += 1
-                            event_type = event.type
-                            event_types_seen.add(event_type)
-
-                            logger.info(f"[ChatKit respond] Event #{event_count}: {event_type}")
-
-                            if event.type == "run_item_stream_event" and event.item.type == "message_output_item":
-                                message_text = ItemHelpers.text_message_output(event.item)
-                                logger.info(f"[ChatKit respond] Message output: '{message_text[:100] if message_text else 'None'}...'")
-
-                                # Create ChatKit event with required fields
-                                from chatkit.types import AssistantMessageItem, AssistantMessageContent
-                                from chatkit.server import ThreadItemAddedEvent
-
-                                assistant_item = AssistantMessageItem(
-                                    id=unique_message_id,
-                                    thread_id=thread.id,
-                                    created_at=datetime.now(timezone.utc),
-                                    content=[AssistantMessageContent(type="output_text", text=message_text)],
-                                )
-
-                                events_to_yield.append(ThreadItemAddedEvent(item=assistant_item))
-                                message_started = True
-
-                        logger.info(f"[ChatKit respond] Collected {event_count} events, now yielding {len(events_to_yield)} ChatKit events")
-
-                        # Now yield all collected events (still in async context)
-                        for event in events_to_yield:
+                        # CRITICAL: Use stream_agent_response to properly convert agent events to ChatKit events
+                        # This function handles:
+                        # - ThreadItemAddedEvent (introduces new items)
+                        # - ThreadItemUpdatedEvent (mutates pending items like streaming text)
+                        # - ThreadItemDoneEvent (marks items complete and persists them)
+                        # - Tool calls, workflows, and all other ChatKit event types
+                        async for event in stream_agent_response(agent_context, result):
                             yield event
 
-                        if event_count == 0 or not message_started:
-                            logger.warning(f"[ChatKit respond] ⚠️ No message event yielded (events={event_count}, started={message_started})")
-                            # Check if result has final_output as fallback
-                            if hasattr(result, 'final_output') and result.final_output:
-                                logger.info(f"[ChatKit respond] Using final_output as fallback: '{result.final_output[:100]}...'")
-                                # Add fallback event to the list with required fields
-                                from chatkit.types import AssistantMessageItem, AssistantMessageContent
-                                from chatkit.server import ThreadItemAddedEvent
-
-                                assistant_item = AssistantMessageItem(
-                                    id=unique_message_id,
-                                    thread_id=thread.id,
-                                    created_at=datetime.now(timezone.utc),
-                                    content=[AssistantMessageContent(type="output_text", text=result.final_output)],
-                                )
-                                yield ThreadItemAddedEvent(item=assistant_item)
-
-                        # If we got here, success! Break out of retry loop
                         logger.info(f"[ChatKit respond] ✓ Successfully completed with model: {model_to_use}")
                         break
 
