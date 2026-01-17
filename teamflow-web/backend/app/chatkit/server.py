@@ -216,7 +216,15 @@ class MemoryStore(StoreClass[dict]):
         CRITICAL: thread_id is passed as the first parameter (ChatKit Store interface).
         """
         import logging
+        import uuid
         logger = logging.getLogger(__name__)
+
+        # CRITICAL FIX: Replace __fake_id__ with a real unique ID
+        # ThreadItemReplacedEvent may also use __fake_id__ during streaming
+        if item.id == "__fake_id__":
+            new_id = f"{item.type}_{uuid.uuid4().hex[:16]}"
+            item = item.model_copy(update={"id": new_id})
+            logger.info(f"[save_item] Replaced __fake_id__ with {new_id}")
 
         item_type = type(item).__name__
         logger.info(f"[save_item] thread={thread_id}, item_id={item.id}, type={item_type}")
@@ -1129,18 +1137,13 @@ class TeamFlowChatKitServer(ChatKitServer):
             input_items = await simple_to_agent_input(items_page.data)
             logger.info(f"[ChatKit respond] Converted {len(items_page.data)} items to {len(input_items)} agent input items")
 
-            # CRITICAL: Get previous_response_id from thread metadata
-            # This tells the agent to create a NEW response instead of updating the old one
-            last_response_id = thread.metadata.get("last_response_id") if thread.metadata else None
-            last_response_id = last_response_id if isinstance(last_response_id, str) else None
-            logger.info(f"[ChatKit respond] previous_response_id: {last_response_id}")
-
-            # Create agent context with previous_response_id
+            # Create agent context
+            # NOTE: previous_response_id is NOT supported for OpenRouter/Gemini models
+            # It's only for OpenAI Responses API. We rely on __fake_id__ replacement instead.
             agent_context = AgentContext(
                 thread=thread,
                 store=self.store,
                 request_context=context or {},
-                previous_response_id=last_response_id,
             )
 
             # Try primary model first, fall back to OpenAI on 429 rate limit
@@ -1229,15 +1232,6 @@ class TeamFlowChatKitServer(ChatKitServer):
                                     logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in {type(event).__name__}")
 
                             yield event
-
-                        # CRITICAL: Save the new response ID for next turn
-                        # This ensures the next message creates a NEW response instead of updating this one
-                        if hasattr(result, 'last_response_id') and result.last_response_id:
-                            if thread.metadata is None:
-                                thread.metadata = {}
-                            thread.metadata["last_response_id"] = result.last_response_id
-                            await self.store.save_thread(thread, context=context or {})
-                            logger.info(f"[ChatKit respond] Saved last_response_id: {result.last_response_id}")
 
                         logger.info(f"[ChatKit respond] ✓ Successfully completed with model: {model_to_use}")
                         break
