@@ -1199,6 +1199,15 @@ class TeamFlowChatKitServer(ChatKitServer):
                         )
                         logger.info(f"[ChatKit respond] Agent execution started, result type: {type(result).__name__}")
 
+                        # CRITICAL FIX: Generate unique message ID BEFORE streaming
+                        # stream_agent_response() uses "__fake_id__" as a temporary placeholder.
+                        # If we don't replace it, multiple messages will use the same ID,
+                        # causing the frontend to UPDATE the old message instead of creating a NEW one.
+                        # This is Pitfall #9 from openai-chatkit-integration skill.
+                        import uuid
+                        unique_message_id = f"assistant_message_{uuid.uuid4().hex[:16]}"
+                        logger.info(f"[ChatKit respond] Generated unique message ID: {unique_message_id}")
+
                         # CRITICAL: Use stream_agent_response to properly convert agent events to ChatKit events
                         # This function handles:
                         # - ThreadItemAddedEvent (introduces new items)
@@ -1206,6 +1215,19 @@ class TeamFlowChatKitServer(ChatKitServer):
                         # - ThreadItemDoneEvent (marks items complete and persists them)
                         # - Tool calls, workflows, and all other ChatKit event types
                         async for event in stream_agent_response(agent_context, result):
+                            # CRITICAL FIX: Replace __fake_id__ with our unique ID
+                            # Each event from stream_agent_response may have an item with id="__fake_id__"
+                            # We replace it with a unique ID so the frontend creates a NEW message
+                            # instead of UPDATING the old message.
+                            if hasattr(event, 'item'):
+                                item = event.item
+                                if hasattr(item, 'id') and item.id == "__fake_id__":
+                                    # Replace __fake_id__ with our unique ID
+                                    # Use model_copy to create a new item with the updated ID
+                                    new_item = item.model_copy(update={"id": unique_message_id})
+                                    event = event.model_copy(update={"item": new_item})
+                                    logger.info(f"[ChatKit respond] Replaced __fake_id__ with {unique_message_id} in {type(event).__name__}")
+
                             yield event
 
                         # CRITICAL: Save the new response ID for next turn
