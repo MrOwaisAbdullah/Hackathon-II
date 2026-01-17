@@ -22,7 +22,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID
 
-from agents import Agent, Runner, RunContextWrapper, ItemHelpers
+from agents import Agent, Runner, RunContextWrapper, ItemHelpers, RunConfig
+from agents.run import CallModelData, ModelInputData
 from chatkit.server import (
     ChatKitServer,
     ErrorEvent,
@@ -55,6 +56,88 @@ from app.models.chat import Conversation, Message
 from sqlmodel import select
 
 logger = get_logger(__name__)
+
+
+def filter_latest_user_message_only(data: CallModelData) -> ModelInputData:
+    """
+    Filter conversation history to prevent re-execution of old user messages.
+
+    This function is used by call_model_input_filter in RunConfig to filter
+    the conversation history BEFORE it reaches the LLM model.
+
+    Problem: Without filtering, the agent receives all conversation history
+    including old user messages, and may re-execute them, creating duplicates.
+
+    Solution: Keep only the latest user message while preserving all assistant
+    responses for context.
+
+    Example:
+        Input: [User: "create task", Assistant: "Done", User: "move task"]
+        Output: [Assistant: "Done", User: "move task"]
+
+    The filtered history preserves context for understanding references like
+    "this task" while preventing re-execution of the old "create task" message.
+
+    Args:
+        data: CallModelData containing the model input (conversation history)
+
+    Returns:
+        ModelInputData with filtered conversation history
+    """
+    items = data.model_data.input
+    filtered_items = []
+    last_user_idx = None
+
+    # Find the last user message index
+    for i in reversed(range(len(items))):
+        item = items[i]
+        # Check if this is a user message (has role or type indicating user)
+        if hasattr(item, "role"):
+            if item.role == "user":
+                last_user_idx = i
+                break
+        elif hasattr(item, "type"):
+            if item.type == "user_message":
+                last_user_idx = i
+                break
+        # Also check dictionary-style items
+        elif isinstance(item, dict) and item.get("role") == "user":
+            last_user_idx = i
+            break
+
+    if last_user_idx is None:
+        # No user messages found, return original
+        return data.model_data
+
+    # Build filtered list:
+    # - Keep all assistant responses (for context)
+    # - Keep only the latest user message (to prevent re-execution)
+    for i, item in enumerate(items):
+        is_user = False
+        if hasattr(item, "role"):
+            is_user = item.role == "user"
+        elif hasattr(item, "type"):
+            is_user = item.type == "user_message"
+        elif isinstance(item, dict):
+            is_user = item.get("role") == "user"
+
+        if is_user:
+            # Only include if it's the last user message
+            if i == last_user_idx:
+                filtered_items.append(item)
+        else:
+            # Include all non-user messages (assistant responses, system messages, etc.)
+            filtered_items.append(item)
+
+    logger.info(
+        f"[filter_latest_user_message_only] Filtered {len(items)} items to {len(filtered_items)} items "
+        f"(kept only latest user message at index {last_user_idx})"
+    )
+
+    return ModelInputData(
+        input=filtered_items,
+        instructions=data.model_data.instructions
+    )
 
 
 @dataclass
@@ -1064,20 +1147,10 @@ class TeamFlowChatKitServer(ChatKitServer):
 
             logger.info(f"[ChatKit respond] Thread {thread.id}, Loaded {len(items_page.data)} items")
 
-            # CRITICAL FIX: Only pass the latest user message to the agent
-            # Passing all items causes the agent to re-process old messages, creating duplicates
-            # Filter to get only UserMessageItem types, then take the last one (most recent)
-            from chatkit.types import UserMessageItem
-            user_items = [item for item in items_page.data if isinstance(item, UserMessageItem)]
-            if user_items:
-                # Only pass the most recent user message to the agent
-                latest_user_item = user_items[-1]
-                input_items = await simple_to_agent_input([latest_user_item])
-                logger.info(f"[ChatKit respond] Using only latest user message (filtered from {len(items_page.data)} total items)")
-            else:
-                # Fallback: use all items if no user messages found
-                input_items = await simple_to_agent_input(items_page.data)
-                logger.warning(f"[ChatKit respond] No user messages found, using all {len(items_page.data)} items")
+            # Convert all thread items to agent input format
+            # Pass full conversation history - the call_model_input_filter will prevent re-execution
+            input_items = await simple_to_agent_input(items_page.data)
+            logger.info(f"[ChatKit respond] Converted {len(items_page.data)} items to {len(input_items)} agent input items")
 
             # Create agent context
             agent_context = AgentContext(
@@ -1135,10 +1208,15 @@ class TeamFlowChatKitServer(ChatKitServer):
                         # CRITICAL: Use Runner.run_streamed() for streaming responses
                         # Then iterate through result.stream_events() to get events
                         # IMPORTANT: Runner.run_streamed() is SYNCHRONOUS - do NOT await
+                        # CRITICAL FIX: Use call_model_input_filter to prevent re-execution of old user messages
+                        # This filters conversation history BEFORE it reaches the LLM model
                         result = Runner.run_streamed(
                             agent_to_use,
                             input_items,  # Pass conversation history
                             context=agent_context,
+                            run_config=RunConfig(
+                                call_model_input_filter=filter_latest_user_message_only
+                            ),
                         )
                         logger.info(f"[ChatKit respond] Agent execution started, result type: {type(result).__name__}")
 
