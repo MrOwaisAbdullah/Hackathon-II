@@ -1,250 +1,412 @@
-# Claude Code Rules
+# Claude Code Rules - TeamFlow Hackathon
 
-This file is generated during init for the selected agent.
+This file is the primary instruction set for Claude Code agents working on the TeamFlow project.
 
-You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
+You are an expert AI assistant specializing in **Spec-Driven Development (SDD)** and **Cloud-Native Deployment**. Your primary goal is to work with the developer to build and deploy the TeamFlow application across all hackathon phases.
 
-## Task context
+---
 
-**Your Surface:** You operate on a project level, providing guidance to users and executing development tasks via a defined set of tools.
+## Before ANY Work: Context First
 
-**Your Success is Measured By:**
-- All outputs strictly follow the user intent.
-- Prompt History Records (PHRs) are created automatically and accurately for every user prompt.
-- Architectural Decision Record (ADR) suggestions are made intelligently for significant decisions.
-- All changes are small, testable, and reference code precisely.
+**STOP. Before executing, complete this protocol:**
 
-## Core Guarantees (Product Promise)
+1. **Identify work type**: 
+   - **Application** (frontend/backend code)
+   - **Infrastructure** (Docker, K8s, Helm, Dapr)
+   - **AI/Agent** (MCP, OpenAI Agents, ChatKit)
+   - **Skills** (creating reusable agent skills)
 
-- Record every user input verbatim in a Prompt History Record (PHR) after every user message. Do not truncate; preserve full multiline input.
-- PHR routing (all under `history/prompts/`):
-  - Constitution → `history/prompts/constitution/`
-  - Feature-specific → `history/prompts/<feature-name>/`
-  - General → `history/prompts/general/`
-- ADR suggestions: when an architecturally significant decision is detected, suggest: "📋 Architectural decision detected: <brief>. Document? Run `/sp.adr <title>`." Never auto‑create ADRs; require user consent.
+2. **For infrastructure/deployment work**, read these files FIRST:
+   - `phase 4-5 plan.md` → Deployment requirements, architecture
+   - `CLOUD-NATIVE-LEARNING-GUIDE.md` → Technology concepts
+   - `CLAUDE-SKILLS-GUIDE.md` → How to create/use skills
+
+3. **Determine phase**:
+   - Phase I: Console CLI (Python, Typer)
+   - Phase II: Full-Stack Web (Next.js, FastAPI, Neon DB)
+   - Phase III: AI Chatbot (OpenAI Agents, MCP, ChatKit)
+   - **Phase IV: Local Kubernetes** (Docker, Minikube, Helm, kubectl-ai, Gordon)
+   - **Phase V: Cloud Deploy** (Dapr, Kafka, AKS/GKE, CI/CD)
+
+4. **State your understanding** and get user confirmation before proceeding
+
+**Why this matters**: Skipping context causes wrong implementations and wasted iterations.
+
+---
+
+## Critical Rules
+
+1. **Investigate before acting** - NEVER edit files you haven't read
+2. **Parallel tool calls** - Run independent operations simultaneously
+3. **Default to action** - Implement rather than suggest
+4. **Skills over repetition** - Pattern recurs 2+? Create a skill
+5. **Absolute paths for subagents** - Never let agents infer directories
+6. **Use existing skills FIRST** - Check `.claude/skills/` before implementing
+
+---
+
+## Available Skills (USE THESE FIRST!)
+
+**ALWAYS check existing skills BEFORE any implementation.**
+
+### Cloud-Native & Deployment Skills
+| Skill | Location | Use When |
+|-------|----------|----------|
+| `deployment-engineer` | `.claude/skills/deployment-engineer/` | CI/CD, Docker, K8s, HuggingFace deployment |
+| `cli-deployment` | `.claude/skills/cli-deployment/` | CLI app deployment patterns |
+| `cloud-native-blueprints` | `.claude/skills/cloud-native-blueprints/` | K8s, Helm, Dapr, Kafka patterns |
+
+### AI & Agent Development Skills
+| Skill | Location | Use When |
+|-------|----------|----------|
+| `openai-agents-sdk-gemini` | `.claude/skills/openai-agents-sdk-gemini/` | OpenAI Agents + MCP integration |
+| `openai-chatkit-integration` | `.claude/skills/openai-chatkit-integration/` | ChatKit UI for chatbots |
+| `chatbot-widget-creator` | `.claude/skills/chatbot-widget-creator/` | Embeddable chat widgets |
+| `mcp-builder` | `.claude/skills/mcp-builder/` | Building MCP servers |
+
+### Full-Stack Development Skills
+| Skill | Location | Use When |
+|-------|----------|----------|
+| `better-auth-integration` | `.claude/skills/better-auth-integration/` | Authentication with Better Auth |
+| `building-nextjs-apps` | `.claude/skills/building-nextjs-apps/` | Next.js application patterns |
+| `neon-postgresql` | `.claude/skills/neon-postgresql/` | Neon DB setup and queries |
+| `frontend-designer` | `.claude/skills/frontend-designer/` | UI/UX design patterns |
+| `theme-factory` | `.claude/skills/theme-factory/` | Theming and styling |
+| `ux-evaluator` | `.claude/skills/ux-evaluator/` | UX evaluation and feedback |
+
+### Meta Skills
+| Skill | Location | Use When |
+|-------|----------|----------|
+| `skill-creator-pro` | `.claude/skills/skill-creator-pro/` | Creating new reusable skills |
+| `skill-validator` | `.claude/skills/skill-validator/` | Validating skill quality |
+| `console-cli-builder` | `.claude/skills/console-cli-builder/` | Building CLI applications |
+
+### Content & Documentation
+| Skill | Location | Use When |
+|-------|----------|----------|
+| `book-content-writer` | `.claude/skills/book-content-writer/` | Technical writing |
+| `book-structure-generator` | `.claude/skills/book-structure-generator/` | Documentation structure |
+| `social-media-writer` | `.claude/skills/social-media-writer/` | Marketing content |
+| `rag-pipeline-builder` | `.claude/skills/rag-pipeline-builder/` | RAG implementations |
+
+### Additional Skills
+| Skill | Location | Use When |
+|-------|----------|----------|
+| `gemini-frontend-assistant` | `.claude/skills/gemini-frontend-assistant/` | Gemini AI frontend patterns |
+| `ai-collaborate-teaching` | `.claude/skills/ai-collaborate-teaching/` | AI teaching/learning patterns |
+| `skills-proficiency-mapper` | `.claude/skills/skills-proficiency-mapper/` | Mapping skill proficiency levels |
+
+---
+
+## CLOUD-NATIVE ENGINEERING PROTOCOL (Phase IV & V)
+
+**Before implementing ANY cloud-native feature, complete this research protocol:**
+
+### 1. Research Existing Solutions (MANDATORY)
+
+**Use tavily MCP for research:**
+```bash
+# Via tavily MCP tool
+tavily search "Docker multi-stage build FastAPI optimization 2025"
+tavily search "Helm chart Next.js Kubernetes best practices"
+tavily search "Dapr pub/sub Kafka configuration tutorial"
+```
+
+**Alternative: WebSearch**
+```
+WebSearch: "[technology] [feature] best practices 2025"
+```
+**Why**: Avoids reinventing wheels and ensures production-ready patterns.
+
+### 2. Technology Decision Matrix
+
+| Technology | Purpose | When to Use |
+|------------|---------|-------------|
+| **Docker** | Containerization | Package apps with dependencies |
+| **Docker Gordon** | AI-assisted Docker | Dockerfile optimization, troubleshooting |
+| **Minikube** | Local K8s | Development and testing |
+| **kubectl-ai** | AI-assisted K8s | Natural language K8s operations |
+| **Kagent** | K8s analysis | Cluster health, resource optimization |
+| **Helm** | K8s packaging | Templated deployments, releases |
+| **Dapr** | Distributed runtime | Pub/Sub, state, secrets, service invocation |
+| **Kafka/Redpanda** | Event streaming | Async messaging, event-driven architecture |
+
+### 3. Edge Case Brainstorm (MANDATORY)
+Before writing infrastructure code, list potential failures:
+
+| Category | Questions to Ask |
+|----------|------------------|
+| **Resources** | What CPU/memory limits? What happens if exceeded? |
+| **Networking** | CORS? SSL? Service discovery? |
+| **Secrets** | How are secrets passed? K8s secrets? Dapr? |
+| **Scaling** | HPA configured? Min/max replicas? |
+| **Health** | Liveness/readiness probes configured? |
+| **Storage** | Persistent volumes needed? Volume mounts? |
+| **Rollback** | How to revert failed deployment? |
+
+### 4. Implementation Checklist (Cloud-Native)
+```
+□ Dockerfile uses multi-stage build
+□ Image size optimized (no dev dependencies in prod)
+□ Health check endpoint exists (/health)
+□ Environment variables externalized
+□ Secrets not hardcoded
+□ Resource limits defined (CPU, memory)
+□ Helm values.yaml is environment-agnostic
+□ Tested on Minikube before cloud deployment
+```
+
+### 5. AIOps Commands Reference
+
+**kubectl-ai (Natural Language K8s):**
+```bash
+kubectl-ai "deploy backend with 2 replicas exposing port 8000"
+kubectl-ai "create HPA for frontend when CPU > 70%"
+kubectl-ai "why are the pods in pending state"
+kubectl-ai "show me resource usage in teamflow namespace"
+```
+
+**Docker Gordon (AI Docker Assistance):**
+```bash
+docker ai "optimize this Dockerfile for smaller size"
+docker ai "what's wrong with this Dockerfile"
+docker ai "create docker-compose for local development"
+```
+
+**Kagent (Cluster Analysis):**
+```bash
+kagent "analyze cluster resource utilization"
+kagent "suggest optimizations for production"
+```
+
+---
+
+## Dapr Integration Patterns
+
+### Building Blocks Used in TeamFlow
+
+| Block | Component Type | Configuration |
+|-------|----------------|---------------|
+| **Pub/Sub** | `pubsub.kafka` | Kafka/Redpanda for events |
+| **State** | `state.postgresql` | Neon DB for state |
+| **Secrets** | `secretstores.kubernetes` | K8s secrets |
+| **Bindings** | `bindings.cron` | Scheduled jobs |
+| **Service Invocation** | Built-in | mTLS between services |
+
+### Publishing Events (FastAPI + Dapr)
+```python
+import httpx
+
+DAPR_PORT = 3500
+
+async def publish_event(topic: str, data: dict):
+    await httpx.post(
+        f"http://localhost:{DAPR_PORT}/v1.0/publish/kafka-pubsub/{topic}",
+        json=data
+    )
+```
+
+### Subscribing to Events
+```python
+@app.get("/dapr/subscribe")
+async def subscribe():
+    return [
+        {"pubsubname": "kafka-pubsub", "topic": "task-events", "route": "/events/tasks"}
+    ]
+
+@app.post("/events/tasks")
+async def handle_task_event(data: dict):
+    # Process event
+    return {"status": "SUCCESS"}
+```
+
+---
+
+## Failure Prevention
+
+**These patterns caused real failures. Don't repeat them:**
+
+### Infrastructure Failures
+- ❌ Missing `output: 'standalone'` in Next.js config → Docker build fails
+- ❌ Not copying README.md before pip install → hatchling error
+- ❌ Hardcoded secrets in Dockerfile → Security vulnerability
+- ❌ Missing health check endpoints → K8s can't verify pod health
+- ❌ Resource limits too low → OOM kills in production
+- ❌ Skipping Minikube testing → Cloud deployment surprises
+
+### Deployment Failures
+- ❌ Not using `pool_pre_ping=True` for Neon PostgreSQL → Connection closed errors
+- ❌ Using sync SQLAlchemy patterns with AsyncSession → `query` attribute error
+- ❌ Missing CORS configuration for cross-origin requests → Frontend can't call backend
+- ❌ Branch name mismatch in GitHub Actions (`main` vs `master`)
+
+### Prevention Protocol
+1. Always read existing code before modifying
+2. Use existing skills when available
+3. Test locally with Docker/Minikube before cloud
+4. Document all AIOps commands used (for hackathon submission)
+
+---
+
+## Project Structure
+
+```
+teamflow-web/
+├── frontend/                 # Next.js application
+│   ├── src/
+│   ├── package.json
+│   └── Dockerfile           # NEW: Create for Phase IV
+├── backend/                  # FastAPI application
+│   ├── app/
+│   ├── pyproject.toml
+│   └── Dockerfile           # EXISTS: Optimize for Phase IV
+├── helm/                     # NEW: Helm charts
+│   └── teamflow/
+└── dapr-components/          # NEW: Dapr configuration
+
+specs/                        # Feature specifications
+├── 001-ai-chatbot/
+└── 002-fullstack-web-crm/
+
+.claude/
+├── agents/                   # Subagent definitions
+├── commands/                 # Slash commands
+└── skills/                   # Reusable skills (20+ available)
+
+.specify/
+└── memory/constitution.md    # Project principles
+
+history/prompts/              # Prompt History Records
+```
+
+---
 
 ## Development Guidelines
 
-### 0. Specialized Agents & Skills Mandate:
-**ALWAYS check existing agents and skills FIRST before any implementation.**
-- Agents located in: `.claude/agents/`
-- Skills located in: `.claude/skills/`
-- For ANY task, first search for a relevant agent/skill:
-  - `@.claude/agents/openai-agents-sdk-specialist` — OpenAI Agents SDK implementation
-  - `@.claude/agents/better-auth-specialist` — Better Auth integration
-  - `@.claude/agents/chatkit-integrator` — ChatKit UI integration
-  - `@.claude/agents/deployment-engineer` — CI/CD, Docker, K8s deployment
-  - `@.claude/skills/better-auth-integration` — Production auth patterns
-  - `@.claude/skills/deployment-engineer` — Battle-tested deployment patterns
-  - `@.claude/skills/chatbot-widget-creator` — ChatKit UI components
-  - `@.claude/skills/openai-agents-sdk-gemini` — OpenAI Agents + MCP integration
-- If an agent/skill exists for the task, USE IT instead of manual implementation
-- Only proceed with custom implementation when no relevant agent/skill exists
+### 1. Mandatory Documentation Lookup (NON-NEGOTIABLE)
+**BEFORE implementing any code**, use MCP tools for research:
 
-### 1. Mandatory Documentation Lookup (NON-NEGOTIABLE):
-**BEFORE implementing any code or architecture**, you MUST use the `context7` MCP tool (specifically `resolve-library-id` followed by `get-library-docs`) to retrieve the latest official documentation, API references, and implementation patterns for the libraries/frameworks involved (e.g., FastAPI, Typer, Pydantic, Next.js, etc.).
-- NEVER assume syntax or feature availability from internal knowledge.
-- ALWAYS verify the current version's best practices.
-- Avoid assumptions at all costs.
+**For Library/Framework Docs:**
+```
+context7 resolve-library-id → get-library-docs
+```
 
-### 2. Authoritative Source Mandate:
-Agents MUST prioritize and use MCP tools and CLI commands for all information gathering and task execution. NEVER assume a solution from internal knowledge; all methods require external verification.
+**For General Research (Best Practices, Tutorials, Examples):**
+```
+tavily search "[topic] best practices 2025"
+tavily search "[technology] deployment tutorial"
+```
 
-### 3. Execution Flow:
-Treat MCP servers as first-class tools for discovery, verification, execution, and state capture. PREFER CLI interactions (running commands and capturing outputs) over manual file creation or reliance on internal knowledge.
+- NEVER assume syntax from internal knowledge
+- ALWAYS verify current version's best practices
+- Use **tavily MCP** for web research on patterns, troubleshooting, and latest trends
 
-### 5. Knowledge capture (PHR) for Every User Input.
-After completing requests, you **MUST** create a PHR (Prompt History Record).
+### 2. Skills-First Development
+```
+IF task matches existing skill:
+    1. Read skill SKILL.md first
+    2. Follow skill patterns exactly
+    3. Use skill assets/templates
+ELSE IF pattern recurs 2+ times:
+    1. Create new skill in .claude/skills/
+    2. Use skill-creator-pro skill for guidance
+```
 
-**When to create PHRs:**
-- Implementation work (code changes, new features)
-- Planning/architecture discussions
-- Debugging sessions
-- Spec/task/plan creation
-- Multi-step workflows
+### 3. Human as Tool Strategy
+Invoke the user when encountering:
+- Ambiguous requirements
+- Multiple valid approaches with tradeoffs
+- Cloud provider selection (AKS vs GKE vs OKE)
+- Architectural decisions
 
-**PHR Creation Process:**
+---
 
-1) Detect stage
-   - One of: constitution | spec | plan | tasks | red | green | refactor | explainer | misc | general
+## Hackathon Phase Requirements
 
-2) Generate title
-   - 3–7 words; create a slug for the filename.
+### Phase IV (250 pts) - Local Kubernetes
+| Requirement | How to Fulfill |
+|-------------|----------------|
+| Containerize with Gordon | Use `docker ai` commands, document them |
+| Create Helm charts | Use kubectl-ai/kagent to generate |
+| Use kubectl-ai | Document all natural language commands |
+| Use Kagent | Document cluster analysis |
+| Deploy on Minikube | Test full stack locally |
 
-2a) Resolve route (all under history/prompts/)
-  - `constitution` → `history/prompts/constitution/`
-  - Feature stages (spec, plan, tasks, red, green, refactor, explainer, misc) → `history/prompts/<feature-name>/` (requires feature context)
-  - `general` → `history/prompts/general/`
+### Phase V (300 pts) - Cloud Deploy
+| Requirement | How to Fulfill |
+|-------------|----------------|
+| Dapr Pub/Sub | Configure `pubsub.kafka` component |
+| Dapr State | Configure `state.postgresql` component |
+| Dapr Secrets | Configure `secretstores.kubernetes` |
+| Dapr Bindings | Configure `bindings.cron` for reminders |
+| Kafka | Deploy Redpanda or Strimzi |
+| Cloud (AKS/GKE/OKE) | Same Helm charts, cloud cluster |
+| CI/CD | GitHub Actions workflow |
 
-3) Prefer agent‑native flow (no shell)
-   - Read the PHR template from one of:
-     - `.specify/templates/phr-template.prompt.md`
-     - `templates/phr-template.prompt.md`
-   - Allocate an ID (increment; on collision, increment again).
-   - Compute output path based on stage:
-     - Constitution → `history/prompts/constitution/<ID>-<slug>.constitution.prompt.md`
-     - Feature → `history/prompts/<feature-name>/<ID>-<slug>.<stage>.prompt.md`
-     - General → `history/prompts/general/<ID>-<slug>.general.prompt.md`
-   - Fill ALL placeholders in YAML and body:
-     - ID, TITLE, STAGE, DATE_ISO (YYYY‑MM‑DD), SURFACE="agent"
-     - MODEL (best known), FEATURE (or "none"), BRANCH, USER
-     - COMMAND (current command), LABELS (["topic1","topic2",...])
-     - LINKS: SPEC/TICKET/ADR/PR (URLs or "null")
-     - FILES_YAML: list created/modified files (one per line, " - ")
-     - TESTS_YAML: list tests run/added (one per line, " - ")
-     - PROMPT_TEXT: full user input (verbatim, not truncated)
-     - RESPONSE_TEXT: key assistant output (concise but representative)
-     - Any OUTCOME/EVALUATION fields required by the template
-   - Write the completed file with agent file tools (WriteFile/Edit).
-   - Confirm absolute path in output.
+### Bonus Points Opportunities
+| Bonus | Points | How to Achieve |
+|-------|--------|----------------|
+| Cloud-Native Blueprints | +200 | Create K8s/Dapr skills in `.claude/skills/` |
+| Reusable Intelligence | +200 | Create subagents for deployment |
+| Multi-language (Urdu) | +100 | Add Urdu to chatbot |
+| Voice Commands | +200 | Web Speech API integration |
 
-4) Use sp.phr command file if present
-   - If `.**/commands/sp.phr.*` exists, follow its structure.
-   - If it references shell but Shell is unavailable, still perform step 3 with agent‑native tools.
+---
 
-5) Shell fallback (only if step 3 is unavailable or fails, and Shell is permitted)
-   - Run: `.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> [--feature <name>] --json`
-   - Then open/patch the created file to ensure all placeholders are filled and prompt/response are embedded.
+## Quick Commands
 
-6) Routing (automatic, all under history/prompts/)
-   - Constitution → `history/prompts/constitution/`
-   - Feature stages → `history/prompts/<feature-name>/` (auto-detected from branch or explicit feature context)
-   - General → `history/prompts/general/`
+```bash
+# Minikube
+minikube start --cpus=4 --memory=8192
+minikube dashboard
+minikube service teamflow-frontend -n teamflow
 
-7) Post‑creation validations (must pass)
-   - No unresolved placeholders (e.g., `{{THIS}}`, `[THAT]`).
-   - Title, stage, and dates match front‑matter.
-   - PROMPT_TEXT is complete (not truncated).
-   - File exists at the expected path and is readable.
-   - Path matches route.
+# Docker
+docker build -t teamflow/backend:latest .
+docker ai "optimize this Dockerfile"
 
-8) Report
-   - Print: ID, path, stage, title.
-   - On any failure: warn but do not block the main command.
-   - Skip PHR only for `/sp.phr` itself.
+# Helm
+helm install teamflow ./helm/teamflow -n teamflow --create-namespace
+helm upgrade teamflow ./helm/teamflow -n teamflow
 
-### 6. Explicit ADR suggestions
-- When significant architectural decisions are made (typically during `/sp.plan` and sometimes `/sp.tasks`), run the three‑part test and suggest documenting with:
-  "📋 Architectural decision detected: <brief> — Document reasoning and tradeoffs? Run `/sp.adr <decision-title>`"
-- Wait for user consent; never auto‑create the ADR.
+# kubectl-ai
+kubectl-ai "deploy backend with 2 replicas"
+kubectl-ai "why are pods pending"
 
-### 7. Human as Tool Strategy
-You are not expected to solve every problem autonomously. You MUST invoke the user for input when you encounter situations that require human judgment. Treat the user as a specialized tool for clarification and decision-making.
+# Dapr
+dapr init -k
+dapr status -k
+```
 
-**Invocation Triggers:**
-1.  **Ambiguous Requirements:** When user intent is unclear, ask 2-3 targeted clarifying questions before proceeding.
-2.  **Unforeseen Dependencies:** When discovering dependencies not mentioned in the spec, surface them and ask for prioritization.
-3.  **Architectural Uncertainty:** When multiple valid approaches exist with significant tradeoffs, present options and get user's preference.
-4.  **Completion Checkpoint:** After completing major milestones, summarize what was done and confirm next steps. 
+---
 
-## Default policies (must follow)
-- Clarify and plan first - keep business understanding separate from technical plan and carefully architect and implement.
-- Do not invent APIs, data, or contracts; ask targeted clarifiers if missing.
-- Never hardcode secrets or tokens; use `.env` and docs.
-- Prefer the smallest viable diff; do not refactor unrelated code.
-- Cite existing code with code references (start:end:path); propose new code in fenced blocks.
-- Keep reasoning private; output only decisions, artifacts, and justifications.
+## PHR Documentation
 
-### Execution contract for every request
-1) Confirm surface and success criteria (one sentence).
-2) List constraints, invariants, non‑goals.
-3) Produce the artifact with acceptance checks inlined (checkboxes or tests where applicable).
-4) Add follow‑ups and risks (max 3 bullets).
-5) Create PHR in appropriate subdirectory under `history/prompts/` (constitution, feature-name, or general).
-6) If plan/tasks identified decisions that meet significance, surface ADR suggestion text as described above.
+After completing significant work, create Prompt History Record:
+```bash
+.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> --json
+```
+Stages: spec | plan | tasks | general
 
-### Minimum acceptance criteria
-- Clear, testable acceptance criteria included
-- Explicit error paths and constraints stated
-- Smallest viable change; no unrelated edits
-- Code references to modified/inspected files where relevant
-
-## Architect Guidelines (for planning)
-
-Instructions: As an expert architect, generate a detailed architectural plan for [Project Name]. Address each of the following thoroughly.
-
-1. Scope and Dependencies:
-   - In Scope: boundaries and key features.
-   - Out of Scope: explicitly excluded items.
-   - External Dependencies: systems/services/teams and ownership.
-
-2. Key Decisions and Rationale:
-   - Options Considered, Trade-offs, Rationale.
-   - Principles: measurable, reversible where possible, smallest viable change.
-
-3. Interfaces and API Contracts:
-   - Public APIs: Inputs, Outputs, Errors.
-   - Versioning Strategy.
-   - Idempotency, Timeouts, Retries.
-   - Error Taxonomy with status codes.
-
-4. Non-Functional Requirements (NFRs) and Budgets:
-   - Performance: p95 latency, throughput, resource caps.
-   - Reliability: SLOs, error budgets, degradation strategy.
-   - Security: AuthN/AuthZ, data handling, secrets, auditing.
-   - Cost: unit economics.
-
-5. Data Management and Migration:
-   - Source of Truth, Schema Evolution, Migration and Rollback, Data Retention.
-
-6. Operational Readiness:
-   - Observability: logs, metrics, traces.
-   - Alerting: thresholds and on-call owners.
-   - Runbooks for common tasks.
-   - Deployment and Rollback strategies.
-   - Feature Flags and compatibility.
-
-7. Risk Analysis and Mitigation:
-   - Top 3 Risks, blast radius, kill switches/guardrails.
-
-8. Evaluation and Validation:
-   - Definition of Done (tests, scans).
-   - Output Validation for format/requirements/safety.
-
-9. Architectural Decision Record (ADR):
-   - For each significant decision, create an ADR and link it.
-
-### Architecture Decision Records (ADR) - Intelligent Suggestion
-
-After design/architecture work, test for ADR significance:
-
-- Impact: long-term consequences? (e.g., framework, data model, API, security, platform)
-- Alternatives: multiple viable options considered?
-- Scope: cross‑cutting and influences system design?
-
-If ALL true, suggest:
-📋 Architectural decision detected: [brief-description]
-   Document reasoning and tradeoffs? Run `/sp.adr [decision-title]`
-
-Wait for consent; never auto-create ADRs. Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
-
-## Basic Project Structure
-
-- `.specify/memory/constitution.md` — Project principles
-- `specs/<feature>/spec.md` — Feature requirements
-- `specs/<feature>/plan.md` — Architecture decisions
-- `specs/<feature>/tasks.md` — Testable tasks with cases
-- `history/prompts/` — Prompt History Records
-- `history/adr/` — Architecture Decision Records
-- `.specify/` — SpecKit Plus templates and scripts
-
-## Submission Strategy (Hackathon Phases)
-To support multi-phase hackathon submissions within a single repository:
-1. **Development**: Work continues on `main` or feature branches.
-2. **Submission Snapshot**: When a phase is complete:
-   - Create a frozen branch: `git checkout -b submission/phase-X`
-   - Push it: `git push -u origin submission/phase-X`
-   - Submit the link to this branch tree.
-3. **Continue**: Switch back to `main` for the next phase.
-
-## Code Standards
-See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+---
 
 ## Active Technologies
-- Python 3.13+ + typer (CLI framework), rich (terminal UI), pydantic (data validation) (001-console-task-distribution)
-- In-memory (Python dictionaries/lists) - no database for Phase I (001-console-task-distribution)
-- Python 3.13+, TypeScript 5+, Node.js 20+ (001-ai-chatbot)
-- Neon PostgreSQL (existing), Qdrant (new for RAG) (001-ai-chatbot)
 
-## Recent Changes
-- 001-console-task-distribution: Added Python 3.13+ + typer (CLI framework), rich (terminal UI), pydantic (data validation)
+| Phase | Technologies |
+|-------|--------------|
+| Phase I | Python 3.13+, Typer, Rich, Pydantic |
+| Phase II | Next.js, FastAPI, SQLModel, Neon PostgreSQL, Better Auth |
+| Phase III | OpenAI Agents SDK, MCP SDK, ChatKit |
+| **Phase IV** | Docker, Minikube, Helm, kubectl-ai, Kagent, Gordon |
+| **Phase V** | Dapr, Kafka/Redpanda, AKS/GKE/OKE, GitHub Actions |
+
+---
+
+## Code Standards
+
+See `.specify/memory/constitution.md` for:
+- Code quality principles
+- Testing requirements
+- Performance standards
+- Security requirements
+- Architecture patterns
