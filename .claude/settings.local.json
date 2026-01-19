@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(~/.local/bin/helm lint:*)",
+      "Bash(~/.local/bin/minikube:*)",
+      "Bash(~/.local/bin/helm:*)",
+      "Bash(docker build:*)",
+      "Bash(/usr/local/bin/kubectl:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

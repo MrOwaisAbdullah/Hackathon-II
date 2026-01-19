@@ -114,11 +114,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# Node.js (root level)
-node_modules/
-package-lock.json
-package.json
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -160,6 +155,8 @@ Thumbs.db
 *.bak
 .pytest_cache/
 
+node_modules
+
 # Frontend (Node.js/TypeScript/Next.js)
 teamflow-web/frontend/node_modules/
 teamflow-web/frontend/.next/
@@ -200,7 +197,4 @@ models/checkpoints/
 data/raw/
 data/processed/
 
-# Helm values with actual secrets (keep .example files)
 helm/teamflow/values.yaml
-**/values.yaml
-!**/values.yaml.example
