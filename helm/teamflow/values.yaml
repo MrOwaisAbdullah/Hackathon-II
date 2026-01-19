@@ -1,0 +1,102 @@
+namespace: teamflow
+
+frontend:
+  name: teamflow-frontend
+  replicaCount: 2
+  image:
+    repository: teamflow/frontend
+    tag: minikube
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    NEXT_PUBLIC_API_URL: ""  # Empty so axios uses relative paths (browser origin)
+    BACKEND_URL: "http://teamflow-backend.teamflow.svc.cluster.local:8000"  # Internal K8s service URL
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+backend:
+  name: teamflow-backend
+  replicaCount: 2
+  image:
+    repository: teamflow/backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+secrets:
+  databaseUrl: "postgresql://user:password@host:port/database?sslmode=require"
+  openaiApiKey: "sk-proj-your-openai-api-key-here"
+  secretKey: "your-secret-key-here"
+  betterAuthSecret: "your-betterauth-secret-here"
+  geminiApiKey: ""
+  openrouterApiKey: ""
+  qdrantApiKey: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: teamflow.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: teamflow-frontend
+          port: 3000
+        - path: /api
+          pathType: Prefix
+          service: teamflow-backend
+          port: 8000

@@ -13,16 +13,18 @@ Calibration examples showing how to score skills consistently.
 
 | Category | Score | Weight | Weighted |
 |----------|-------|--------|----------|
-| Structure & Anatomy | 95/100 | 15% | 14.25 |
-| Content Quality | 90/100 | 20% | 18.00 |
-| User Interaction | 95/100 | 15% | 14.25 |
-| Documentation | 100/100 | 15% | 15.00 |
-| Domain Standards | 90/100 | 15% | 13.50 |
-| Technical Robustness | 75/100 | 10% | 7.50 |
-| Maintainability | 85/100 | 10% | 8.50 |
-| **Total** | | | **91.00** |
+| Structure & Anatomy | 95/100 | 12% | 11.40 |
+| Content Quality | 90/100 | 15% | 13.50 |
+| User Interaction | 95/100 | 12% | 11.40 |
+| Documentation | 100/100 | 10% | 10.00 |
+| Domain Standards | 90/100 | 10% | 9.00 |
+| Technical Robustness | 75/100 | 8% | 6.00 |
+| Maintainability | 85/100 | 8% | 6.80 |
+| Zero-Shot Implementation | 90/100 | 12% | 10.80 |
+| Reusability | 85/100 | 13% | 11.05 |
+| **Total** | | | **89.95** |
 
-**Rating**: Production
+**Rating**: Good (borderline Production)
 
 ### Breakdown
 
@@ -72,6 +74,20 @@ Calibration examples showing how to score skills consistently.
 - Update path: 3 (fetch pattern)
 - Clear organization: 2 (good, minor flow issues)
 
+**Zero-Shot Implementation (90/100)**:
+- Before Implementation section: 3 (context gathering present)
+- Codebase context: 3 (scans existing patterns)
+- Conversation context: 3 (uses discussed requirements)
+- Embedded expertise: 3 (domain knowledge in references)
+- User-only questions: 2 (mostly asks user requirements)
+
+**Reusability (85/100)**:
+- Handles variations: 3 (adaptable to widget types)
+- Variable elements: 3 (clarifications capture variations)
+- Constant patterns: 3 (UX best practices encoded)
+- Not requirement-specific: 2 (some ChatGPT-specific)
+- Abstraction level: 2 (appropriate for widget domain)
+
 ---
 
 ## Example 2: Adequate Skill (Needs Work)
@@ -83,14 +99,16 @@ Calibration examples showing how to score skills consistently.
 
 | Category | Score | Weight | Weighted |
 |----------|-------|--------|----------|
-| Structure & Anatomy | 60/100 | 15% | 9.00 |
-| Content Quality | 55/100 | 20% | 11.00 |
-| User Interaction | 30/100 | 15% | 4.50 |
-| Documentation | 40/100 | 15% | 6.00 |
-| Domain Standards | 50/100 | 15% | 7.50 |
-| Technical Robustness | 45/100 | 10% | 4.50 |
-| Maintainability | 50/100 | 10% | 5.00 |
-| **Total** | | | **47.50** |
+| Structure & Anatomy | 60/100 | 12% | 7.20 |
+| Content Quality | 55/100 | 15% | 8.25 |
+| User Interaction | 30/100 | 12% | 3.60 |
+| Documentation | 40/100 | 10% | 4.00 |
+| Domain Standards | 50/100 | 10% | 5.00 |
+| Technical Robustness | 45/100 | 8% | 3.60 |
+| Maintainability | 50/100 | 8% | 4.00 |
+| Zero-Shot Implementation | 35/100 | 12% | 4.20 |
+| Reusability | 40/100 | 13% | 5.20 |
+| **Total** | | | **45.05** |
 
 **Rating**: Developing
 
@@ -103,6 +121,8 @@ Calibration examples showing how to score skills consistently.
 - **Domain Standards**: Mentions best practices without enforcement
 - **Technical**: "Handle errors" without specifics
 - **Maintainability**: Everything in one file
+- **Zero-Shot**: No "Before Implementation" section, expects runtime discovery
+- **Reusability**: Hardcoded to single use case, no variation handling
 
 ---
 
@@ -128,14 +148,16 @@ Just ask it to do stuff.
 
 | Category | Score | Weight | Weighted |
 |----------|-------|--------|----------|
-| Structure & Anatomy | 40/100 | 15% | 6.00 |
-| Content Quality | 20/100 | 20% | 4.00 |
-| User Interaction | 0/100 | 15% | 0.00 |
-| Documentation | 0/100 | 15% | 0.00 |
-| Domain Standards | 0/100 | 15% | 0.00 |
-| Technical Robustness | 0/100 | 10% | 0.00 |
-| Maintainability | 20/100 | 10% | 2.00 |
-| **Total** | | | **12.00** |
+| Structure & Anatomy | 40/100 | 12% | 4.80 |
+| Content Quality | 20/100 | 15% | 3.00 |
+| User Interaction | 0/100 | 12% | 0.00 |
+| Documentation | 0/100 | 10% | 0.00 |
+| Domain Standards | 0/100 | 10% | 0.00 |
+| Technical Robustness | 0/100 | 8% | 0.00 |
+| Maintainability | 20/100 | 8% | 1.60 |
+| Zero-Shot Implementation | 0/100 | 12% | 0.00 |
+| Reusability | 10/100 | 13% | 1.30 |
+| **Total** | | | **10.70** |
 
 **Rating**: Incomplete
 
@@ -150,14 +172,16 @@ Just ask it to do stuff.
 
 | Category | Score | Weight | Weighted |
 |----------|-------|--------|----------|
-| Structure & Anatomy | 90/100 | 15% | 13.50 |
-| Content Quality | 95/100 | 20% | 19.00 |
-| User Interaction | 50/100 | 15% | 7.50 |
-| Documentation | 30/100 | 15% | 4.50 |
-| Domain Standards | 40/100 | 15% | 6.00 |
-| Technical Robustness | 50/100 | 10% | 5.00 |
-| Maintainability | 85/100 | 10% | 8.50 |
-| **Total** | | | **64.00** |
+| Structure & Anatomy | 90/100 | 12% | 10.80 |
+| Content Quality | 95/100 | 15% | 14.25 |
+| User Interaction | 50/100 | 12% | 6.00 |
+| Documentation | 30/100 | 10% | 3.00 |
+| Domain Standards | 40/100 | 10% | 4.00 |
+| Technical Robustness | 50/100 | 8% | 4.00 |
+| Maintainability | 85/100 | 8% | 6.80 |
+| Zero-Shot Implementation | 60/100 | 12% | 7.20 |
+| Reusability | 70/100 | 13% | 9.10 |
+| **Total** | | | **65.15** |
 
 **Rating**: Adequate
 
@@ -203,6 +227,18 @@ Just ask it to do stuff.
 - Modular references
 - Clear organization
 - But no update path guidance
+
+**Zero-Shot Implementation (60/100)** - Partial:
+- Has workflow guidance but no explicit "Before Implementation" section
+- Codebase context partially addressed
+- Embedded expertise in references but could be more comprehensive
+- Some runtime discovery expected
+
+**Reusability (70/100)** - Moderate:
+- Handles skill creation variations
+- Variable elements mostly captured
+- Could be more abstract in some areas
+- Works across skill types
 
 ### Improvement Recommendations for skill-creator
 

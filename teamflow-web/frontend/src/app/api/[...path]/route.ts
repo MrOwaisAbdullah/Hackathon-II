@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://teamflow-backend.teamflow.svc.cluster.local:8000';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +56,11 @@ async function proxyRequest(
   path: string[]
 ): Promise<NextResponse> {
   try {
-    const url = new URL(path.join('/'), BACKEND_URL);
+    // Prepend /api to path since the catch-all route strips it
+    // Browser calls /api/v1/auth/login, path gets ['v1', 'auth', 'login']
+    // Backend expects /api/v1/auth/login
+    const fullPath = '/api/' + path.join('/');
+    const url = new URL(fullPath, BACKEND_URL);
     url.search = request.nextUrl.search;
 
     // Get auth token from cookie or header

@@ -1,0 +1,11 @@
+apiVersion: v2
+name: teamflow
+description: TeamFlow Agency CRM - Full-Stack Application
+version: 1.0.0
+appVersion: "1.0"
+type: application
+keywords:
+  - teamflow
+  - crm
+  - agency
+  - task-management
