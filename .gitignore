@@ -195,3 +195,4 @@ models/checkpoints/
 data/raw/
 data/processed/
 
+helm/teamflow/values.yaml
