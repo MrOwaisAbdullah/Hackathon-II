@@ -200,4 +200,7 @@ models/checkpoints/
 data/raw/
 data/processed/
 
+# Helm values with actual secrets (keep .example files)
 helm/teamflow/values.yaml
+**/values.yaml
+!**/values.yaml.example
