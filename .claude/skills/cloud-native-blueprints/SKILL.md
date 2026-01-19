@@ -133,6 +133,49 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 ```
 
+### ⚠️ Important: Secrets Management
+
+**NEVER commit actual secrets to git.** GitHub push protection will block commits containing API keys, passwords, or other secrets.
+
+**Always use the example file pattern:**
+
+```bash
+# 1. Create example file with placeholders (committed to git)
+cp values.yaml values.yaml.example
+# Edit values.yaml.example to replace secrets with placeholders
+
+# 2. Add actual values.yaml to .gitignore
+echo "values.yaml" >> .gitignore
+
+# 3. Commit the example file
+git add values.yaml.example .gitignore
+git commit -m "chore: Add values.yaml.example for reference"
+```
+
+**values.yaml.example** (safe to commit):
+```yaml
+secrets:
+  databaseUrl: "postgresql://user:password@host:port/database?sslmode=require"
+  openaiApiKey: "sk-proj-your-api-key-here"
+  secretKey: "your-secret-key-here"
+```
+
+**values.yaml** (gitignored, actual secrets):
+```yaml
+secrets:
+  databaseUrl: "postgresql://user:actual_password@host:port/database?sslmode=require"
+  openaiApiKey: "sk-proj-actual-key-here"
+  secretKey: "actual-secret-key"
+```
+
+**For new team members:**
+```bash
+cp values.yaml.example values.yaml
+# Then edit values.yaml with actual secrets
+```
+
+For production, use Kubernetes Secrets instead of values files. See `references/deployment-pitfalls.md` for details.
+
 ---
 
 ## Deployment Template (Use assets/templates/deployment.yaml)
