@@ -11,6 +11,7 @@ This document captures real-world implementation issues encountered during TeamF
 5. [Browser Cache Hell](#browser-cache-hell)
 6. [Environment Variable Gotchas](#environment-variable-gotchas)
 7. [Next.js Rewrites and API Proxy Implementation](#nextjs-rewrites-and-api-proxy-implementation)
+8. [Secrets Management in Helm Charts](#secrets-management-in-helm-charts)
 
 ---
 
@@ -719,6 +720,245 @@ ingress:
 - Rate limiting at frontend
 - Auth token validation
 - CORS headers configured correctly
+
+---
+
+## Secrets Management in Helm Charts
+
+### The Challenge
+
+Helm charts need configuration values (database URLs, API keys, secrets) but these should never be committed to git in plaintext.
+
+### Problem: GitHub Push Protection
+
+When you commit actual secrets to values.yaml:
+
+```
+remote: error: GH013: Repository rule violations found
+remote: - Push cannot contain secrets
+remote:   - OpenAI API Key found in helm/teamflow/values.yaml:82
+```
+
+GitHub blocks the push to prevent leaking secrets.
+
+### Solution: Example File Pattern
+
+**File Structure:**
+```
+helm/teamflow/
+├── values.yaml.example    # Committed to git (placeholders)
+├── values.yaml            # Gitignored (actual secrets)
+└── .gitignore             # Contains values.yaml
+```
+
+### Implementation
+
+#### 1. Create Example File
+
+**`helm/teamflow/values.yaml.example`** (committed to git):
+```yaml
+secrets:
+  databaseUrl: "postgresql://user:password@host:port/database?sslmode=require"
+  openaiApiKey: "sk-proj-your-openai-api-key-here"
+  secretKey: "your-secret-key-here"
+  betterAuthSecret: "your-betterauth-secret-here"
+  geminiApiKey: ""
+  openrouterApiKey: ""
+  qdrantApiKey: ""
+```
+
+#### 2. Local Values File
+
+**`helm/teamflow/values.yaml`** (gitignored, actual secrets):
+```yaml
+secrets:
+  databaseUrl: "postgresql://user:password@host:port/database?sslmode=require"
+  openaiApiKey: "sk-proj-your-actual-openai-api-key"
+  secretKey: "your-actual-secret-key"
+  betterAuthSecret: "your-actual-betterauth-secret"
+  geminiApiKey: ""
+  openrouterApiKey: ""
+  qdrantApiKey: ""
+```
+
+#### 3. Update .gitignore
+
+**`.gitignore`** (at repo root or in helm directory):
+```
+# Helm values with secrets
+helm/teamflow/values.yaml
+```
+
+Or use pattern for all Helm charts:
+```
+# Helm values with secrets (keep .example files)
+**/values.yaml
+!**/values.yaml.example
+```
+
+### Team Workflow
+
+#### For New Developers
+
+```bash
+# Clone repository
+git clone https://github.com/org/repo.git
+cd repo
+
+# Copy example to local values
+cp helm/teamflow/values.yaml.example helm/teamflow/values.yaml
+
+# Edit with actual secrets
+vim helm/teamflow/values.yaml
+
+# Deploy
+helm install teamflow ./helm/teamflow -f helm/teamflow/values.yaml
+```
+
+#### For Existing Projects
+
+```bash
+# If values.yaml already exists locally, it won't be affected
+# New clones will need to create values.yaml from example
+
+# Add to .gitignore if not already there
+echo "helm/teamflow/values.yaml" >> .gitignore
+git add .gitignore
+
+# Create example file from current values (with placeholders)
+sed 's/npg_[A-Za-z0-9_@.-]*/user:password@host:port/g' helm/teamflow/values.yaml | \
+sed 's/sk-proj-[A-Za-z0-9_]*$/sk-proj-your-openai-api-key-here/g' | \
+sed 's/"[a-f0-9]\{64\}"/"your-secret-key-here"/g' > helm/teamflow/values.yaml.example
+
+# Commit the example file
+git add helm/teamflow/values.yaml.example
+git commit -m "chore: Add values.yaml.example for reference"
+```
+
+### Alternative: Using Kubernetes Secrets
+
+For production, use Kubernetes Secrets instead of values.yaml:
+
+```bash
+# Create secret from literal values
+kubectl create secret generic teamflow-secrets \
+  --from-literal=database-url='postgresql://...' \
+  --from-literal=openai-api-key='sk-proj-...' \
+  -n teamflow
+
+# Or from file
+kubectl create secret generic teamflow-secrets \
+  --from-env-file=secrets.env \
+  -n teamflow
+```
+
+**Helm template reference:**
+```yaml
+# templates/secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: teamflow-secrets
+type: Opaque
+stringData:
+  databaseUrl: "{{ .Values.secrets.databaseUrl }}"
+  openaiApiKey: "{{ .Values.secrets.openaiApiKey }}"
+```
+
+### Environment-Specific Values
+
+For different environments, use multiple value files:
+
+```
+helm/teamflow/
+├── values.yaml                 # Defaults (committed)
+├── values.yaml.example         # Example with placeholders (committed)
+├── values-dev.yaml             # Dev environment (gitignored)
+├── values-staging.yaml         # Staging environment (gitignored)
+└── values-prod.yaml            # Production environment (gitignored, use Secrets)
+```
+
+**Deploy with specific values:**
+```bash
+# Development (local values)
+helm install teamflow ./helm/teamflow -f helm/teamflow/values-dev.yaml
+
+# Production (use Kubernetes Secrets)
+helm install teamflow ./helm/teamflow \
+  --set secrets.databaseUrl=$(kubectl get secret teamflow-db -o jsonpath='{.data.url}' | base64 -d) \
+  --set secrets.openaiApiKey=$(kubectl get secret teamflow-secrets -o jsonpath='{.data.openaiApiKey}' | base64 -d)
+```
+
+### Git Hooks for Safety
+
+Add a pre-commit hook to prevent accidental secrets commit:
+
+**`.git/hooks/pre-commit`:**
+```bash
+#!/bin/bash
+# Check for potential secrets in values.yaml files
+echo "Checking for secrets in Helm values files..."
+
+if git diff --cached --name-only | grep -E 'values\.yaml$' | grep -v 'values\.yaml\.example$'; then
+  echo "WARNING: values.yaml files detected in staging area!"
+  echo "Ensure these don't contain actual secrets."
+  echo "Use values.yaml.example for committed versions."
+  read -p "Continue anyway? (y/N) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
+  fi
+fi
+```
+
+**Make executable:**
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+### What We Tried That Didn't Work
+
+| Attempt | Why It Failed |
+|---------|---------------|
+| Committing values.yaml with secrets | GitHub push protection blocks it |
+| Using `helm secret` plugin | Adds complexity, team members need plugin |
+| Base64 encoding in git | Decodable, still a security risk |
+| Separate private repo | Overcomplicated for small teams |
+| Environment variables only | Hard to manage across different environments |
+
+### Best Practice Summary
+
+| File | Status | Contents | Usage |
+|------|--------|----------|-------|
+| `values.yaml.example` | ✅ Git | Placeholders | Reference for new setups |
+| `values.yaml` | ❌ Gitignore | Actual secrets | Local development |
+| `values-dev.yaml` | ❌ Gitignore | Dev secrets | Dev environment |
+| `values-prod.yaml` | ❌ Gitignore | Prod secrets | Production (or use K8s Secrets) |
+
+### Production Deployment
+
+For production, NEVER commit secrets. Use one of these approaches:
+
+1. **Kubernetes Secrets:**
+```bash
+kubectl create secret generic teamflow-secrets --from-literal=key=value -n prod
+```
+
+2. **External Secret Managers:**
+- HashiCorp Vault
+- AWS Secrets Manager
+- Azure Key Vault
+- Google Secret Manager
+
+3. **Sealed Secrets:**
+Encrypt secrets that can be safely committed to git.
+
+4. **Helm Secrets Plugin:**
+Encrypt values files with Mozilla SOPS.
+
+### Key Takeaway
+
+**Always separate configuration from secrets.** Commit example files with placeholders to git, keep actual secrets in gitignored local files or use Kubernetes Secrets for production.
 
 ---
 
