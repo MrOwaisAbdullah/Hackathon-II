@@ -1,0 +1,147 @@
+# AI Image Generation Prompt - K8s Architecture Diagram
+
+## For DALL-E 3 / Midjourney / Stable Diffusion / Ideogram
+
+### Main Prompt:
+
+```
+A clean, professional technical architecture diagram showing a full-stack application deployed on Kubernetes.
+
+Central illustration: A rectangular container with the header "TEAMFLOW CRM ON KUBERNETES" at the top.
+
+Inside the container, arranged vertically:
+
+Top row: Two identical boxes labeled "Frontend Pod" with "Next.js 14" text below each, connected by arrows pointing down to a central box.
+
+Middle: A box labeled "Service: LoadBalancer" that receives arrows from both frontend pods and has one arrow pointing down.
+
+Bottom row: Two identical boxes labeled "Backend Pod" with "FastAPI" text below each, connected to the service above with arrows.
+
+Below backend: An arrow pointing down to a box labeled "Neon PostgreSQL" with a cloud icon and "(External Cloud)" text.
+
+Style: Clean architecture diagram like Google Cloud Platform or AWS documentation. Professional, minimal, technical but friendly.
+Colors: Dark theme background, blue boxes for components, green for database, white text.
+Lines: Smooth connection lines with arrowheads.
+Background: Dark with subtle grid pattern.
+
+Bottom banner text: "From Local to Cloud-Native"
+
+Aspect ratio: 16:9, 1200x675px (LinkedIn optimal)
+Mood: Professional, technical, achievement-oriented
+```
+
+---
+
+### Alternative Short Prompt (Midjourney style):
+
+```
+clean technical architecture diagram, TeamFlow CRM on Kubernetes, two Next.js frontend pods, LoadBalancer service, two FastAPI backend pods, Neon PostgreSQL external database, connected with arrows, dark theme, professional tech documentation style, flat design, 16:9 --ar 16:9 --style clean
+```
+
+---
+
+### Stable Diffusion Prompt:
+
+```
+professional technical architecture diagram, kubernetes deployment, frontend pods nextjs, loadbalancer service, backend pods fastapi, postgresql database, arrow connections, dark theme, blue boxes, clean lines, google cloud style, aws documentation style, professional, minimal, text "TEAMFLOW CRM ON KUBERNETES", text "From Local to Cloud-Native", 16:9 aspect ratio, high quality --no people --no faces
+
+Negative prompt: messy, cluttered, blurry, distorted, ugly, low quality, text artifacts
+```
+
+---
+
+## Color Specifications:
+
+| Element | Color | Hex |
+|---------|-------|-----|
+| Background | Dark Navy | `#0F172A` |
+| Pod Boxes | Blue | `#326CE5` |
+| Service Box | Light Blue | `#60A5FA` |
+| Database Box | Green | `#10B981` |
+| Arrows/Lines | White | `#FFFFFF` |
+| Text | White | `#FFFFFF` |
+| Container Border | Blue | `#326CE5` |
+
+---
+
+## Layout Specification:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│               TEAMFLOW CRM ON KUBERNETES                    │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│    ┌──────────┐              ┌──────────┐                   │
+│    │ Frontend │              │ Frontend │                   │
+│    │   Pod    │              │   Pod    │                   │
+│    │ Next.js  │              │ Next.js  │                   │
+│    │    14    │              │    14    │                   │
+│    └────┬─────┘              └─────┬────┘                   │
+│         │                          │                         │
+│         └──────────┬─────────────────┘                       │
+│                    ↓                                         │
+│         ┌──────────────────────┐                            │
+│         │   LoadBalancer       │                            │
+│         │      Service         │                            │
+│         └──────────┬───────────┘                            │
+│                    │                                         │
+│         ┌──────────┴───────────┐                            │
+│         ↓                      ↓                             │
+│    ┌──────────┐          ┌──────────┐                       │
+│    │ Backend  │          │ Backend  │                       │
+│    │   Pod    │          │   Pod    │                       │
+│    │ FastAPI  │          │ FastAPI  │                       │
+│    └────┬─────┘          └─────┬────┘                       │
+│         │                      │                             │
+│         └──────────┬───────────┘                             │
+│                    ↓                                         │
+│         ┌──────────────────────┐                            │
+│         │   Neon PostgreSQL    │                            │
+│         │   (External Cloud)   │  ☁️                         │
+│         └──────────────────────┘                            │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+
+        From Local to Cloud-Native
+```
+
+---
+
+## Key Elements to Include:
+
+1. **Header**: "TEAMFLOW CRM ON KUBERNETES"
+2. **Frontend Layer**: 2x Next.js 14 pods (replicas)
+3. **Service Layer**: LoadBalancer type
+4. **Backend Layer**: 2x FastAPI pods (replicas)
+5. **Database Layer**: Neon PostgreSQL (external)
+6. **Connections**: Arrows showing data flow
+7. **Footer**: "From Local to Cloud-Native"
+
+---
+
+## Quick Tools to Generate:
+
+| Tool | Link | Best For |
+|------|------|----------|
+| DALL-E 3 | chatgpt.com | Best with diagrams and text |
+| Ideogram.ai | ideogram.ai | Excellent text rendering |
+| Canva | canva.com | Manual creation with templates |
+| Excalidraw | excalidraw.com | Hand-drawn style diagrams |
+
+---
+
+## Manual Creation Tips (Canva/Figma):
+
+1. Start with 1200x675px canvas
+2. Use dark navy background
+3. Create rounded rectangles for pods
+4. Use arrow tool for connections
+5. Add text boxes for labels
+6. Use consistent colors (blue for K8s, green for DB)
+7. Export as high-quality PNG
+
+---
+
+Generated: 2025-01-20
+For LinkedIn Post: social-media-posts/linkedin/2025-01-20-advice-k8s-minikube-guide.txt
+Style: Technical Architecture Diagram

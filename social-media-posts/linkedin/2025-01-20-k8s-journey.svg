@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E293B;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Path Glow Filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Icon Glow Filters -->
+    <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" style="stop-color:#2496ED" />
+    </filter>
+    <filter id="purpleGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" style="stop-color:#8B5CF6" />
+    </filter>
+    <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" style="stop-color:#06B6D4" />
+    </filter>
+    <filter id="orangeGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" style="stop-color:#F97316" />
+    </filter>
+    <filter id="greenGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" style="stop-color:#10B981" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="675" fill="url(#bgGradient)" />
+
+  <!-- Subtle Grid Pattern -->
+  <g opacity="0.1">
+    <path d="M0,0 L1200,0 M0,67.5 L1200,67.5 M0,135 L1200,135 M0,202.5 L1200,202.5 M0,270 L1200,270 M0,337.5 L1200,337.5 M0,405 L1200,405 M0,472.5 L1200,472.5 M0,540 L1200,540 M0,607.5 L1200,607.5 M0,675 L1200,675" stroke="#326CE5" stroke-width="1" />
+    <path d="M0,0 L0,675 M120,0 L120,675 M240,0 L240,675 M360,0 L360,675 M480,0 L480,675 M600,0 L600,675 M720,0 L720,675 M840,0 L840,675 M960,0 L960,675 M1080,0 L1080,675 M1200,0 L1200,675" stroke="#326CE5" stroke-width="1" />
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="60" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#FFFFFF" text-anchor="middle" opacity="0.9">Local → Cloud-Native</text>
+
+  <!-- Winding Path -->
+  <path d="M180,550 Q250,500 280,450 T380,350 T480,280 T600,200 T750,140 T950,100" fill="none" stroke="#326CE5" stroke-width="4" filter="url(#glow)" stroke-dasharray="10,10" />
+
+  <!-- Milestone 1: Docker -->
+  <g transform="translate(180, 550)">
+    <circle r="45" fill="#2496ED" opacity="0.2" filter="url(#blueGlow)" />
+    <circle r="40" fill="#2496ED" opacity="0.8" />
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="36" text-anchor="middle" fill="#FFFFFF">🐳</text>
+    <text x="0" y="65" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2496ED" text-anchor="middle">Docker</text>
+  </g>
+
+  <!-- Milestone 2: Kubernetes -->
+  <g transform="translate(330, 400)">
+    <circle r="45" fill="#8B5CF6" opacity="0.2" filter="url(#purpleGlow)" />
+    <circle r="40" fill="#8B5CF6" opacity="0.8" />
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="36" text-anchor="middle" fill="#FFFFFF">☸️</text>
+    <text x="0" y="65" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#8B5CF6" text-anchor="middle">Minikube</text>
+  </g>
+
+  <!-- Milestone 3: Helm -->
+  <g transform="translate(480, 280)">
+    <circle r="45" fill="#06B6D4" opacity="0.2" filter="url(#cyanGlow)" />
+    <circle r="40" fill="#06B6D4" opacity="0.8" />
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="36" text-anchor="middle" fill="#FFFFFF">⛵</text>
+    <text x="0" y="65" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#06B6D4" text-anchor="middle">Helm</text>
+  </g>
+
+  <!-- Milestone 4: Deploy -->
+  <g transform="translate(650, 180)">
+    <circle r="45" fill="#F97316" opacity="0.2" filter="url(#orangeGlow)" />
+    <circle r="40" fill="#F97316" opacity="0.8" />
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="36" text-anchor="middle" fill="#FFFFFF">🚀</text>
+    <text x="0" y="65" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#F97316" text-anchor="middle">Deploy</text>
+  </g>
+
+  <!-- Milestone 5: Success -->
+  <g transform="translate(950, 100)">
+    <circle r="55" fill="#10B981" opacity="0.2" filter="url(#greenGlow)" />
+    <circle r="50" fill="#10B981" opacity="0.9" />
+    <text x="0" y="12" font-family="Arial, sans-serif" font-size="48" text-anchor="middle" fill="#FFFFFF">✅</text>
+    <text x="0" y="85" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#10B981" text-anchor="middle">Your App on K8s!</text>
+  </g>
+
+  <!-- Bottom Text -->
+  <text x="600" y="640" font-family="Arial, sans-serif" font-size="18" fill="#94A3B8" text-anchor="middle" opacity="0.7">5 Steps • 5 Pitfalls Fixed • Deployed to Minikube</text>
+</svg>

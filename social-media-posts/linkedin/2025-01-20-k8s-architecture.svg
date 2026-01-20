@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E293B;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Pod Gradient -->
+    <linearGradient id="podGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#326CE5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Service Gradient -->
+    <linearGradient id="serviceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Database Gradient -->
+    <linearGradient id="dbGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Arrow Marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#94A3B8" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="675" fill="url(#bgGradient)" />
+
+  <!-- Subtle Grid Pattern -->
+  <g opacity="0.1">
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#326CE5" stroke-width="1" />
+      </pattern>
+    </defs>
+    <rect width="1200" height="675" fill="url(#grid)" />
+  </g>
+
+  <!-- Main Container -->
+  <rect x="100" y="80" width="1000" height="520" rx="10" fill="none" stroke="#326CE5" stroke-width="2" opacity="0.6" />
+
+  <!-- Header -->
+  <text x="600" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#FFFFFF" text-anchor="middle">TEAMFLOW CRM ON KUBERNETES</text>
+
+  <!-- K8s Icon -->
+  <text x="110" y="105" font-family="Arial, sans-serif" font-size="24" fill="#326CE5">☸️</text>
+
+  <!-- Frontend Pods -->
+  <g transform="translate(280, 140)">
+    <!-- Pod 1 -->
+    <rect x="-80" y="0" width="160" height="80" rx="8" fill="url(#podGradient)" filter="url(#glow)" />
+    <text x="0" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Frontend Pod</text>
+    <text x="0" y="58" font-family="Arial, sans-serif" font-size="14" fill="#E0E7FF" text-anchor="middle">Next.js 14</text>
+    <text x="0" y="75" font-family="Arial, sans-serif" font-size="11" fill="#93C5FD" text-anchor="middle">Port 3000</text>
+  </g>
+
+  <g transform="translate(620, 140)">
+    <!-- Pod 2 -->
+    <rect x="-80" y="0" width="160" height="80" rx="8" fill="url(#podGradient)" filter="url(#glow)" />
+    <text x="0" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Frontend Pod</text>
+    <text x="0" y="58" font-family="Arial, sans-serif" font-size="14" fill="#E0E7FF" text-anchor="middle">Next.js 14</text>
+    <text x="0" y="75" font-family="Arial, sans-serif" font-size="11" fill="#93C5FD" text-anchor="middle">Port 3000</text>
+  </g>
+
+  <!-- Arrows from Frontend to Service -->
+  <line x1="280" y1="220" x2="450" y2="270" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+  <line x1="620" y1="220" x2="450" y2="270" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+
+  <!-- LoadBalancer Service -->
+  <g transform="translate(450, 270)">
+    <rect x="-100" y="0" width="200" height="70" rx="8" fill="url(#serviceGradient)" filter="url(#glow)" />
+    <text x="0" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Service</text>
+    <text x="0" y="52" font-family="Arial, sans-serif" font-size="14" fill="#DBEAFE" text-anchor="middle">LoadBalancer :80</text>
+  </g>
+
+  <!-- Arrow from Service to Backend -->
+  <line x1="450" y1="340" x2="450" y2="380" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+
+  <!-- Backend Pods -->
+  <g transform="translate(280, 380)">
+    <!-- Pod 1 -->
+    <rect x="-80" y="0" width="160" height="80" rx="8" fill="url(#podGradient)" filter="url(#glow)" />
+    <text x="0" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Backend Pod</text>
+    <text x="0" y="58" font-family="Arial, sans-serif" font-size="14" fill="#E0E7FF" text-anchor="middle">FastAPI</text>
+    <text x="0" y="75" font-family="Arial, sans-serif" font-size="11" fill="#93C5FD" text-anchor="middle">Port 8000</text>
+  </g>
+
+  <g transform="translate(620, 380)">
+    <!-- Pod 2 -->
+    <rect x="-80" y="0" width="160" height="80" rx="8" fill="url(#podGradient)" filter="url(#glow)" />
+    <text x="0" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Backend Pod</text>
+    <text x="0" y="58" font-family="Arial, sans-serif" font-size="14" fill="#E0E7FF" text-anchor="middle">FastAPI</text>
+    <text x="0" y="75" font-family="Arial, sans-serif" font-size="11" fill="#93C5FD" text-anchor="middle">Port 8000</text>
+  </g>
+
+  <!-- Arrows from Service to Backend -->
+  <line x1="450" y1="340" x2="280" y2="380" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+  <line x1="450" y1="340" x2="620" y2="380" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+
+  <!-- Arrows from Backend to Database -->
+  <line x1="280" y1="460" x2="500" y2="500" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+  <line x1="620" y1="460" x2="500" y2="500" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrowhead)" />
+
+  <!-- Database (External) -->
+  <g transform="translate(500, 500)">
+    <rect x="-100" y="0" width="200" height="80" rx="8" fill="url(#dbGradient)" filter="url(#glow)" />
+    <text x="0" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Neon PostgreSQL</text>
+    <text x="0" y="52" font-family="Arial, sans-serif" font-size="14" fill="#D1FAE5" text-anchor="middle">External Cloud</text>
+    <text x="65" y="65" font-family="Arial, sans-serif" font-size="16">☁️</text>
+  </g>
+
+  <!-- External Border Indicator -->
+  <path d="M420,500 Q400,510 400,540 L400,560 Q400,570 420,570 L780,570 Q800,570 800,560 L800,540 Q800,510 780,500" fill="none" stroke="#10B981" stroke-width="2" stroke-dasharray="5,5" opacity="0.5" />
+
+  <!-- Bottom Text -->
+  <text x="600" y="640" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#10B981" text-anchor="middle">From Local to Cloud-Native ✅</text>
+
+  <!-- Side Labels -->
+  <text x="70" y="180" font-family="Arial, sans-serif" font-size="12" fill="#64748B" text-anchor="end" transform="rotate(-90, 70, 180)">Frontend Tier</text>
+  <text x="70" y="420" font-family="Arial, sans-serif" font-size="12" fill="#64748B" text-anchor="end" transform="rotate(-90, 70, 420)">Backend Tier</text>
+  <text x="70" y="540" font-family="Arial, sans-serif" font-size="12" fill="#64748B" text-anchor="end" transform="rotate(-90, 70, 540)">Database</text>
+</svg>
