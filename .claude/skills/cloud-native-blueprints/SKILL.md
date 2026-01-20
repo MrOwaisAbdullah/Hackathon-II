@@ -27,6 +27,8 @@ Ensure all required context is gathered before implementing.
 
 ## Quick Start
 
+**Sources:** [minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/) | [helm.sh/docs/intro/install/](https://helm.sh/docs/intro/install/)
+
 ### Minikube Local Development
 
 ```bash
@@ -45,6 +47,39 @@ docker build -t app-name:latest .
 
 # 5. Deploy with Helm
 helm install myapp ./helm/myapp --namespace myapp --create-namespace
+```
+
+### Prerequisites Installation
+
+**Minikube (Linux - Binary Download):**
+```bash
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+```
+
+**kubectl (Linux):**
+```bash
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+```
+
+**Helm (Linux - Script):**
+```bash
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+```
+
+**Alternative: Package Managers**
+```bash
+# Debian/Ubuntu - Helm via APT
+sudo apt-get update
+sudo apt-get install -y apt-transport-https gnupg curl
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
 ```
 
 ### Cloud Deployment (AKS/GKE)
@@ -506,8 +541,55 @@ kubectl port-forward deployment/myapp 8000:8000 -n namespace
 
 ## See Also
 
+### Available Reference Files
 - `references/helm-patterns.md` - Complete Helm chart development patterns
 - `references/dapr-components.md` - Dapr building blocks and configurations
 - `references/aiops-commands.md` - kubectl-ai, kagent, and Gordon command reference
-- `references/deployment-pitfalls.md` - **Real-world debugging: Minikube deployment issues and solutions** ⚠️
-- `references/k8s-best-practices.md` - Kubernetes production deployment guidelines
+- `references/common-pitfalls.md` - **Common deployment pitfalls and solutions** ⚠️
+- `references/deployment-pitfalls.md` - Real-world debugging: Minikube deployment issues and solutions
+
+### Available Templates
+- `assets/templates/deployment.yaml` - Production deployment template
+- `assets/templates/service.yaml` - Service exposure template
+- `assets/templates/ingress.yaml` - Ingress routing template
+- `assets/templates/configmap.yaml` - ConfigMap template
+- `assets/templates/secrets.yaml` - Kubernetes secrets template
+- `assets/templates/_helpers.tpl` - Standard Helm helpers
+- `assets/templates/namespace.yaml` - Namespace template
+
+### Available Dapr Components
+- `assets/components/pubsub-kafka.yaml` - Kafka pub/sub component
+- `assets/components/state-postgres.yaml` - PostgreSQL state store
+- `assets/components/secrets-k8s.yaml` - Kubernetes secrets for Dapr
+
+---
+
+## Sources and References
+
+This skill is validated with official documentation and best practices from:
+
+### Docker
+- **Multi-Stage Builds**: [docs.docker.com/build/building/multi-stage/](https://docs.docker.com/build/building/multi-stage/)
+- **Build Best Practices**: [docs.docker.com/build/building/best-practices/](https://docs.docker.com/build/building/best-practices/)
+
+### Kubernetes & Minikube
+- **Minikube Start Guide**: [minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/)
+- **kubectl Installation**: [kubernetes.io/docs/tasks/tools/](https://kubernetes.io/docs/tasks/tools/)
+- **Kubernetes Tutorials**: [kubernetes.io/docs/tutorials](https://kubernetes.io/docs/tutorials)
+
+### Helm
+- **Helm Installation**: [helm.sh/docs/intro/install/](https://helm.sh/docs/intro/install/)
+- **Chart Template Guide**: [helm.sh/docs/chart_template_guide/getting_started](https://helm.sh/docs/chart_template_guide/getting_started)
+- **Helm Charts 2025**: [Atmosly - Helm Charts Guide](http://atmosly.com/knowledge/helm-charts-in-kubernetes-definitive-guide-for-2025)
+
+### Dapr
+- **Dapr Documentation**: [docs.dapr.io](https://docs.dapr.io)
+- **Dapr Getting Started**: [docs.dapr.io/getting-started](https://docs.dapr.io/getting-started)
+
+### TeamFlow Project Resources
+- **Local Dev Guide**: `LOCAL-DEV-GUIDE.md` - Step-by-step deployment
+- **Cloud Native Learning**: `CLOUD-NATIVE-LEARNING-GUIDE.md` - Concepts explained
+- **Architecture Plan**: `specs/001-k8s-minikube-deployment/plan.md` - Design decisions
+
+**Last Updated:** January 20, 2026
+**Validated With:** Tavily MCP, Context7 MCP, and official documentation

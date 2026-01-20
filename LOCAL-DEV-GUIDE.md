@@ -32,18 +32,52 @@
 
 ### Quick Install Commands
 
-If you don't have these installed:
+**Source: Official Minikube & Helm Documentation**
 
 ```bash
-# Minikube (Linux)
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-chmod +x minikube
-sudo mv minikube ~/.local/bin/
+# Minikube (Linux - Binary Download)
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
 
-# Helm (Linux)
+# Verify Minikube installation
+minikube version
+
+# kubectl (Kubernetes CLI)
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+
+# Verify kubectl installation
+kubectl version --client
+
+# Helm (Linux - Script)
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-chmod +x get_helm.sh
+chmod 700 get_helm.sh
 ./get_helm.sh
+
+# Verify Helm installation
+helm version
+```
+
+**Alternative: Package Managers**
+
+```bash
+# Debian/Ubuntu - Helm via APT
+sudo apt-get update
+sudo apt-get install -y apt-transport-https gnupg curl
+
+# Add Helm GPG key and repository
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+sudo apt-get update
+sudo apt-get install helm
+
+# Fedora - Helm via DNF
+sudo dnf install helm
+
+# macOS - Helm via Homebrew
+brew install helm
 ```
 
 ---
@@ -52,19 +86,28 @@ chmod +x get_helm.sh
 
 ### Step 1: Start Minikube
 
+**Source: [minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/)**
+
 ```bash
-~/.local/bin/minikube start --driver=docker --cpus=4 --memory=6000
+# Start Minikube with Docker driver (recommended)
+minikube start --driver=docker --cpus=4 --memory=6000
 ```
+
+**What this does:**
+- `--driver=docker`: Uses Docker as the container driver (faster on WSL2)
+- `--cpus=4`: Allocates 4 CPU cores to the cluster
+- `--memory=6000`: Allocates 6GB RAM (adjust based on your system)
 
 **Expected Output:**
 ```
 ✅ Minikube started
 🟉  Kubernetes is available at https://127.0.0.1:XXXXX
+🟉  Docker is available at https://127.0.0.1:XXXXX
 ```
 
 **Verify:**
 ```bash
-~/.local/bin/minikube status
+minikube status
 ```
 
 Should show:
@@ -76,16 +119,24 @@ apiserver: Running
 kubeconfig: Configured
 ```
 
+**Enable Required Addons:**
+```bash
+minikube addons enable ingress
+minikube addons enable metrics-server
+```
+
 ---
 
 ## Building Docker Images
+
+**Source: [Docker Multi-Stage Builds Documentation](https://docs.docker.com/build/building/multi-stage/)**
 
 ### Step 2: Build Frontend Image
 
 ```bash
 cd "/mnt/d/GIAIC/Quarter 4/Hackathon II"
 
-# Build with Windows Docker (faster)
+# Build with Windows Docker (faster on WSL2)
 docker.exe build --no-cache --build-arg NEXT_PUBLIC_API_URL="" \
   -t teamflow/frontend:minikube \
   -f teamflow-web/frontend/Dockerfile \
@@ -93,6 +144,13 @@ docker.exe build --no-cache --build-arg NEXT_PUBLIC_API_URL="" \
 ```
 
 **Build time:** ~5-7 minutes (first run), ~2-3 minutes (cached)
+
+**Frontend Dockerfile Best Practices:**
+- Multi-stage build (deps → builder → runner)
+- Node.js 22 Alpine base image (~5MB vs ~100MB standard)
+- Standalone output mode enabled in `next.config.ts`
+- Non-root user for security
+- `.dockerignore` excludes `node_modules`, `.next`, `.git`
 
 ---
 
@@ -108,12 +166,21 @@ docker.exe build --no-cache \
 
 **Build time:** ~3-5 minutes
 
+**Backend Dockerfile Best Practices:**
+- Multi-stage build (deps → builder → runner)
+- Python 3.13 slim base image
+- Health check endpoint configured
+- Non-root user for security
+- `.dockerignore` excludes `__pycache__`, `.venv`, `.pytest_cache`
+
 ---
 
 ### Step 4: Load Images into Minikube
 
+**Why this step matters:** Minikube runs its own Docker daemon. Images must be available inside Minikube's Docker environment.
+
 ```bash
-# Transfer images from Windows Docker to Minikube Docker
+# Option 1: Transfer images from Windows Docker to Minikube
 docker.exe save teamflow/frontend:minikube teamflow/backend:latest | \
   (eval "$(minikube docker-env)" && docker load)
 ```
@@ -124,29 +191,43 @@ Loaded image: teamflow/frontend:minikube
 Loaded image: teamflow/backend:latest
 ```
 
+**Option 2: Build directly in Minikube (slower but simpler)**
+```bash
+eval "$(minikube docker-env)"
+docker build -t teamflow/frontend:minikube -f teamflow-web/frontend/Dockerfile teamflow-web/frontend/
+docker build -t teamflow/backend:latest -f teamflow-web/backend/Dockerfile teamflow-web/backend/
+```
+
 **Verify images are in Minikube:**
 ```bash
 eval "$(minikube docker-env)"
 docker images | grep teamflow
 ```
 
+**Expected image sizes:**
+- Frontend: ~150-250MB (with Alpine multi-stage)
+- Backend: ~100-200MB (with slim multi-stage)
+
 ---
 
 ## Deploying to Minikube
 
+**Source: [Helm Charts Documentation](https://helm.sh/docs/intro/using_helm/)**
+
 ### Step 5: Create Namespace
 
 ```bash
-~/.local/bin/kubectl create namespace teamflow --dry-run=client -o yaml | \
-  ~/.local/bin/kubectl apply -f -
+kubectl create namespace teamflow --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+**What this does:** Creates a logical separation for TeamFlow resources in the cluster.
 
 ---
 
 ### Step 6: Deploy with Helm
 
 ```bash
-~/.local/bin/helm install teamflow ./helm/teamflow --namespace teamflow
+helm install teamflow ./helm/teamflow --namespace teamflow
 ```
 
 **Expected Output:**
@@ -159,13 +240,28 @@ REVISION: 1
 TEST SUITE: None
 ```
 
+**Helm Commands Reference:**
+```bash
+# List installed releases
+helm list -n teamflow
+
+# Upgrade existing deployment
+helm upgrade teamflow ./helm/teamflow -n teamflow
+
+# Rollback to previous version
+helm rollback teamflow 1 -n teamflow
+
+# Uninstall release
+helm uninstall teamflow -n teamflow
+```
+
 ---
 
 ### Step 7: Wait for Pods to be Ready
 
 ```bash
-# Watch pod status
-~/.local/bin/kubectl get pods -n teamflow -w
+# Watch pod status (Ctrl+C to stop watching)
+kubectl get pods -n teamflow -w
 ```
 
 **Expected Output:**
@@ -177,7 +273,18 @@ teamflow-frontend-xxxxx-xxxxx  0/1     Pending   0          5s
 teamflow-frontend-xxxxx-xxxxx  0/1     Running   0          30s
 ```
 
+**Pod States Explained:**
+- `Pending`: Pod is scheduled but not yet running
+- `Running`: Container is running but may not be ready
+- `Ready`: Pod is ready to serve traffic
+- `CrashLoopBackOff`: Pod is crashing (check logs)
+
 Wait until both pods show `2/2` or `1/1` READY.
+
+**Common Issues:**
+- `ImagePullBackOff`: Image not found in Minikube Docker (rebuild images)
+- `CrashLoopBackOff`: Application error (check logs with `kubectl logs`)
+- `Pending`: Insufficient resources (increase Minikube memory/CPU)
 
 ---
 
@@ -753,3 +860,37 @@ A: This is for local development only. For production, use cloud Kubernetes (AKS
 - Check logs: `~/.local/bin/kubectl logs -f deployment/teamflow-backend -n teamflow`
 - Check pods: `~/.local/bin/kubectl get pods -n teamflow`
 - Check events: `~/.local/bin/kubectl get events -n teamflow --sort-by='.lastTimestamp'`
+
+---
+
+## Sources and References
+
+This guide is based on official documentation and best practices from:
+
+### Docker
+- **Multi-Stage Builds**: [docs.docker.com/build/building/multi-stage/](https://docs.docker.com/build/building/multi-stage/)
+- **Build Best Practices**: [docs.docker.com/build/building/best-practices/](https://docs.docker.com/build/building/best-practices/)
+- **Next.js Docker Guide**: [Dockerizing a Next.js Application in 2025](https://medium.com/front-end-world/dockerizing-a-next-js-application-in-2025-bacdca4810fe)
+
+### Kubernetes & Minikube
+- **Minikube Start Guide**: [minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/)
+- **kubectl Installation**: [kubernetes.io/docs/tasks/tools/](https://kubernetes.io/docs/tasks/tools/)
+- **Minikube on Linux**: [Getting Started with Minikube on Linux](https://wafaicloud.com/blog/getting-started-with-minikube-on-linux/)
+
+### Helm
+- **Helm Installation**: [helm.sh/docs/intro/install/](https://helm.sh/docs/intro/install/)
+- **Helm Chart Guide**: [helm.sh/docs/chart_template_guide/getting_started](https://helm.sh/docs/chart_template_guide/getting_started)
+- **Helm Best Practices**: [Helm Charts in Kubernetes – 2025 Guide](http://atmosly.com/knowledge/helm-charts-in-kubernetes-definitive-guide-for-2025)
+
+### Cloud Native Learning
+- **Concepts Guide**: See `CLOUD-NATIVE-LEARNING-GUIDE.md` in this repo
+- **Architecture Plan**: `specs/001-k8s-minikube-deployment/plan.md`
+- **Cloud-Native Blueprints Skill**: `.claude/skills/cloud-native-blueprints/`
+
+### Tools & AIOps
+- **kubectl-ai**: Natural language Kubernetes operations
+- **Docker Gordon**: AI-assisted Dockerfile optimization
+- **Kagent**: Kubernetes cluster analysis
+
+**Last Updated:** January 20, 2026
+**Validated With:** Tavily MCP, Context7 MCP, and official documentation

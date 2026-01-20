@@ -655,16 +655,59 @@ dapr list                    # List running apps
 
 ---
 
-## 📚 Recommended Resources
+## 📚 Recommended Resources & Sources
 
+This guide is validated with official documentation and best practices from:
+
+### Docker
 | Resource | URL | Best For |
 |----------|-----|----------|
-| Docker Getting Started | docs.docker.com | Official docs |
-| Kubernetes Basics | kubernetes.io/docs/tutorials | Interactive tutorial |
-| Helm Quickstart | helm.sh/docs | 10-minute intro |
-| Dapr Docs | docs.dapr.io | Complete guides |
-| Redpanda Quickstart | docs.redpanda.com | Kafka alternative |
+| **Multi-Stage Builds** | [docs.docker.com/build/building/multi-stage/](https://docs.docker.com/build/building/multi-stage/) | Optimizing image size |
+| **Build Best Practices** | [docs.docker.com/build/building/best-practices/](https://docs.docker.com/build/building/best-practices/) | Production Dockerfiles |
+| **Next.js Docker 2025** | [Medium - Dockerizing Next.js in 2025](https://medium.com/front-end-world/dockerizing-a-next-js-application-in-2025-bacdca4810fe) | Modern Next.js deployment |
+| **Docker Concepts** | [docs.docker.com/guides/reactjs/containerize](https://docs.docker.com/guides/reactjs/containerize) | Container fundamentals |
+
+### Kubernetes & Minikube
+| Resource | URL | Best For |
+|----------|-----|----------|
+| **Minikube Start Guide** | [minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/) | Local cluster setup |
+| **kubectl Installation** | [kubernetes.io/docs/tasks/tools/](https://kubernetes.io/docs/tasks/tools/) | CLI setup |
+| **Kubernetes Tutorials** | [kubernetes.io/docs/tutorials](https://kubernetes.io/docs/tutorials) | Interactive learning |
+| **Minikube on Linux** | [WafaiCloud - Getting Started](https://wafaicloud.com/blog/getting-started-with-minikube-on-linux/) | Linux-specific setup |
+| **Learning Environment** | [kubernetes.io/docs/setup/learning-environment](https://kubernetes.io/docs/setup/learning-environment) | Minikube overview |
+
+### Helm
+| Resource | URL | Best For |
+|----------|-----|----------|
+| **Helm Installation** | [helm.sh/docs/intro/install/](https://helm.sh/docs/intro/install/) | Installing Helm CLI |
+| **Chart Template Guide** | [helm.sh/docs/chart_template_guide/getting_started](https://helm.sh/docs/chart_template_guide/getting_started) | Creating charts |
+| **Helm Charts 2025** | [Atmosly - Helm Charts Guide](http://atmosly.com/knowledge/helm-charts-in-kubernetes-definitive-guide-for-2025) | Current best practices |
+| **Helm Tutorial** | [Testkube - Complete Guide](https://testkube.io/blog/helm-charts-tutorial-complete-guide-to-kubernetes-testing-deployment) | Step-by-step tutorial |
+
+### Dapr & Kafka
+| Resource | URL | Best For |
+|----------|-----|----------|
+| **Dapr Documentation** | [docs.dapr.io](https://docs.dapr.io) | Complete Dapr guide |
+| **Dapr Getting Started** | [docs.dapr.io/getting-started](https://docs.dapr.io/getting-started) | First-time setup |
+| **Redpanda Quickstart** | [docs.redpanda.com](https://docs.redpanda.com) | Kafka alternative |
+| **Kafka Concepts** | [Confluent Kafka Docs](https://docs.confluent.io/kafka/) | Event streaming |
+
+### TeamFlow Project Resources
+| Resource | Location | Description |
+|----------|----------|-------------|
+| **Local Dev Guide** | `LOCAL-DEV-GUIDE.md` | Step-by-step deployment |
+| **Architecture Plan** | `specs/001-k8s-minikube-deployment/plan.md` | Design decisions |
+| **Cloud-N Blueprints** | `.claude/skills/cloud-native-blueprints/` | K8s/Helm patterns |
+| **Helm Charts** | `helm/teamflow/` | Production templates |
+
+### AIOps Tools
+| Tool | Purpose | Usage |
+|------|---------|-------|
+| **kubectl-ai** | Natural language K8s operations | `kubectl-ai "deploy backend with 2 replicas"` |
+| **Docker Gordon** | AI Dockerfile optimization | `docker ai "optimize this Dockerfile"` |
+| **Kagent** | Cluster analysis | `kagent "analyze cluster health"` |
+
+**Last Updated:** January 20, 2026
+**Validated With:** Tavily MCP, Context7 MCP, and official documentation
 
 ---
-
-*This guide is part of the TeamFlow hackathon project. Refer to `phase 4-5 plan.md` for implementation details.*

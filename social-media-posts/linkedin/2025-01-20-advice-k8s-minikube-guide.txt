@@ -1,0 +1,106 @@
+Deployed my full-stack app to Kubernetes today.
+
+Here's how I did it step by step.
+
+I built TeamFlow CRM.
+
+Next.js frontend.
+FastAPI backend.
+Neon PostgreSQL database.
+
+For Hackathon Phase 4, I had to deploy it locally using Kubernetes.
+
+I'll be honest.
+I was intimidated at first.
+
+Docker. Kubernetes. Helm.
+These tools felt overwhelming.
+
+But I broke it down into small steps.
+
+And it worked.
+
+Here's the complete path:
+
+STEP 1: Install Docker Desktop
+Download from the official Docker website
+Verify with: docker --version
+
+STEP 2: Install Minikube and Helm
+Minikube runs K8s locally on your machine
+Helm manages K8s deployments
+
+Download both from their official sites.
+Or use package managers like brew or apt.
+
+STEP 3: Start Minikube
+minikube start --cpus=4 --memory=8192
+
+This gives you a local K8s cluster with enough resources.
+
+STEP 4: Build Docker images
+Create Dockerfile for frontend and backend.
+Use multi-stage builds to keep images small.
+Build in Minikube's Docker daemon (not Windows Docker).
+
+STEP 5: Deploy with Helm
+helm install teamflow ./helm/teamflow --namespace teamflow
+
+That's it.
+Your app is now running in Kubernetes.
+
+What I created:
+• Frontend Dockerfile (Node.js 22 Alpine)
+• Backend Dockerfile (Python 3.13)
+• Helm chart templates
+• .dockerignore files
+• LOCAL-DEV-GUIDE.md for reference
+
+But I hit some walls.
+
+Here are 5 pitfalls that wasted my time:
+
+PITFALL 1: Not enabling standalone output in Next.js
+Docker build failed completely.
+Fixed by adding output: 'standalone' to next.config.ts
+
+PITFALL 2: Building images in wrong Docker daemon
+Built in Windows Docker but Minikube couldn't find them.
+Fixed by running: eval $(minikube docker-env) before building
+
+PITFALL 3: Missing .dockerignore
+Images were 2GB+ because node_modules got copied.
+Fixed by creating .dockerignore file
+
+PITFALL 4: Hardcoding secrets in git
+GitHub push protection blocked my commits.
+Fixed by using separate values.yaml file (gitignored)
+
+PITFALL 5: Forgetting ingress addon
+Could only access via port-forward.
+Fixed by running: minikube addons enable ingress
+
+Main lesson:
+Kubernetes isn't as scary as it sounds.
+Start with Minikube locally.
+Use Helm for templates.
+Learn by doing.
+
+I wrote two complete guides for beginners.
+One explains all the concepts.
+The other has step-by-step commands.
+
+Comment "K8S" below and I'll send you the guides.
+
+If I can do this, you can too.
+Start small.
+Deploy locally.
+Learn the concepts.
+Then move to cloud.
+
+Anyone else starting their cloud-native journey?
+What's blocking you?
+
+👇
+
+#Kubernetes #Docker #Helm #DevOps #CloudNative
