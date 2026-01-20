@@ -140,6 +140,7 @@ Frontend: Vercel (auto-deploy from main)
 Backend: HuggingFace Spaces (Docker SDK)
 Database: Neon PostgreSQL (free tier)
 CI/CD: GitHub Actions
+Local K8s: Docker + Minikube + Helm
 ```
 
 ---
@@ -202,6 +203,126 @@ Navigate to `/chat` in the web app or click the floating chat widget.
 
 ---
 
+## Local Kubernetes Deployment
+
+**NEW: Deploy TeamFlow locally with Docker, Minikube, and Helm!**
+
+For a complete cloud-native development experience, you can now run the entire TeamFlow stack locally using Kubernetes. Perfect for development, testing, and learning cloud-native patterns.
+
+### Prerequisites
+
+| Software | Purpose | Installation Check |
+|----------|---------|-------------------|
+| **Docker Desktop** | Container runtime | `docker --version` |
+| **Minikube** | Local K8s cluster | `~/.local/bin/minikube version` |
+| **Helm** | K8s package manager | `~/.local/bin/helm version` |
+| **WSL2** | Linux environment (Windows) | `wsl --version` |
+
+### Quick Start
+
+**1. Start Minikube**
+```bash
+~/.local/bin/minikube start --driver=docker --cpus=4 --memory=6000
+```
+
+**2. Build Docker Images**
+```bash
+# Frontend
+docker.exe build --no-cache --build-arg NEXT_PUBLIC_API_URL="" \
+  -t teamflow/frontend:minikube \
+  -f teamflow-web/frontend/Dockerfile \
+  teamflow-web/frontend/
+
+# Backend
+docker.exe build --no-cache \
+  -t teamflow/backend:latest \
+  -f teamflow-web/backend/Dockerfile \
+  teamflow-web/backend/
+```
+
+**3. Load Images into Minikube**
+```bash
+docker.exe save teamflow/frontend:minikube teamflow/backend:latest | \
+  (eval "$(minikube docker-env)" && docker load)
+```
+
+**4. Deploy with Helm**
+```bash
+# Create namespace
+~/.local/bin/kubectl create namespace teamflow --dry-run=client -o yaml | \
+  ~/.local/bin/kubectl apply -f -
+
+# Deploy
+~/.local/bin/helm install teamflow ./helm/teamflow --namespace teamflow
+```
+
+**5. Access the Application**
+```bash
+~/.local/bin/minikube service teamflow-frontend -n teamflow
+```
+
+Then open the URL shown in your browser (e.g., `http://127.0.0.1:46615`).
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Your Browser                            │
+│                  http://127.0.0.1:46615/                       │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ Minikube Service Tunnel
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Frontend Pod (Next.js)                                      │
+│  → Port: 3000                                               │
+│  → Replicas: 2                                              │
+│  → API Proxy: /api/[...path]/route.ts                       │
+└──────────────────────────┬────────────────────────────────┘
+                           │ /api/v1/* (internal K8s DNS)
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Backend Pod (FastAPI)                                     │
+│  → Port: 8000                                              │
+│  → Replicas: 2                                             │
+│  → MCP Server: /mcp/*                                      │
+└──────────────────────────┬────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Neon PostgreSQL (External Cloud Database)                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Common Commands
+
+```bash
+# Check pod status
+~/.local/bin/kubectl get pods -n teamflow
+
+# View logs
+~/.local/bin/kubectl logs -f deployment/teamflow-backend -n teamflow
+
+# Restart services
+~/.local/bin/kubectl rollout restart deployment teamflow-frontend -n teamflow
+
+# Scale replicas
+~/.local/bin/kubectl scale deployment teamflow-backend -n teamflow --replicas=3
+
+# Stop Minikube
+~/.local/bin/minikube stop
+```
+
+### For Complete Documentation
+
+See [LOCAL-DEV-GUIDE.md](./LOCAL-DEV-GUIDE.md) for:
+- Detailed setup instructions
+- Development workflow
+- Troubleshooting guide
+- All kubectl/Helm commands
+- AIOps tools (kubectl-ai, Docker Gordon, Kagent)
+
+---
+
 ## Project Structure
 
 ```
@@ -236,18 +357,36 @@ Hackathon II/
 │   │   │   └── main.py               # FastAPI entry
 │   │   ├── alembic/                  # Database migrations
 │   │   ├── tests/                    # Pytest tests
-│   │   ├── Dockerfile                # HuggingFace deployment
+│   │   ├── Dockerfile                # Container image
 │   │   └── pyproject.toml
 │   │
 │   └── README.md                     # Web-specific docs
+│
+├── helm/                             # Kubernetes Helm charts
+│   └── teamflow/
+│       ├── Chart.yaml                # Chart metadata
+│       ├── values.yaml               # Configuration (gitignored)
+│       ├── values.yaml.example       # Example configuration
+│       └── templates/                # K8s resource templates
+│           ├── deployment.yaml       # Deployments
+│           ├── service.yaml          # Services
+│           ├── configmap.yaml        # ConfigMaps
+│           └── _helpers.tpl          # Template helpers
 │
 ├── specs/                            # Feature specifications
 │   ├── 001-console-task-distribution/
 │   ├── 002-fullstack-web-crm/
 │   └── 001-ai-chatbot/
 │
+├── .claude/                          # Claude Code configuration
+│   ├── skills/                       # Reusable agent skills
+│   ├── commands/                     # Slash commands
+│   └── agents/                       # Subagent definitions
+│
 ├── social-media-posts/               # LinkedIn announcements
 ├── .github/workflows/                # CI/CD pipelines
+├── LOCAL-DEV-GUIDE.md                # Local K8s deployment guide
+├── README_DEPLOYMENT.md              # Deployment documentation
 └── README.md                         # This file
 ```
 
@@ -372,7 +511,11 @@ MIT © 2025 Owais Abdullah
 - [Neon](https://neon.tech) - Serverless PostgreSQL
 - [Vercel](https://vercel.com) - Frontend deployment
 - [HuggingFace](https://huggingface.co) - Backend hosting
+- [Docker](https://www.docker.com/) - Container runtime
+- [Kubernetes](https://kubernetes.io/) - Container orchestration
+- [Helm](https://helm.sh/) - Kubernetes package manager
+- [Minikube](https://minikube.sigs.k8s.io/) - Local K8s cluster
 
 ---
 
-**Built with ❤️ using Next.js 16, FastAPI, and modern AI technologies**
+**Built with ❤️ using Next.js 16, FastAPI, Docker, Kubernetes, and modern AI technologies**
