@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flag, MoreHorizontal, Clock, Edit2, Trash2, Archive, CheckCircle, Eye, Circle } from "lucide-react";
+import { Flag, MoreHorizontal, Clock, Edit2, Trash2, Archive, CheckCircle, Eye, Circle, RefreshCw, Bell } from "lucide-react";
 import type { Task } from "@/types";
 import { CSS } from "@dnd-kit/utilities";
 import React, { useState, useEffect } from "react";
@@ -141,6 +141,30 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
   const status = getStatusStyle(task.status);
   const statusStyle = isDark ? status.dark : status.light;
 
+  // T058: Get recurrence display text
+  const getRecurrenceDisplay = () => {
+    if (!task.recurrence_rule?.frequency) return null;
+    const parts = [];
+    if (task.recurrence_rule.interval && task.recurrence_rule.interval > 1) {
+      parts.push(`Every ${task.recurrence_rule.interval}`);
+    }
+    parts.push(task.recurrence_rule.frequency.slice(0, -2) + "ly"); // daily, weekly, etc.
+    return parts.join(" ");
+  };
+
+  // T088: Get reminder display text
+  const getReminderDisplay = () => {
+    if (!task.reminder_settings || !task.reminder_settings.offsets || task.reminder_settings.offsets.length === 0) return null;
+    const offsetLabels: Record<string, string> = {
+      "15m": "15 min",
+      "1h": "1 hour",
+      "1d": "1 day",
+      "1w": "1 week",
+    };
+    const labels = task.reminder_settings.offsets.map((o: string) => offsetLabels[o] || o).join(", ");
+    return `${labels} before`;
+  };
+
   // Status icons
   const statusIcons = {
     TODO: null,
@@ -222,6 +246,48 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
             {statusIcon && typeof statusIcon !== "string" && React.createElement(statusIcon, { className: "w-3 h-3" })}
             {status.label}
           </motion.div>
+
+          {/* T058: Recurrence Badge */}
+          <AnimatePresence>
+            {task.recurrence_rule?.frequency && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5',
+                  color: isDark ? '#34d399' : '#047857',
+                }}
+                title={getRecurrenceDisplay()}
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span className="hidden sm:inline">Recurring</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* T088: Reminder Badge */}
+          <AnimatePresence>
+            {task.reminder_settings?.offsets && task.reminder_settings.offsets.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide"
+                style={{
+                  backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#dbeafe',
+                  color: isDark ? '#60a5fa' : '#1d4ed8',
+                }}
+                title={getReminderDisplay()}
+              >
+                <Bell className="w-3 h-3" />
+                <span className="hidden sm:inline">Reminder</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Action Menu - Always visible */}

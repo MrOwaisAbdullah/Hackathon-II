@@ -1,0 +1,54 @@
+# Helm Ignore Patterns
+# Exclude files from Helm package that shouldn't be in the chart
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Development
+*.log
+*.tmp
+*.swp
+*.bak
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Secrets (double protection)
+*.secret.yaml
+*secrets.yaml
+secrets/
+*.env
+*.env.*
+
+# Test files
+*_test.go
+*.test.ts
+*.spec.ts
+
+# Build artifacts
+dist/
+build/
+node_modules/
+__pycache__/
+*.pyc
+
+# Local configuration overrides
+values-local.yaml
+values-dev.yaml

@@ -1,0 +1,28 @@
+# Dapr Cron Binding for Reminder Checker
+# Triggers every 5 minutes to check for due reminders
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reminder-checker-cron
+  namespace: teamflow
+spec:
+  type: bindings.cron
+  version: v1
+  metadata:
+    # Cron expression: every 5 minutes
+    - name: schedule
+      value: "*/5 * * * *"
+
+    # Data to send to the endpoint (optional)
+    - name: data
+      value: '{"action": "check_reminders"}'
+
+    # HTTP method
+    - name: method
+      value: "POST"
+
+# This binding sends POST requests to: /reminder-checker
+# The endpoint should be implemented in the backend or a microservice
+# The request body will contain: {"action": "check_reminders"}
+# The endpoint should query for due reminders and publish them to the 'reminders' topic

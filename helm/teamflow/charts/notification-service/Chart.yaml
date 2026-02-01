@@ -1,0 +1,15 @@
+# T078: Helm Chart for NotificationService
+
+apiVersion: v2
+name: notification-service
+description: TeamFlow Notification Service - Due date reminder email microservice
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - teamflow
+  - notification
+  - sendgrid
+  - dapr
+maintainers:
+  - name: TeamFlow

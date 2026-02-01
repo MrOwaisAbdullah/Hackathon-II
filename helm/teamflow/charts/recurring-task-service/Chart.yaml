@@ -1,0 +1,13 @@
+# T052: Helm Chart for Recurring Task Service
+
+apiVersion: v2
+name: recurring-task-service
+description: Helm chart for TeamFlow Recurring Task Service microservice
+version: 1.0.0
+appVersion: "1.0"
+keywords:
+  - teamflow
+  - recurring-tasks
+  - microservice
+maintainers:
+  - name: TeamFlow Team

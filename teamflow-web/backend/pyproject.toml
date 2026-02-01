@@ -29,6 +29,15 @@ dependencies = [
     "apscheduler>=3.10.0",
     "prometheus-client>=0.21.0",
     "slowapi>=0.1.9",
+    # Phase 5: Advanced Cloud Deployment Dependencies
+    "dapr>=1.14.0",
+    "dapr-dev>=1.14.0",
+    "sendgrid>=6.11.0",
+    "python-dateutil>=2.9.0",
+    "structlog>=24.4.0",
+    "websockets>=14.1",
+    "redis>=5.2.0",
+    "kafka-python>=2.0.2",
 ]
 
 [project.optional-dependencies]

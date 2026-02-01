@@ -89,6 +89,31 @@ export interface Task {
   // Populated relations (from API includes)
   assignee?: User;
   project?: Project;
+  // ============ PHASE 5: RECURRENCE & REMINDER FIELDS ============
+  /** Recurrence rule configuration (RFC 5545 iCalendar) */
+  recurrence_rule?: RecurrenceRule | null;
+  /** Reminder settings for due date notifications */
+  reminder_settings?: ReminderSettings | null;
+  /** ID of the next instance in a recurring task chain */
+  next_instance_id?: UUID | null;
+  /** ID of the parent task if this is a recurring instance */
+  parent_instance_id?: UUID | null;
+}
+
+/** Recurrence rule type (T039) */
+export interface RecurrenceRule {
+  frequency: "daily" | "weekly" | "monthly" | "yearly";
+  interval?: number; // Default: 1
+  days_of_week?: ("Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday")[];
+  day_of_month?: number | null;
+  end_date?: string | null; // ISO date string
+  time_of_day?: string | null; // HH:MM format
+}
+
+/** Reminder settings type (T040) */
+export interface ReminderSettings {
+  enabled: boolean;
+  offsets_minutes: number[]; // e.g., [1440, 60, 15] for 1 day, 1 hour, 15 min before
 }
 
 /** Time entry entity */

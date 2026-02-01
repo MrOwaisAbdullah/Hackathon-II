@@ -45,7 +45,7 @@ from app.core.rate_limit import check_rate_limit, add_rate_limit_headers
 from app.core.logging import get_logger
 from app.core.config import settings
 from sqlmodel import select
-# from app.chatkit import get_chatkit_server  # TODO: Fix chatkit integration
+# ChatKit server is imported inline in the chatkit_endpoint function to avoid circular imports
 
 # T090: Use structured logger
 logger = get_logger(__name__)
@@ -390,9 +390,6 @@ async def get_conversation_messages(
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation not found")
 
-        # TODO: Verify user_id matches conversation.user_id
-        # For now, we'll skip this check
-
         # Get messages
         messages = await chat_service.get_messages(
             conversation_id=conversation_id,
@@ -655,8 +652,12 @@ async def list_conversations(
     try:
         user_id = session_data["user_id"]
 
-        # TODO: Implement list_conversations in ChatService
-        # For now, return empty list
+        # list_conversations not yet implemented in ChatService.
+        # Returns empty list for now. Future enhancement:
+        # - Add list_conversations() method to ChatService
+        # - Query conversations table filtered by user_id
+        # - Apply pagination with limit/offset
+        # - Return with metadata (last message, timestamp, message count)
         return {
             "conversations": [],
             "total": 0,

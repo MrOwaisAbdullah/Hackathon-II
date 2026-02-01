@@ -1,0 +1,22 @@
+# T077: Requirements for NotificationService Microservice
+# Python 3.13+ dependencies
+
+# Core Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Dapr Integration
+dapr>=1.14.0
+httpx>=0.28.0
+
+# Email Service
+sendgrid>=6.11.0
+
+# Data Validation
+pydantic>=2.10.0
+
+# Logging
+structlog>=24.4.0
+
+# Async Support
+asyncio>=3.4.3

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Sparkles  } from "lucide-react";
+import { X, Plus, Sparkles, RefreshCw, Bell } from "lucide-react";
 import { useCreateTask, useUsers, useProjects } from "@/lib/query";
 import { TaskPriority } from "@/types";
 import { useState } from "react";
@@ -10,6 +10,8 @@ import { RichTextEditor } from "./RichTextEditor";
 import { AssigneeSelect } from "./AssigneeSelect";
 import { ProjectSelect } from "./ProjectSelect";
 import { DatePicker } from "./DatePicker";
+import { RecurrenceDialog } from "@/components/tasks/RecurrenceDialog";
+import { ReminderSettings } from "@/components/notifications/ReminderSettings";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -31,6 +33,70 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  // T055, T056: Phase 5 - Recurrence state
+  const [recurrenceRule, setRecurrenceRule] = useState<{
+    frequency: "daily" | "weekly" | "monthly" | "yearly" | null
+    interval: number
+    daysOfWeek: string[]
+    dayOfMonth: number | null
+    endDate: string | null
+    timeOfDay: string | null
+  }>({
+    frequency: null,
+    interval: 1,
+    daysOfWeek: [],
+    dayOfMonth: null,
+    endDate: null,
+    timeOfDay: null,
+  });
+
+  // T056: Handler for saving recurrence rule
+  const handleRecurrenceSave = (rule: typeof recurrenceRule) => {
+    setRecurrenceRule(rule);
+  };
+
+  // T056: Get recurrence display text
+  const getRecurrenceDisplay = () => {
+    if (!recurrenceRule.frequency) return null;
+    const parts = [];
+    if (recurrenceRule.interval > 1) {
+      parts.push(`Every ${recurrenceRule.interval}`);
+    }
+    parts.push(recurrenceRule.frequency.slice(0, -2) + "ly"); // daily, weekly, etc.
+    return parts.join(" ");
+  };
+
+  // T085, T086: Phase 5 - Reminder state
+  const [reminderSettings, setReminderSettings] = useState<{
+    enabled: boolean
+    offsets: string[]
+    channels: string[]
+    custom_message?: string
+  }>({
+    enabled: false,
+    offsets: [],
+    channels: ["email"],
+    custom_message: undefined,
+  });
+
+  // T085: Handler for saving reminder settings
+  const handleReminderSave = (settings: typeof reminderSettings) => {
+    setReminderSettings(settings);
+  };
+
+  // T086: Get reminder display text
+  const getReminderDisplay = () => {
+    if (!reminderSettings.enabled || reminderSettings.offsets.length === 0) return null;
+    const offsetLabels: Record<string, string> = {
+      "15m": "15 min",
+      "1h": "1 hour",
+      "1d": "1 day",
+      "1w": "1 week",
+    };
+    const labels = reminderSettings.offsets.map(o => offsetLabels[o] || o).join(", ");
+    return `${labels} before`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -46,6 +112,10 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
         due_date: dueDate || undefined,
         assignee_id: assigneeId || undefined,
         project_id: projectId || undefined,
+        // T056: Include recurrence rule if set
+        recurrence_rule: recurrenceRule.frequency ? recurrenceRule : undefined,
+        // T087: Include reminder settings if enabled
+        reminder_settings: reminderSettings.enabled ? reminderSettings : undefined,
       });
 
       // Reset form
@@ -55,6 +125,22 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
       setDueDate("");
       setAssigneeId("");
       setProjectId("");
+      // T056: Reset recurrence rule
+      setRecurrenceRule({
+        frequency: null,
+        interval: 1,
+        daysOfWeek: [],
+        dayOfMonth: null,
+        endDate: null,
+        timeOfDay: null,
+      });
+      // T085: Reset reminder settings
+      setReminderSettings({
+        enabled: false,
+        offsets: [],
+        channels: ["email"],
+        custom_message: undefined,
+      });
 
       // Close modal
       onClose();
@@ -201,6 +287,104 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
               <DatePicker
                 value={dueDate}
                 onChange={setDueDate}
+              />
+            </motion.div>
+
+            {/* T056: Recurrence - Full Width */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.26 }}
+              className="space-y-2"
+            >
+              <label className="text-sm font-semibold text-foreground">
+                Recurrence (Optional)
+              </label>
+              <RecurrenceDialog
+                onSave={handleRecurrenceSave}
+                initialRule={recurrenceRule}
+                trigger={
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className={cn(
+                      "w-full px-4 py-3 bg-background border-2 rounded-xl",
+                      "flex items-center justify-between gap-3",
+                      "focus:outline-none focus:ring-0 transition-all duration-200",
+                      "hover:border-input/80",
+                      recurrenceRule.frequency
+                        ? "border-accent/50 ring-2 ring-accent/10"
+                        : "border-input"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className={cn(
+                        "w-4 h-4",
+                        recurrenceRule.frequency ? "text-accent" : "text-muted-foreground"
+                      )} />
+                      <span className="text-sm">
+                        {recurrenceRule.frequency
+                          ? getRecurrenceDisplay()
+                          : "Set repeat schedule..."}
+                      </span>
+                    </div>
+                    {recurrenceRule.frequency && (
+                      <span className="text-xs text-accent bg-accent/10 px-2 py-1 rounded-md">
+                        Active
+                      </span>
+                    )}
+                  </motion.button>
+                }
+              />
+            </motion.div>
+
+            {/* T085, T086: Reminders - Full Width */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.27 }}
+              className="space-y-2"
+            >
+              <label className="text-sm font-semibold text-foreground">
+                Reminders (Optional)
+              </label>
+              <ReminderSettings
+                onSave={handleReminderSave}
+                initialSettings={reminderSettings}
+                trigger={
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className={cn(
+                      "w-full px-4 py-3 bg-background border-2 rounded-xl",
+                      "flex items-center justify-between gap-3",
+                      "focus:outline-none focus:ring-0 transition-all duration-200",
+                      "hover:border-input/80",
+                      reminderSettings.enabled && reminderSettings.offsets.length > 0
+                        ? "border-blue-500/50 ring-2 ring-blue-500/10"
+                        : "border-input"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bell className={cn(
+                        "w-4 h-4",
+                        reminderSettings.enabled && reminderSettings.offsets.length > 0 ? "text-blue-500" : "text-muted-foreground"
+                      )} />
+                      <span className="text-sm">
+                        {reminderSettings.enabled && reminderSettings.offsets.length > 0
+                          ? getReminderDisplay()
+                          : "Set reminders..."}
+                      </span>
+                    </div>
+                    {reminderSettings.enabled && reminderSettings.offsets.length > 0 && (
+                      <span className="text-xs text-blue-500 bg-blue-500/10 px-2 py-1 rounded-md">
+                        Active
+                      </span>
+                    )}
+                  </motion.button>
+                }
               />
             </motion.div>
 

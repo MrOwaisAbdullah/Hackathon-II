@@ -1,0 +1,22 @@
+# TeamFlow Kubernetes Namespace
+# This namespace contains all TeamFlow application resources
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: teamflow
+  labels:
+    name: teamflow
+    app: teamflow
+    environment: production
+
+---
+# Staging namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: teamflow-staging
+  labels:
+    name: teamflow-staging
+    app: teamflow
+    environment: staging

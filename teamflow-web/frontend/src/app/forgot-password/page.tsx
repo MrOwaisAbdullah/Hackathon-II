@@ -17,8 +17,10 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
-      // TODO: Implement actual API call when backend is ready
-      // For now, simulate the API call
+      // Password reset API endpoint is not yet implemented.
+      // To implement, add /api/auth/forgot-password endpoint to backend
+      // that sends a reset email via SendGrid.
+      // For now, simulate the API call for UI demonstration.
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Simulate success

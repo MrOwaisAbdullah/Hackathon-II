@@ -1,0 +1,58 @@
+# Dapr Pub/Sub Component Configuration for Kafka/Redpanda
+# This component enables event-driven messaging for task events, reminders, and real-time updates
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: teamflow
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker addresses
+    - name: brokers
+      value: "redpanda-0.redpanda.kafka.svc.cluster.local:9092"
+
+    # Consumer group for Dapr
+    - name: consumerGroup
+      value: "teamflow-consumer-group"
+
+    # Client ID for this Dapr sidecar
+    - name: clientID
+      value: "teamflow-dapr"
+
+    # Initial offset when no committed offset exists
+    - name: initialOffset
+      value: "newest"
+
+    # Auto-commit interval (milliseconds)
+    - name: autoCommitInterval
+      value: "5000"
+
+    # Session timeout (milliseconds)
+    - name: sessionTimeout
+      value: "10000"
+
+    # Heartbeat interval (milliseconds)
+    - name: heartbeatInterval
+      value: "3000"
+
+    # Maximum number of messages fetched in a single request
+    - name: maxMessageBytes
+      value: "1048576"
+
+    # Enable TLS (set to true for production)
+    - name: enableTLS
+      value: "false"
+
+    # SASL authentication type (none, plain, scram_sha256, scram_sha512)
+    - name: saslType
+      value: "none"
+
+# Scopes for topic subscription (optional - restricts which apps can subscribe)
+scopes:
+  teamflow-backend: ["task-events", "reminders", "time-logged", "task-updates"]
+  recurring-task-service: ["task-events"]
+  notification-service: ["reminders"]
+  realtime-sync-service: ["task-events", "task-updates"]

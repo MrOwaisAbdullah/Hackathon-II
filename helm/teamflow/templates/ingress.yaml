@@ -1,24 +1,79 @@
+# T138, T114: Kubernetes Ingress for TeamFlow
+# Includes WebSocket routes with sticky sessions for real-time sync
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: teamflow-ingress
+  name: {{ include "teamflow.fullname" . }}-ingress
   namespace: {{ .Values.namespace }}
   annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # T138: TLS certificate configuration
+    {{- if .Values.ingress.certManager }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.certManager }}
+    {{- end }}
+
+    # T114: WebSocket support annotations
+    nginx.ingress.kubernetes.io/websocket-services: "realtime-sync-service"
+
+    # Sticky sessions for WebSocket (required for real-time sync)
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "3600"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Lax"
+
+    # Client body size limit (for file uploads, etc.)
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # Timeout for long-running requests
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+
+    # CORS headers
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With"
+
+    # SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | default "nginx" }}
+
+  {{- if .Values.ingress.tls }}
+  tls:
+  {{- range .Values.ingress.tls }}
+  - hosts:
+    {{- range .hosts }}
+    - {{ . }}
+    {{- end }}
+    secretName: {{ .secretName }}
+  {{- end }}
+  {{- end }}
+
   rules:
 {{- range .Values.ingress.hosts }}
   - host: {{ .host }}
     http:
       paths:
 {{- range .paths }}
-      - path: {{ .path }}
-        pathType: {{ .pathType }}
-        backend:
-          service:
-            name: {{ .service }}
-            port:
-              number: {{ .port }}
+        # T114: Special handling for WebSocket routes
+        {{- if eq .service "realtime-sync-service" }}
+        - path: {{ .path }}
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ .service }}
+              port:
+                number: {{ .port }}
+        {{- else }}
+        - path: {{ .path }}
+          pathType: Prefix
+          backend:
+            service:
+              name: {{ .service }}
+              port:
+                number: {{ .port }}
+        {{- end }}
 {{- end }}
 {{- end }}

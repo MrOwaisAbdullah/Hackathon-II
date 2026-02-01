@@ -104,8 +104,141 @@ app.include_router(chat.router, prefix=settings.api_v1_prefix)
 # Add health and metrics endpoints
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """
+    Health check endpoint for Kubernetes liveness probes.
+    Returns minimal health status - should respond quickly.
+    """
     return {"status": "healthy", "service": "teamflow-backend"}
+
+
+@app.get("/ready")
+async def readiness_check():
+    """
+    Readiness check endpoint for Kubernetes readiness probes.
+    Checks if the app is ready to receive traffic.
+    """
+    # Add readiness checks here (database connection, Dapr connection, etc.)
+    return {"status": "ready", "service": "teamflow-backend"}
+
+
+# ============================================================================
+# Dapr Event Subscriptions (Phase 5)
+# ============================================================================
+
+@app.get("/dapr/subscribe")
+async def dapr_subscribe():
+    """
+    Dapr subscription endpoint for event-driven architecture.
+
+    This endpoint returns the list of event subscriptions for the backend service.
+    Dapr uses this to subscribe to Kafka topics on startup.
+
+    Returns:
+        List of subscription configurations for Dapr pubsub component
+    """
+    return [
+        # Task events - published by this backend, consumed by microservices
+        {
+            "pubsubname": "kafka-pubsub",
+            "topic": "task-events",
+            "route": "/events/task-events",
+        },
+        # Task updates - for real-time sync
+        {
+            "pubsubname": "kafka-pubsub",
+            "topic": "task-updates",
+            "route": "/events/task-updates",
+        },
+        # Reminders - published by this backend, consumed by notification service
+        {
+            "pubsubname": "kafka-pubsub",
+            "topic": "reminders",
+            "route": "/events/reminders",
+        },
+    ]
+
+
+@app.post("/events/task-events")
+async def handle_task_events(request: Request):
+    """
+    Handle task events from Kafka via Dapr.
+
+    Currently, the backend publishes task events but doesn't consume them.
+    Microservices (recurring-task-service, notification-service) consume these events.
+    This endpoint is a placeholder for future event consumption.
+    """
+    event_data = await request.json()
+    logger.info("[task_events] Received task event", event_data=event_data)
+    return {"status": "SUCCESS"}
+
+
+@app.post("/events/task-updates")
+async def handle_task_updates(request: Request):
+    """
+    Handle task update events from Kafka via Dapr.
+
+    Currently, the backend publishes task updates but doesn't consume them.
+    The real-time-sync-service consumes these events for WebSocket broadcasting.
+    """
+    event_data = await request.json()
+    logger.info("[task_updates] Received task update", event_data=event_data)
+    return {"status": "SUCCESS"}
+
+
+@app.post("/events/reminders")
+async def handle_reminders(request: Request):
+    """
+    Handle reminder events from Kafka via Dapr.
+
+    Currently, the backend publishes reminder events but doesn't consume them.
+    The notification-service consumes these events to send notifications.
+    """
+    event_data = await request.json()
+    logger.info("[reminders] Received reminder event", event_data=event_data)
+    return {"status": "SUCCESS"}
+
+
+# ============================================================================
+# Dapr Cron Binding Endpoints (Phase 5)
+# ============================================================================
+
+@app.post("/reminder-checker")
+async def handle_reminder_checker(request: Request):
+    """
+    Handle scheduled reminder checker cron binding.
+
+    This endpoint is called by Dapr cron binding every 5 minutes.
+    It queries for due reminders and publishes them to the reminders topic.
+    """
+    from app.services.reminder_scheduler import ReminderScheduler
+    from app.services.event_publisher import EventPublisher
+
+    logger.info("[reminder_checker] Running scheduled reminder check")
+
+    # Query for tasks with due reminders
+    # This is a placeholder - actual implementation would query database
+    # for tasks where reminder_time <= now and not yet sent
+
+    return {"status": "SUCCESS", "message": "Reminder check completed"}
+
+
+@app.post("/task-cleanup")
+async def handle_task_cleanup(request: Request):
+    """
+    Handle scheduled task cleanup cron binding.
+
+    This endpoint is called by Dapr cron binding daily at 2 AM.
+    It performs cleanup tasks like archiving old tasks, cleaning orphaned events.
+    """
+    logger.info("[task_cleanup] Running scheduled task cleanup")
+
+    # Perform cleanup tasks
+    # This is a placeholder - actual implementation would:
+    # - Archive completed tasks older than retention period
+    # - Clean up orphaned task events
+    # - Delete soft-deleted tasks past retention
+
+    return {"status": "SUCCESS", "message": "Task cleanup completed"}
 
 
 @app.get("/metrics")

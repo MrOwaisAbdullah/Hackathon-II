@@ -1,0 +1,15 @@
+# T111: Helm Chart for RealtimeSyncService
+
+apiVersion: v2
+name: realtime-sync-service
+description: TeamFlow Real-Time Sync Service - WebSocket task updates
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - teamflow
+  - websocket
+  - realtime
+  - sync
+maintainers:
+  - name: TeamFlow

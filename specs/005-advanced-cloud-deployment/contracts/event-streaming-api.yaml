@@ -1,0 +1,626 @@
+# Event Streaming API Contracts (Kafka/Redpanda)
+
+**Feature**: 005-advanced-cloud-deployment | **Version**: 1.0.0 | **Date**: 2026-01-29
+
+---
+
+## Overview
+
+This document defines the Kafka event streaming contracts for the Phase 5 Advanced Cloud Deployment. All events follow the CloudEvents specification format.
+
+---
+
+## Event Envelope Format
+
+All events use CloudEvents 1.0 specification:
+
+```json
+{
+  "specversion": "1.0",
+  "id": "uuid",
+  "source": "/teamflow/{service}",
+  "type": "com.teamflow.{entity}.{action}",
+  "datacontenttype": "application/json",
+  "subject": "{entity-id}",
+  "time": "2026-01-29T12:00:00Z",
+  "data": { /* Event-specific payload */ }
+}
+```
+
+**Field Definitions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `specversion` | string | Yes | CloudEvents spec version (always "1.0") |
+| `id` | string (UUID) | Yes | Unique event identifier |
+| `source` | string | Yes | Service that generated the event (e.g., `/teamflow/backend`) |
+| `type` | string | Yes | Event type following naming convention |
+| `datacontenttype` | string | Yes | MIME type of data (always `application/json`) |
+| `subject` | string | Yes | ID of the entity this event relates to |
+| `time` | string (ISO 8601) | Yes | Timestamp when event occurred |
+| `data` | object | Yes | Event-specific payload |
+
+---
+
+## Kafka Topics
+
+| Topic Name | Partitions | Replication | Retention | Purpose |
+|------------|------------|-------------|-----------|---------|
+| `task-events` | 3 | 1 (dev) / 3 (prod) | 7 days | All task state changes |
+| `reminders` | 3 | 1 (dev) / 3 (prod) | 7 days | Reminder notifications |
+| `time-logged` | 1 | 1 (dev) / 3 (prod) | 30 days | Time tracking events |
+| `task-updates` | 3 | 1 (dev) / 3 (prod) | 1 day | Real-time sync events |
+
+---
+
+## Topic: task-events
+
+**Purpose**: Capture all task state changes for audit trail, recurrence processing, and real-time sync.
+
+**Event Types**:
+
+### 1. Task Created
+
+**Type**: `com.teamflow.task.created`
+
+**Trigger**: New task created via API or UI
+
+**Data Schema**:
+```json
+{
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "project_id": "uuid",
+  "title": "string",
+  "description": "string | null",
+  "status": "todo | doing | done | cancelled",
+  "priority": "low | medium | high | urgent",
+  "assignee_id": "uuid | null",
+  "due_at": "ISO 8601 | null",
+  "tags": ["string"],
+  "recurrence_rule": {
+    "frequency": "daily | weekly | monthly | yearly",
+    "interval": 1,
+    "days_of_week": ["Monday", "Wednesday"],
+    "day_of_month": 15,
+    "end_date": "ISO 8601 | null",
+    "max_occurrences": 10 | null
+  } | null,
+  "reminder_settings": {
+    "offsets": ["15m", "1h", "1d", "1w"],
+    "channels": ["email", "push"],
+    "custom_message": "string | null"
+  } | null,
+  "created_at": "ISO 8601"
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.created",
+  "datacontenttype": "application/json",
+  "subject": "task-123",
+  "time": "2026-01-29T12:00:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "project_id": "123e4567-e89b-12d3-a456-426614174002",
+    "title": "Fix navbar bug",
+    "description": "Navbar overlaps with hero section on mobile devices",
+    "status": "todo",
+    "priority": "high",
+    "assignee_id": "123e4567-e89b-12d3-a456-426614174003",
+    "due_at": "2026-02-01T17:00:00Z",
+    "tags": ["bug", "frontend", "urgent"],
+    "recurrence_rule": null,
+    "reminder_settings": {
+      "offsets": ["1d"],
+      "channels": ["email"],
+      "custom_message": null
+    },
+    "created_at": "2026-01-29T12:00:00Z"
+  }
+}
+```
+
+---
+
+### 2. Task Updated
+
+**Type**: `com.teamflow.task.updated`
+
+**Trigger**: Task fields modified (title, description, priority, etc.)
+
+**Data Schema**:
+```json
+{
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "changes": {
+    "field_name": {
+      "from": "old_value",
+      "to": "new_value"
+    }
+  },
+  "updated_at": "ISO 8601"
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "650e8400-e29b-41d4-a716-446655440001",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.updated",
+  "datacontenttype": "application/json",
+  "subject": "task-123",
+  "time": "2026-01-29T13:00:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "changes": {
+      "status": {
+        "from": "todo",
+        "to": "doing"
+      },
+      "priority": {
+        "from": "high",
+        "to": "urgent"
+      }
+    },
+    "updated_at": "2026-01-29T13:00:00Z"
+  }
+}
+```
+
+---
+
+### 3. Task Completed
+
+**Type**: `com.teamflow.task.completed`
+
+**Trigger**: Task status changed to `done`
+
+**Data Schema**:
+```json
+{
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "completed_at": "ISO 8601",
+  "next_instance_id": "uuid | null",
+  "recurrence_rule": {
+    "frequency": "daily | weekly | monthly | yearly",
+    "interval": 1,
+    "days_of_week": ["Monday"],
+    "end_date": "ISO 8601 | null",
+    "max_occurrences": 10 | null
+  } | null
+}
+```
+
+**Example** (Recurring Task):
+```json
+{
+  "specversion": "1.0",
+  "id": "750e8400-e29b-41d4-a716-446655440002",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.completed",
+  "datacontenttype": "application/json",
+  "subject": "task-123",
+  "time": "2026-01-29T14:00:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "completed_at": "2026-01-29T14:00:00Z",
+    "next_instance_id": "123e4567-e89b-12d3-a456-426614174004",
+    "recurrence_rule": {
+      "frequency": "weekly",
+      "interval": 1,
+      "days_of_week": ["Monday"],
+      "end_date": null,
+      "max_occurrences": null
+    }
+  }
+}
+```
+
+**Example** (One-Time Task):
+```json
+{
+  "specversion": "1.0",
+  "id": "750e8400-e29b-41d4-a716-446655440003",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.completed",
+  "datacontenttype": "application/json",
+  "subject": "task-456",
+  "time": "2026-01-29T14:30:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174005",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "completed_at": "2026-01-29T14:30:00Z",
+    "next_instance_id": null,
+    "recurrence_rule": null
+  }
+}
+```
+
+---
+
+### 4. Task Deleted
+
+**Type**: `com.teamflow.task.deleted`
+
+**Trigger**: Task soft-deleted or permanently deleted
+
+**Data Schema**:
+```json
+{
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "deleted_at": "ISO 8601",
+  "delete_type": "soft | permanent"
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "850e8400-e29b-41d4-a716-446655440004",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.deleted",
+  "datacontenttype": "application/json",
+  "subject": "task-789",
+  "time": "2026-01-29T15:00:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174006",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "deleted_at": "2026-01-29T15:00:00Z",
+    "delete_type": "soft"
+  }
+}
+```
+
+---
+
+### 5. Task Assigned
+
+**Type**: `com.teamflow.task.assigned`
+
+**Trigger**: Task assigned to user or reassigned
+
+**Data Schema**:
+```json
+{
+  "task_id": "uuid",
+  "assignee_id": "uuid",
+  "assigned_by": "uuid",
+  "previous_assignee_id": "uuid | null",
+  "assigned_at": "ISO 8601"
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "950e8400-e29b-41d4-a716-446655440005",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.assigned",
+  "datacontenttype": "application/json",
+  "subject": "task-234",
+  "time": "2026-01-29T16:00:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174007",
+    "assignee_id": "123e4567-e89b-12d3-a456-426614174008",
+    "assigned_by": "123e4567-e89b-12d3-a456-426614174009",
+    "previous_assignee_id": null,
+    "assigned_at": "2026-01-29T16:00:00Z"
+  }
+}
+```
+
+---
+
+## Topic: reminders
+
+**Purpose**: Trigger reminder notifications for upcoming due dates.
+
+### 1. Reminder Due
+
+**Type**: `com.teamflow.reminder.due`
+
+**Trigger**: Scheduled reminder time reached (via Dapr cron binding)
+
+**Data Schema**:
+```json
+{
+  "reminder_id": "uuid",
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "title": "string",
+  "due_at": "ISO 8601",
+  "remind_at": "ISO 8601",
+  "offset": "15m | 1h | 1d | 1w",
+  "channels": ["email", "push"],
+  "custom_message": "string | null"
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "a50e8400-e29b-41d4-a716-446655440006",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.reminder.due",
+  "datacontenttype": "application/json",
+  "subject": "reminder-001",
+  "time": "2026-01-31T17:00:00Z",
+  "data": {
+    "reminder_id": "123e4567-e89b-12d3-a456-426614174010",
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "title": "Fix navbar bug",
+    "due_at": "2026-02-01T17:00:00Z",
+    "remind_at": "2026-01-31T17:00:00Z",
+    "offset": "1d",
+    "channels": ["email"],
+    "custom_message": "Don't forget this task!"
+  }
+}
+```
+
+---
+
+### 2. Reminder Overdue
+
+**Type**: `com.teamflow.reminder.overdue`
+
+**Trigger**: Task due date passed without completion
+
+**Data Schema**:
+```json
+{
+  "reminder_id": "uuid",
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "manager_id": "uuid",
+  "title": "string",
+  "due_at": "ISO 8601",
+  "overdue_at": "ISO 8601",
+  "channels": ["email"]
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "b50e8400-e29b-41d4-a716-446655440007",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.reminder.overdue",
+  "datacontenttype": "application/json",
+  "subject": "reminder-002",
+  "time": "2026-02-02T09:00:00Z",
+  "data": {
+    "reminder_id": "123e4567-e89b-12d3-a456-426614174011",
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "manager_id": "123e4567-e89b-12d3-a456-426614174009",
+    "title": "Fix navbar bug",
+    "due_at": "2026-02-01T17:00:00Z",
+    "overdue_at": "2026-02-02T09:00:00Z",
+    "channels": ["email"]
+  }
+}
+```
+
+---
+
+## Topic: task-updates
+
+**Purpose**: Real-time synchronization of task changes across connected clients.
+
+### 1. Task Updated (Real-Time)
+
+**Type**: `com.teamflow.task.updated`
+
+**Trigger**: Any task change (created, updated, completed, deleted, assigned)
+
+**Data Schema**:
+```json
+{
+  "task_id": "uuid",
+  "event_type": "created | updated | completed | deleted | assigned",
+  "task": {
+    // Full task object (same as task-created schema)
+  },
+  "updated_by": "uuid",
+  "timestamp": "ISO 8601"
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "c50e8400-e29b-41d4-a716-446655440008",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.task.updated",
+  "datacontenttype": "application/json",
+  "subject": "task-123",
+  "time": "2026-01-29T16:30:00Z",
+  "data": {
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "event_type": "updated",
+    "task": {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "title": "Fix navbar bug",
+      "status": "doing",
+      "priority": "urgent"
+      // ... other fields
+    },
+    "updated_by": "123e4567-e89b-12d3-a456-426614174001",
+    "timestamp": "2026-01-29T16:30:00Z"
+  }
+}
+```
+
+---
+
+## Topic: time-logged
+
+**Purpose**: Track time logged against tasks for billing and profitability analysis.
+
+### 1. Time Entry Created
+
+**Type**: `com.teamflow.time.created`
+
+**Trigger**: User logs time against a task
+
+**Data Schema**:
+```json
+{
+  "time_entry_id": "uuid",
+  "task_id": "uuid",
+  "user_id": "uuid",
+  "project_id": "uuid",
+  "duration_minutes": 120,
+  "description": "string",
+  "logged_at": "ISO 8601",
+  "billable": true
+}
+```
+
+**Example**:
+```json
+{
+  "specversion": "1.0",
+  "id": "d50e8400-e29b-41d4-a716-446655440009",
+  "source": "/teamflow/backend",
+  "type": "com.teamflow.time.created",
+  "datacontenttype": "application/json",
+  "subject": "time-001",
+  "time": "2026-01-29T17:00:00Z",
+  "data": {
+    "time_entry_id": "123e4567-e89b-12d3-a456-426614174012",
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "user_id": "123e4567-e89b-12d3-a456-426614174001",
+    "project_id": "123e4567-e89b-12d3-a456-426614174002",
+    "duration_minutes": 120,
+    "description": "Fixed navbar overlapping issue",
+    "logged_at": "2026-01-29T17:00:00Z",
+    "billable": true
+  }
+}
+```
+
+---
+
+## Consumer Groups
+
+**Naming Convention**: `{service-name}-{service-type}`
+
+| Consumer Group | Service | Topics | Purpose |
+|----------------|---------|--------|---------|
+| `recurring-task-service` | Recurring Task Service | `task-events` | Process task completion events |
+| `notification-service` | Notification Service | `reminders` | Send reminder notifications |
+| `realtime-sync-service` | Real-Time Sync Service | `task-updates`, `task-events` | Broadcast to WebSocket clients |
+| `audit-service` | Audit Service (future) | `task-events`, `reminders`, `time-logged` | Log to database for audit trail |
+| `billing-service` | Billing Service (future) | `time-logged` | Update project profitability |
+
+---
+
+## Partitioning Strategy
+
+**Task Events Topic**: Partition by `task_id`
+- Ensures all events for a single task go to same partition
+- Maintains ordering per task
+- Example: `partition = hash(task_id) % 3`
+
+**Reminders Topic**: Round-robin partitioning
+- No ordering requirement between different tasks
+- Distributes load evenly across partitions
+- Example: Incrementing partition counter
+
+**Task Updates Topic**: Partition by `user_id`
+- Groups events by user for efficient WebSocket broadcasting
+- Example: `partition = hash(user_id) % 3`
+
+---
+
+## Error Handling
+
+### Failed Event Delivery
+
+**Strategy**: Exponential backoff retry with dead letter queue (DLQ)
+
+**Configuration**:
+```yaml
+# Dapr pub/sub component
+spec:
+  metadata:
+    - name: retries
+      value: "3"
+    - name: retryDelay
+      value: "2000"  # 2 seconds
+    - name: backoffPolicy
+      value: "exponential"
+```
+
+**Dead Letter Queue Topic**: `{topic-name}-dlq`
+- Example: `task-events-dlq`
+- Contains failed events for manual inspection
+- Retention: 30 days
+
+---
+
+## Event Ordering Guarantees
+
+| Topic | Ordering Scope | Guarantee |
+|-------|----------------|-----------|
+| `task-events` | Per task_id | Events for same task ordered in partition |
+| `reminders` | Per reminder_id | Best-effort (may be out of order) |
+| `task-updates` | Per user_id | Events for same user ordered in partition |
+| `time-logged` | None | No ordering guarantee |
+
+---
+
+## Event Replay
+
+**Capability**: Replay events from Kafka retention period (7 days)
+
+**Use Cases**:
+- Recover from database corruption
+- Rebuild read models after schema change
+- Debug production issues
+- Train ML models on historical data
+
+**Replay Command**:
+```bash
+# Redpanda CLI
+kubectl exec -it redpanda-0 -n kafka -- \
+  rpk topic consume task-events --from-beginning
+```
+
+**Consumer Reset**:
+```python
+# Python Dapr client
+# Reset consumer group offset to beginning
+await dapr_client.subscribe(
+    pubsub_name="kafka-pubsub",
+    topic="task-events",
+    consumer_group="replay-consumer",
+    reset_offset="earliest"
+)
+```
+
+---
+
+**API Contracts Status**: ✅ Complete - All Kafka topics, event schemas, and consumer patterns defined.

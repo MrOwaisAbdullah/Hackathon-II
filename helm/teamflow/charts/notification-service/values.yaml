@@ -1,0 +1,73 @@
+# T078: Values for NotificationService
+
+replicaCount: 1
+
+image:
+  repository: notification-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 1000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# T079: Dapr sidecar configuration
+dapr:
+  enabled: true
+  appId: "notification-service"
+  logLevel: "info"
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 250m
+  #   memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage:
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment variables
+env:
+  SENDGRID_API_KEY:
+    secretKeyRef:
+      name: sendgrid-credentials
+      key: api-key
+  SENDGRID_FROM_EMAIL: "noreply@teamflow.app"
+  SENDGRID_FROM_NAME: "TeamFlow"
+  MAX_RETRIES: "3"
+  INITIAL_BACKOFF_MS: "1000"
+  BACKOFF_MULTIPLIER: "2.0"

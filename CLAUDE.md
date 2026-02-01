@@ -160,10 +160,26 @@ Before writing infrastructure code, list potential failures:
 
 **kubectl-ai (Natural Language K8s):**
 ```bash
+# Basic deployments
 kubectl-ai "deploy backend with 2 replicas exposing port 8000"
 kubectl-ai "create HPA for frontend when CPU > 70%"
 kubectl-ai "why are the pods in pending state"
 kubectl-ai "show me resource usage in teamflow namespace"
+
+# Phase 5: Microservices
+kubectl-ai "deploy notification service with Dapr sidecar"
+kubectl-ai "create deployment for realtime-sync-service without Dapr"
+kubectl-ai "add sticky session annotations to ingress for WebSocket"
+
+# Phase 5: Kafka & Dapr
+kubectl-ai "show me Dapr components in teamflow namespace"
+kubectl-ai "verify Kafka topics exist in Redpanda"
+kubectl-ai "check Dapr sidecar health status"
+
+# Phase 5: Troubleshooting
+kubectl-ai "why is WebSocket connection dropping"
+kubectl-ai "show me pods with OOMKilled status"
+kubectl-ai "check if cert-manager is issuing certificates"
 ```
 
 **Docker Gordon (AI Docker Assistance):**
@@ -171,12 +187,18 @@ kubectl-ai "show me resource usage in teamflow namespace"
 docker ai "optimize this Dockerfile for smaller size"
 docker ai "what's wrong with this Dockerfile"
 docker ai "create docker-compose for local development"
+
+# Phase 5: Multi-stage builds
+docker ai "create multi-stage Dockerfile for FastAPI with Dapr CLI"
+docker ai "optimize Docker layer caching for faster builds"
 ```
 
 **Kagent (Cluster Analysis):**
 ```bash
 kagent "analyze cluster resource utilization"
 kagent "suggest optimizations for production"
+kagent "show me pods with high memory usage"
+kagent "what are the bottlenecks in my application"
 ```
 
 ---
@@ -220,6 +242,151 @@ async def handle_task_event(data: dict):
     return {"status": "SUCCESS"}
 ```
 
+### Kafka Topics Used in TeamFlow
+| Topic | Purpose | Publisher | Subscribers |
+|-------|---------|-----------|-------------|
+| `task-events` | Task CRUD events | Backend | Notification Service, Realtime Sync |
+| `reminders` | Due date reminders | Reminder Scheduler | Notification Service |
+| `task-updates` | Real-time changes | Backend | Realtime Sync Service |
+| `time-logged` | Time tracking events | Time Service | Analytics Service (future) |
+
+---
+
+## WebSocket Integration (Phase 5)
+
+**IMPORTANT: WebSocket services do NOT use Dapr sidecar** - Dapr does not support WebSocket proxying.
+
+### Realtime Sync Service Pattern
+```python
+from fastapi import WebSocket
+from app.dapr.connection_manager import ConnectionManager
+
+connection_manager = ConnectionManager()
+
+@app.websocket("/ws/tasks")
+async def websocket_tasks_endpoint(websocket: WebSocket):
+    # JWT authentication
+    token = websocket.query_params.get("token")
+    token_data = decode_jwt_token(token)
+
+    # Register connection
+    await connection_manager.register(connection_id, user_id, agency_id, websocket)
+
+    try:
+        while True:
+            # Keep connection alive with ping/pong
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        connection_manager.disconnect(connection_id)
+```
+
+### WebSocket Client with Auto-Reconnect
+```typescript
+export class TaskEventStream extends EventEmitter {
+  private reconnectDelay: number = 1000;  // Start with 1s
+  private maxReconnectDelay: number = 30000;  // Max 30s
+
+  private scheduleReconnect(): void {
+    const delay = Math.min(this.reconnectDelay, this.maxReconnectDelay);
+    this.reconnectTimer = setTimeout(() => {
+      this.connect();
+      this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
+    }, delay);
+  }
+}
+```
+
+### Ingress Configuration for WebSocket
+```yaml
+annotations:
+  nginx.ingress.kubernetes.io/websocket-services: "realtime-sync-service"
+  nginx.ingress.kubernetes.io/affinity: "cookie"
+  nginx.ingress.kubernetes.io/session-cookie-name: "route"
+  nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+  nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+```
+
+---
+
+## CI/CD Pipeline (Phase 5)
+
+### GitHub Actions Workflow Structure
+```yaml
+# .github/workflows/phase5-cloud-deploy.yml
+jobs:
+  build-test:        # Run tests, upload coverage
+  security-scan:     # Trivy vulnerability scan
+  build-images:      # Build & push to GHCR
+  deploy-staging:    # Deploy to staging via Helm
+  integration-tests: # Playwright E2E tests
+  deploy-production: # Manual approval gate
+```
+
+### Deployment Commands (used in CI/CD)
+```bash
+# Staging deployment
+helm upgrade --install teamflow ./helm/teamflow \
+  --namespace teamflow-staging \
+  --create-namespace \
+  --values helm/teamflow/values-staging.yaml \
+  --set image.backend.tag=${GITHUB_SHA} \
+  --set image.frontend.tag=${GITHUB_SHA} \
+  --wait --timeout 10m
+
+# Production deployment (manual approval)
+helm upgrade --install teamflow ./helm/teamflow \
+  --namespace teamflow-production \
+  --create-namespace \
+  --values helm/teamflow/values-production.yaml \
+  --set image.backend.tag=${GITHUB_SHA} \
+  --set image.frontend.tag=${GITHUB_SHA} \
+  --wait --timeout 10m
+```
+
+---
+
+## Production Deployment (Oracle OKE)
+
+### Oracle OKE Always Free Limits
+| Resource | Limit | Usage |
+|----------|-------|-------|
+| OCPUs | 4 total | Backend: 1-2, Frontend: 0.5-1, Microservices: 1 |
+| RAM | 24GB total | Backend: 1GB, Frontend: 512MB, each microservice: 256MB |
+| Storage | 2x 50GB Block Volumes | Not needed (using Neon PostgreSQL) |
+
+### Pre-Deployment Checklist
+```
+□ Dapr installed on cluster: dapr init -k --runtime-version 1.14.0
+□ Kafka/Redpanda deployed: helm install redpanda redpanda/redpanda -n kafka
+□ Topics created: kubectl exec -it redpanda-0 -n kafka -- rpk topic create task-events
+□ GHCR credentials secret created
+□ Database migrations run: kubectl exec -it deployment/teamflow-backend -- alembic upgrade head
+□ Cert-manager installed for TLS
+□ Ingress DNS configured
+```
+
+### Production Deployment Steps
+```bash
+# 1. Create namespace
+kubectl create namespace teamflow-production
+
+# 2. Create secrets
+kubectl create secret generic teamflow-secrets \
+  --from-literal=database-url="$DATABASE_URL" \
+  --from-literal=jwt-secret="$JWT_SECRET" \
+  --from-literal=sendgrid-api-key="$SENDGRID_API_KEY" \
+  --namespace=teamflow-production
+
+# 3. Deploy
+helm install teamflow ./helm/teamflow \
+  --namespace teamflow-production \
+  --values helm/teamflow/values-production.yaml
+
+# 4. Verify
+kubectl get pods -n teamflow-production
+kubectl get ingress -n teamflow-production
+```
+
 ---
 
 ## Failure Prevention
@@ -233,12 +400,22 @@ async def handle_task_event(data: dict):
 - ❌ Missing health check endpoints → K8s can't verify pod health
 - ❌ Resource limits too low → OOM kills in production
 - ❌ Skipping Minikube testing → Cloud deployment surprises
+- ❌ **Using Dapr sidecar with WebSocket** → Connections fail, use direct pod access
 
 ### Deployment Failures
 - ❌ Not using `pool_pre_ping=True` for Neon PostgreSQL → Connection closed errors
 - ❌ Using sync SQLAlchemy patterns with AsyncSession → `query` attribute error
 - ❌ Missing CORS configuration for cross-origin requests → Frontend can't call backend
 - ❌ Branch name mismatch in GitHub Actions (`main` vs `master`)
+- ❌ **Missing sticky sessions for WebSocket** → Connections drop on pod restart
+- ❌ **Not setting WebSocket timeout annotations** → 60s default closes long connections
+
+### Phase 5 Specific Issues
+- ❌ **Dapr pub/sub not receiving events** → Check Kafka topic creation, component configuration
+- ❌ **WebSocket JWT authentication failing** → Verify token is passed as query param
+- ❌ **Reminders not sending** → Check SendGrid API key, topic subscription, cron schedule
+- ❌ **Real-time updates not working** → Verify NO Dapr sidecar on realtime-sync-service
+- ❌ **Certificate errors in production** → Install cert-manager, create ClusterIssuer
 
 ### Prevention Protocol
 1. Always read existing code before modifying
@@ -410,3 +587,60 @@ See `.specify/memory/constitution.md` for:
 - Performance standards
 - Security requirements
 - Architecture patterns
+
+---
+
+## Phase 5 Documentation
+
+For detailed Phase 5 information, see:
+
+| Document | Purpose | Location |
+|----------|---------|----------|
+| **Deployment Troubleshooting** | Common deployment issues and solutions | `docs/DEPLOYMENT-TROUBLESHOOTING.md` |
+| **AIOps Commands Used** | All kubectl-ai, Docker Gordon, Tavily commands | `docs/AIOPS-COMMANDS-USED.md` |
+| **External Services Setup** | Neon, SendGrid, GitHub, Oracle Cloud setup | `docs/EXTERNAL-SERVICES-SETUP.md` |
+| **Production Values** | Oracle OKE Always Free configuration | `helm/teamflow/values-production.yaml` |
+| **Staging Values** | Pre-production environment config | `helm/teamflow/values-staging.yaml` |
+| **Dapr Components** | Kafka pub/sub, state store, secrets | `dapr-components/` |
+| **CI/CD Workflow** | GitHub Actions deployment pipeline | `.github/workflows/phase5-cloud-deploy.yml` |
+
+---
+
+## Quick Diagnosis Commands (Phase 5)
+
+```bash
+# Check all pods in namespace
+kubectl get pods -n teamflow
+
+# Check pod logs for errors
+kubectl logs -l app=teamflow-backend -n teamflow --tail=50
+
+# Describe pod for detailed status
+kubectl describe pod <pod-name> -n teamflow
+
+# Check recent events
+kubectl get events -n teamflow --sort-by='.lastTimestamp'
+
+# Verify Dapr components
+kubectl get components -n teamflow
+
+# Check Kafka topics
+kubectl exec -it redpanda-0 -n kafka -- rpk topic list
+
+# Test database connectivity
+kubectl exec -it deployment/teamflow-backend -n teamflow -- python -c "
+import asyncio
+from app.database import engine
+asyncio.run(engine.connect())
+print('Database OK')
+"
+
+# Check Dapr sidecar status
+kubectl get pods -n teamflow -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'
+
+# View HPA status
+kubectl get hpa -n teamflow
+
+# Check ingress TLS certificate
+kubectl get secret teamflow-tls -n teamflow -o yaml
+```

@@ -22,6 +22,15 @@ spec:
       labels:
         {{- include "teamflow.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: frontend
+      annotations:
+        # Dapr sidecar annotations (Phase 5)
+        {{- if .Values.frontend.dapr.enabled }}
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.frontend.dapr.appId | quote }}
+        dapr.io/app-port: {{ .Values.frontend.dapr.appPort | quote }}
+        dapr.io/enable-app-health-check: {{ .Values.frontend.dapr.enableAppHealthCheck | quote }}
+        dapr.io/config: "dapr-config"
+        {{- end }}
     spec:
       containers:
       - name: frontend
@@ -38,6 +47,9 @@ spec:
               key: NEXT_PUBLIC_API_URL
         - name: NODE_ENV
           value: "production"
+        # Phase 5: WebSocket and PWA configuration
+        - name: NEXT_PUBLIC_WS_URL
+          value: {{ .Values.frontend.env.NEXT_PUBLIC_WS_URL | quote }}
         resources:
           {{- toYaml .Values.frontend.resources | nindent 10 }}
         livenessProbe:

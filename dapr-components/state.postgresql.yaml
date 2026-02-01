@@ -1,0 +1,45 @@
+# Dapr State Store Component Configuration for Neon PostgreSQL
+# This component provides caching for conversation state, user sessions, and temporary data
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: postgres-state
+  namespace: teamflow
+spec:
+  type: state.postgresql
+  version: v1
+  metadata:
+    # PostgreSQL connection string (loaded from Kubernetes secret)
+    - name: connectionString
+      secretKeyRef:
+        name: teamflow-db-credentials
+        key: connection-string
+
+    # Table name for state storage
+    - name: table
+      value: "dapr_state"
+
+    # Clean up expired interval (seconds)
+    - name: cleanupInterval
+      value: "3600"
+
+    # Maximum concurrent connections
+    - name: maxConns
+      value: "10"
+
+    # Query timeout (seconds)
+    - name: queryTimeout
+      value: "30"
+
+    # Maximum item count in a single bulk query
+    - name: maximumItems
+      value: "100"
+
+    # Actor state store (set to true if using Dapr actors)
+    - name: actorStateStore
+      value: "false"
+
+# Key prefix strategy
+# Keys will be stored with format: {{app-id}}||{{key}}
+# Example: teamflow-backend||user-session-12345

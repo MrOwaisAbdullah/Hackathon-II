@@ -1,0 +1,20 @@
+# T110: Requirements for RealtimeSyncService Microservice
+# Python 3.13+ dependencies
+
+# Core Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+websockets>=14.1
+
+# Authentication
+PyJWT>=2.10.0
+python-jose[cryptography]>=3.3.0
+
+# Logging
+structlog>=24.4.0
+
+# Data Validation
+pydantic>=2.10.0
+
+# Async Support
+asyncio>=3.4.3

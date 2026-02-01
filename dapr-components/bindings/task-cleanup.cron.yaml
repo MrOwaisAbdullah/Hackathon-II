@@ -1,0 +1,31 @@
+# Dapr Cron Binding for Task Cleanup
+# Triggers daily at 2 AM to clean up old/deleted tasks
+
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: task-cleanup-cron
+  namespace: teamflow
+spec:
+  type: bindings.cron
+  version: v1
+  metadata:
+    # Cron expression: daily at 2 AM
+    - name: schedule
+      value: "0 2 * * *"
+
+    # Data to send to the endpoint (optional)
+    - name: data
+      value: '{"action": "cleanup_tasks"}'
+
+    # HTTP method
+    - name: method
+      value: "POST"
+
+# This binding sends POST requests to: /task-cleanup
+# The endpoint should be implemented in the backend or a microservice
+# The request body will contain: {"action": "cleanup_tasks"}
+# The endpoint should perform:
+# - Soft-delete tasks older than retention period (e.g., 90 days)
+# - Clean up orphaned task events
+# - Archive completed tasks

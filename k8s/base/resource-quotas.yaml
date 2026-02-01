@@ -1,0 +1,70 @@
+# TeamFlow Resource Quotas for Oracle OKE Always Free Tier
+# Oracle OKE Always Free provides: 4 OCPUs and 24GB RAM per cluster
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: teamflow-compute-resources
+  namespace: teamflow
+spec:
+  hard:
+    # CPU limits (Oracle OKE Always Free: 4 OCPUs)
+    requests.cpu: "3"
+    requests.memory: 18Gi
+    limits.cpu: "4"
+    limits.memory: 22Gi
+
+    # Pod limits
+    pods: "20"
+
+---
+# Resource quota for staging namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: teamflow-staging-compute-resources
+  namespace: teamflow-staging
+spec:
+  hard:
+    # Lower limits for staging
+    requests.cpu: "2"
+    requests.memory: 12Gi
+    limits.cpu: "3"
+    limits.memory: 16Gi
+
+    # Pod limits
+    pods: "10"
+
+---
+# LimitRange to set default resource requests/limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: teamflow-default-limits
+  namespace: teamflow
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+
+---
+# LimitRange for staging
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: teamflow-staging-default-limits
+  namespace: teamflow-staging
+spec:
+  limits:
+  - default:
+      cpu: "250m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Container

@@ -1,0 +1,169 @@
+# Staging Environment Values for TeamFlow
+# Used for pre-production testing before production deployment
+
+namespace: teamflow-staging
+
+# Override image repository for staging
+imageRegistry:
+  url: "ghcr.io"
+  secretName: "ghcr-credentials"
+
+# ============ FRONTEND ============
+frontend:
+  name: teamflow-frontend
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/teamflow-frontend
+    tag: "latest"
+    pullPolicy: Always
+
+  dapr:
+    enabled: false
+
+  resources:
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+  env:
+    NEXT_PUBLIC_API_URL: "https://staging.teamflow.example.com"
+    BACKEND_URL: "http://teamflow-backend.teamflow-staging.svc.cluster.local:8000"
+    NEXT_PUBLIC_WS_URL: "wss://staging.teamflow.example.com/ws/tasks"
+
+# ============ BACKEND ============
+backend:
+  name: teamflow-backend
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/teamflow-backend
+    tag: "latest"
+    pullPolicy: Always
+
+  dapr:
+    enabled: true
+    appId: "teamflow-backend"
+    appPort: 8000
+
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "150m"
+      memory: "256Mi"
+
+  env:
+    DATABASE_URL: ""  # Set via Kubernetes Secret (use staging Neon DB)
+    JWT_SECRET: ""     # Set via Kubernetes Secret
+    SENDGRID_API_KEY: ""  # Set via Kubernetes Secret (use staging SendGrid key)
+
+# ============ MICROSERVICES ============
+# Recurring Task Service
+recurringTask:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/recurring-task-service
+    tag: "latest"
+    pullPolicy: Always
+
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+# Notification Service
+notification:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/notification-service
+    tag: "latest"
+    pullPolicy: Always
+
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+# Realtime Sync Service
+realtimeSync:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/realtime-sync-service
+    tag: "latest"
+    pullPolicy: Always
+
+  # No Dapr for WebSocket service
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+# ============ INGRESS ============
+ingress:
+  enabled: true
+  className: nginx
+  certManager: "letsencrypt-staging"
+
+  annotations:
+    # WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "realtime-sync-service"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Requested-With"
+
+  hosts:
+    - host: staging.teamflow.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: teamflow-backend
+          port: 8000
+        - path: /ws
+          pathType: Prefix
+          service: realtime-sync-service
+          port: 8000
+        - path: /
+          pathType: Prefix
+          service: teamflow-frontend
+          port: 3000
+
+  tls:
+    - secretName: teamflow-staging-tls
+      hosts:
+        - staging.teamflow.example.com
+
+# ============ HPA ============
+autoscaling:
+  backend:
+    minReplicas: 1
+    maxReplicas: 2
+  frontend:
+    minReplicas: 1
+    maxReplicas: 2

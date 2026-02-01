@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -18,10 +18,12 @@ import { TaskCard } from "./TaskCard";
 import { UserFilter, UserFilterValue } from "./UserFilter";
 import { useUpdateTask } from "@/lib/query";
 import { useTasksWithAssignee } from "@/hooks/useTasksWithAssignee";
+import { useRealtimeTasks } from "@/hooks/useRealtimeTasks";
 import type { Task } from "@/types";
 import { Plus, RefreshCw, WifiOff } from "lucide-react";
 import { TaskForm } from "../task/TaskForm";
 import { TaskDrawer } from "../task/TaskDrawer";
+import { ConnectionStatus } from "../tasks/ConnectionStatus";
 import { triggerConfetti } from "@/lib/confetti";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOnline } from "@/hooks/useOnline";
@@ -46,6 +48,29 @@ export function TaskBoard() {
   const [userFilter, setUserFilter] = useState<UserFilterValue>("all");
   const [drawerTaskId, setDrawerTaskId] = useState<string | undefined>();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // T120-T122: Enable real-time task updates via WebSocket
+  const [wsToken, setWsToken] = useState<string | null>(null);
+
+  // Get JWT token for WebSocket authentication
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setWsToken(token);
+    }
+  }, []);
+
+  // T121: Real-time task updates with auto-reconnect
+  // WebSocket URL: ws://localhost:8000/ws/tasks (local) or wss://domain/ws/tasks (production)
+  const wsUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/tasks`
+    : 'ws://localhost:8000/ws/tasks';
+
+  const realtimeState = useRealtimeTasks({
+    url: wsUrl,
+    token: wsToken || '',
+    enabled: !!wsToken,
+  });
 
   // Filter tasks based on user selection
   const filteredTasks = useMemo(() => {
@@ -208,6 +233,13 @@ export function TaskBoard() {
             </p>
           </div>
           <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {/* T122, T123: Real-time connection status indicator */}
+            {wsToken && (
+              <ConnectionStatus
+                state={realtimeState.state}
+                reconnectingIn={realtimeState.reconnectingIn}
+              />
+            )}
             <UserFilter
               value={userFilter}
               onChange={setUserFilter}

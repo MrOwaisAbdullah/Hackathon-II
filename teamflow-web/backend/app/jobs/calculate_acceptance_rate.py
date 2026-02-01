@@ -43,29 +43,26 @@ def calculate_acceptance_rate(
     """
     cutoff_date = datetime.utcnow() - timedelta(days=days)
 
-    # TODO: Query from recommendation_acceptance_log table when implemented
-    # For now, return mock data structure
-
-    # Future implementation:
-    # from app.models.recommendation_log import RecommendationAcceptanceLog
+    # Acceptance tracking not yet implemented. Requires:
+    # 1. Create RecommendationAcceptanceLog model
+    # 2. Log acceptance/rejection events in recommendation endpoints
+    # 3. Query logs for time period and calculate rate
     #
+    # When implemented, query would be:
+    # from app.models.recommendation_log import RecommendationAcceptanceLog
     # query = select(RecommendationAcceptanceLog).where(
     #     RecommendationAcceptanceLog.created_at >= cutoff_date
     # )
-    #
     # if recommendation_type:
     #     query = query.where(
     #         RecommendationAcceptanceLog.recommendation_type == recommendation_type
     #     )
-    #
     # logs = session.exec(query).all()
-    #
     # total = len(logs)
     # accepted = sum(1 for log in logs if log.action == 'accepted')
-    # rejected = sum(1 for log in logs if log.action == 'rejected')
     # rate = (accepted / total * 100) if total > 0 else 0.0
 
-    # Mock implementation
+    # Placeholder implementation - returns zero acceptance rate
     total = 0
     accepted = 0
     rejected = 0
@@ -139,8 +136,9 @@ def calculate_trending_acceptance(
         period_end = current_date - (timedelta(days=i) * delta)
         period_start = period_end - delta
 
-        # TODO: Query actual data for this period
-        # For now, return mock trend data
+        # Trend calculation depends on acceptance log implementation.
+        # See calculate_acceptance_rate() for requirements.
+        # When implemented, query logs for each period and calculate rate.
         trends.append({
             "period_start": period_start.isoformat(),
             "period_end": period_end.isoformat(),

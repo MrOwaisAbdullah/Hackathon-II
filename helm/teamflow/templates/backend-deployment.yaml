@@ -22,6 +22,20 @@ spec:
       labels:
         {{- include "teamflow.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: backend
+      annotations:
+        # Dapr sidecar annotations (Phase 5)
+        {{- if .Values.backend.dapr.enabled }}
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ .Values.backend.dapr.appId | quote }}
+        dapr.io/app-port: {{ .Values.backend.dapr.appPort | quote }}
+        dapr.io/enable-app-health-check: {{ .Values.backend.dapr.enableAppHealthCheck | quote }}
+        {{- if .Values.backend.dapr.enableMetrics }}
+        dapr.io/enable-metrics: "true"
+        dapr.io/metrics-port: {{ .Values.backend.dapr.metricsPort | quote }}
+        {{- end }}
+        dapr.io/log-level: {{ .Values.backend.dapr.logLevel | quote }}
+        dapr.io/config: "dapr-config"
+        {{- end }}
     spec:
       containers:
       - name: backend
@@ -73,6 +87,13 @@ spec:
               name: teamflow-secrets
               key: QDRANT_API_KEY
               optional: true
+        # Phase 5: Dapr environment variables
+        {{- if .Values.backend.dapr.enabled }}
+        - name: DAPR_HTTP_PORT
+          value: "3500"
+        - name: DAPR_GRPC_PORT
+          value: "50001"
+        {{- end }}
         resources:
           {{- toYaml .Values.backend.resources | nindent 10 }}
         livenessProbe:

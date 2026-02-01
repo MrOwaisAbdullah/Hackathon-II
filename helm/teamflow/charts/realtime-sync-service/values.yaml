@@ -1,0 +1,77 @@
+# T111: Values for RealtimeSyncService
+
+replicaCount: 2
+
+image:
+  repository: realtime-sync-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 1000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# T113: NO Dapr sidecar for realtime-sync-service
+# WebSocket connections are not supported by Dapr sidecar
+# We use direct K8s service instead
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 250m
+  #   memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage:
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+  # Pod anti-affinity to spread replicas across nodes
+  # podAntiAffinity:
+  #   requiredDuringSchedulingIgnoredDuringExecution:
+  #   - labelSelector:
+  #       matchExpressions:
+  #       - key: app
+  #         operator: In
+  #         values:
+  #         - realtime-sync-service
+  #     topologyKey: kubernetes.io/hostname
+
+# Environment variables
+env:
+  JWT_SECRET:
+    secretKeyRef:
+      name: jwt-secret
+      key: secret
+  JWT_ALGORITHM: "HS256"

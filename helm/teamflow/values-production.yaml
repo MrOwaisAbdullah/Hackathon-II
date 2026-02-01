@@ -1,0 +1,310 @@
+# T131: Production Values for Oracle OKE Always Free Deployment
+#
+# Oracle OKE Always Free Tier Limits:
+# - 4 OCPUs total across all clusters
+# - 24 GB memory total
+# - 2 Block volumes (50 GB each, balanced)
+# - Load balancer: 1 public, 1 private (10 Mbps each)
+# - Egress: 10 TB/month
+#
+# This values file respects these limits while providing production-ready configuration.
+
+namespace: teamflow-prod
+
+# Dapr Configuration
+dapr:
+  enabled: true
+  version: "1.14.0"
+  config: |
+    apiVersion: dapr.io/v1alpha1
+    kind: Configuration
+    metadata:
+      name: dapr-config
+    spec:
+      features:
+        - name: Resiliency
+          enabled: true
+      appProtocol: http
+      tracing:
+        samplingRate: "0.1"  # 10% sampling in production
+
+# Image Registry Configuration
+imageRegistry:
+  # Replace with your GitHub Container Registry URL
+  # e.g., "ghcr.io/yourusername"
+  url: "ghcr.io"
+  # Image pull secret for private registry
+  secretName: "ghcr-credentials"
+
+# ============ FRONTEND ============
+frontend:
+  name: teamflow-frontend
+  replicaCount: 2  # 2 replicas for high availability
+
+  image:
+    repository: ghcr.io/yourusername/teamflow-frontend
+    tag: "latest"  # Should be replaced with SHA tags in CI/CD
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+
+  # Dapr sidecar for frontend (optional, for future state management)
+  dapr:
+    enabled: false  # Frontend doesn't need Dapr
+
+  # Oracle OKE Always Free: 2 OCPUs, 12 GB max per cluster
+  # Allocate conservatively for 3 services + overhead
+  resources:
+    limits:
+      cpu: "500m"      # 0.5 CPU cores
+      memory: "256Mi"  # 256 MB
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+  env:
+    NEXT_PUBLIC_API_URL: "https://teamflow.example.com"
+    BACKEND_URL: "http://teamflow-backend.teamflow-prod.svc.cluster.local:8000"
+    NEXT_PUBLIC_WS_URL: "wss://teamflow.example.com/ws/tasks"
+
+  # Pod anti-affinity to spread replicas
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - teamflow-frontend
+          topologyKey: kubernetes.io/hostname
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+# ============ BACKEND ============
+backend:
+  name: teamflow-backend
+  replicaCount: 2  # 2 replicas for high availability
+
+  image:
+    repository: ghcr.io/yourusername/teamflow-backend
+    tag: "latest"
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+
+  # Dapr sidecar for backend
+  dapr:
+    enabled: true
+    appId: "teamflow-backend"
+    appPort: 8000
+    enableAppHealthCheck: true
+    enableMetrics: true
+    metricsPort: 9090
+    logLevel: "info"
+
+  # Oracle OKE Always Free resource limits
+  resources:
+    limits:
+      cpu: "1000m"     # 1 CPU core (can burst to unused capacity)
+      memory: "512Mi"  # 512 MB
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+
+  env:
+    DATABASE_URL: ""  # Set via Kubernetes Secret
+    JWT_SECRET: ""     # Set via Kubernetes Secret
+    SENDGRID_API_KEY: ""  # Set via Kubernetes Secret
+
+  # HPA for backend (scale based on CPU)
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - teamflow-backend
+          topologyKey: kubernetes.io/hostname
+
+# ============ MICROSERVICES ============
+# These services share the Always Free tier resources
+
+# Recurring Task Service
+recurring-task-service:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/recurring-task-service
+    tag: "latest"
+    pullPolicy: Always
+
+  resources:
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+  # Notification Service
+notification-service:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/yourusername/notification-service
+    tag: "latest"
+    pullPolicy: Always
+
+  resources:
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+  # Realtime Sync Service (WebSocket)
+  realtime-sync-service:
+  enabled: true
+  replicaCount: 2  # 2 replicas for WebSocket high availability
+
+  image:
+    repository: ghcr.io/yourusername/realtime-sync-service
+    tag: "latest"
+    pullPolicy: Always
+
+  resources:
+    limits:
+      cpu: "400m"
+      memory: "256Mi"
+    requests:
+      cpu: "150m"
+      memory: "128Mi"
+
+  # Pod affinity for WebSocket (sticky sessions needed)
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - realtime-sync-service
+          topologyKey: kubernetes.io/hostname
+
+# ============ INGRESS ============
+ingress:
+  enabled: true
+  className: "nginx"  # or "traefik" for Traefik
+  annotations:
+    # TLS configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # WebSocket support (T114)
+    nginx.ingress.kubernetes.io/websocket-services: "realtime-sync-service"
+    # Client body size limit
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Timeout for long-running requests
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: teamflow.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: teamflow-backend
+          port: 8000
+        - path: /ws
+          pathType: Prefix
+          service: realtime-sync-service
+          port: 8000
+        - path: /
+          pathType: Prefix
+          service: teamflow-frontend
+          port: 3000
+  tls:
+    - secretName: teamflow-tls
+      hosts:
+        - teamflow.example.com
+
+# ============ KAFKA / REDPANDA ============
+# Using external Redpanda deployment
+redpanda:
+  enabled: true
+  # Redpanda chart values
+  chart:
+    version: "0.7.0"
+    repository: "https://redpanda-data.github.io/redpanda-charts"
+    name: "redpanda"
+
+  # Resource limits for Always Free tier
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+
+  # Topics to create
+  topics:
+    - name: task-events
+      partitions: 3
+      replicationFactor: 1
+    - name: reminders
+      partitions: 3
+      replicationFactor: 1
+    - name: task-updates
+      partitions: 3
+      replicationFactor: 1
+    - name: time-logged
+      partitions: 1
+      replicationFactor: 1
+
+# ============ SECRETS CONFIGURATION ============
+# Secrets should be created separately using:
+# kubectl create secret generic teamflow-secrets --from-literal=database-url='...' --namespace=teamflow-prod
+# kubectl create secret generic jwt-secret --from-literal=secret='...' --namespace=teamflow-prod
+# kubectl create secret generic sendgrid-credentials --from-literal=api-key='...' --namespace=teamflow-prod
+# kubectl create secret docker-registry ghcr-credentials --docker-server=ghcr.io --docker-username=... --docker-password=... --namespace=teamflow-prod
