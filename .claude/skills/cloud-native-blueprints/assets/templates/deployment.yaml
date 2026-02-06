@@ -26,6 +26,23 @@ spec:
         - name: {{ .name }}
           value: {{ .value | quote }}
         {{- end }}
+        {{- range $key, $value := .Values.envFromSecret }}
+        - name: {{ $key }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $value.secret }}
+              key: {{ $value.key }}
+              {{- if $value.optional }}
+              optional: true
+              {{- end }}
+        {{- end }}
+        {{- range $key, $value := .Values.envFromConfigMap }}
+        - name: {{ $key }}
+          valueFrom:
+            configMapKeyRef:
+              name: {{ $value.config }}
+              key: {{ $value.key }}
+        {{- end }}
         {{- with .Values.envFrom }}
         envFrom:
           {{- toYaml . | nindent 10 }}

@@ -141,31 +141,114 @@ appVersion: "1.0"
 ### values.yaml Template
 
 ```yaml
-replicaCount: 2
+namespace: teamflow
 
-image:
-  repository: your-registry/app-name
-  tag: latest
-  pullPolicy: IfNotPresent
+# Frontend configuration
+frontend:
+  name: teamflow-frontend
+  replicaCount: 2
+  image:
+    repository: teamflow/frontend
+    tag: minikube
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    # CRITICAL: Empty string for relative paths (browser origin)
+    NEXT_PUBLIC_API_URL: ""
+    # Internal K8s service URL for Next.js API proxy
+    BACKEND_URL: "http://teamflow-backend.teamflow.svc.cluster.local:8000"
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
 
-service:
-  type: ClusterIP
-  port: 80
-  targetPort: 8000
+# Backend configuration
+backend:
+  name: teamflow-backend
+  replicaCount: 2
+  image:
+    repository: teamflow/backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
+# Secrets (never commit actual values to git)
+secrets:
+  databaseUrl: "postgresql://user:password@host:port/database?sslmode=require"
+  openaiApiKey: "sk-proj-your-openai-api-key-here"
+  secretKey: "your-secret-key-here"
+  betterAuthSecret: "your-betterauth-secret-here"
+  geminiApiKey: ""
+  openrouterApiKey: ""
+  qdrantApiKey: ""
 
-autoscaling:
-  enabled: false
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: teamflow.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: teamflow-frontend
+          port: 3000
+        - path: /api
+          pathType: Prefix
+          service: teamflow-frontend  # API proxy in frontend
+          port: 3000
 ```
 
 ### ⚠️ Important: Secrets Management
@@ -213,6 +296,321 @@ For production, use Kubernetes Secrets instead of values files. See `references/
 
 ---
 
+## Next.js Docker Requirements
+
+### ⚠️ Critical: Standalone Output Mode
+
+**Next.js applications MUST use standalone output for Docker deployment.**
+
+**File: `next.config.ts`**
+```typescript
+const nextConfig = {
+  output: 'standalone',  // REQUIRED for Docker deployment
+  // ... other config
+};
+```
+
+**Without standalone mode:**
+- Docker build will fail: `Cannot find module '/app/.next/standalone/server.js'`
+- Multi-stage build cannot copy built files correctly
+
+**With standalone mode:**
+- Next.js generates a self-contained `.next/standalone` directory
+- Contains all necessary files to run the app independently
+- Significantly smaller Docker image size
+
+**Frontend Dockerfile (multi-stage):**
+```dockerfile
+# Stage 1: Dependencies
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Stage 2: Builder
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+RUN npm run build
+
+# Stage 3: Runner
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy ONLY the standalone output (not entire .next directory)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+**Build command:**
+```bash
+docker build --build-arg NEXT_PUBLIC_API_URL="" -t myapp:latest .
+```
+
+---
+
+## API Proxy Pattern (Next.js to Backend Service)
+
+### The Challenge
+
+In Kubernetes, the frontend and backend run as separate services. The browser can only access the frontend service (via NodePort or Ingress), but needs to make API calls to the backend.
+
+**Problem:** How to route browser API requests to the backend service without exposing the backend externally?
+
+### Architecture
+
+```
+Browser (http://127.0.0.1:46615)
+   │
+   │ Axios request with baseURL=""
+   │
+   ▼
+Frontend Service (Next.js)
+   │
+   ├──> /api/*      → Next.js API Route (catch-all proxy)
+   │                  → Forwards to Backend Service
+```
+
+### Solution: API Route Proxy
+
+**File: `src/app/api/[...path]/route.ts`**
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+
+// Internal K8s service URL (server-side only)
+const BACKEND_URL = process.env.BACKEND_URL ||
+  'http://teamflow-backend.teamflow.svc.cluster.local:8000';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const { path } = await params;
+  return proxyRequest(request, path);
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const { path } = await params;
+  return proxyRequest(request, path);
+}
+
+// PUT, PATCH, DELETE follow same pattern...
+
+async function proxyRequest(
+  request: NextRequest,
+  path: string[]
+): Promise<NextResponse> {
+  // Reconstruct path: /api/v1/auth/login
+  const fullPath = '/api/' + path.join('/');
+  const url = new URL(fullPath, BACKEND_URL);
+  url.search = request.nextUrl.search;
+
+  // Forward auth token from cookie or header
+  const token = request.cookies.get('access_token')?.value ||
+                request.headers.get('authorization')?.replace('Bearer ', '');
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Forward request to backend
+  const response = await fetch(url.toString(), {
+    method: request.method,
+    headers,
+    body: request.method !== 'GET' ? await request.text() : undefined,
+  });
+
+  // Return response with CORS headers
+  const data = await response.text();
+  return new NextResponse(data, {
+    status: response.status,
+    headers: {
+      'Content-Type': response.headers.get('Content-Type') || 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+```
+
+### Key Points
+
+- `[...path]` is a catch-all route that matches `/api/*`
+- `dynamic = 'force-dynamic'` disables caching (important for API routes)
+- Auth token forwarded from cookie or Authorization header
+- CORS headers added for cross-origin requests
+- Uses internal K8s DNS: `<service-name>.<namespace>.svc.cluster.local:<port>`
+
+### Environment Variables
+
+| Variable | Scope | Purpose | Example Value |
+|----------|-------|---------|---------------|
+| `NEXT_PUBLIC_API_URL` | Client (browser) | Axios baseURL for API requests | `""` (empty) for relative paths |
+| `BACKEND_URL` | Server (Next.js) | Internal K8s service URL for proxy | `http://teamflow-backend.teamflow.svc.cluster.local:8000` |
+
+### Why Empty String for NEXT_PUBLIC_API_URL?
+
+When `NEXT_PUBLIC_API_URL=""`:
+- Axios makes requests to relative paths like `/api/v1/auth/login`
+- Browser resolves relative path to current origin
+- Next.js API route forwards to backend
+- No CORS issues (same origin)
+
+### Testing the Setup
+
+```bash
+# Test that frontend proxy works
+curl -X POST "http://127.0.0.1:46615/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@test.com","password":"password123"}'
+
+# Test that backend is accessible from frontend pod
+kubectl exec -n teamflow deployment/teamflow-frontend -- \
+  curl http://teamflow-backend.teamflow.svc.cluster.local:8000/health
+```
+
+---
+
+## Docker Health Checks
+
+### Backend Health Check (FastAPI)
+
+**Dockerfile:**
+```dockerfile
+# Stage 3: Runner
+FROM python:3.13-slim AS runner
+WORKDIR /app
+RUN addgroup --system --gid 1001 appuser && \
+    adduser --system --uid 1001 appuser
+COPY --from=builder /app/.venv .venv
+COPY --from=builder --chown=appuser:appuser /app/app app
+USER appuser
+ENV PATH="/app/.venv/bin:$PATH"
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
+  CMD python -c "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Backend health endpoint (`app/main.py` or similar):**
+```python
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+```
+
+### Frontend Health Check (Next.js)
+
+**Next.js has built-in health check at root path `/`:**
+
+```yaml
+# Kubernetes livenessProbe
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+```
+
+### Kubernetes Probes
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+```
+
+---
+
+## Internal Kubernetes Service URLs
+
+### Service Discovery Pattern
+
+Kubernetes provides internal DNS for service-to-service communication:
+
+```
+<service-name>.<namespace>.svc.cluster.local:<port>
+```
+
+### Common Service URLs
+
+| Service | Internal URL | Purpose |
+|---------|--------------|---------|
+| Backend (from frontend) | `http://teamflow-backend.teamflow.svc.cluster.local:8000` | API proxy |
+| Qdrant (from backend) | `http://qdrant.teamflow.svc.cluster.local:6333` | Vector DB |
+| Kafka (from backend) | `kafka-broker.kafka.svc.cluster.local:9092` | Event streaming |
+| Redis (from backend) | `redis:6379` (same namespace) | Caching |
+
+### Environment Variables for Services
+
+```yaml
+# backend-deployment.yaml
+env:
+  - name: FRONTEND_URL
+    value: "http://localhost:3000,http://127.0.0.1:39315,http://192.168.49.2"
+  - name: QDRANT_URL
+    value: "http://qdrant.teamflow.svc.cluster.local:6333"
+  - name: BACKEND_URL
+    value: "http://teamflow-backend.teamflow.svc.cluster.local:8000"
+```
+
+### Cross-Namespace Communication
+
+For services in different namespaces:
+```yaml
+# Accessing service in different namespace
+value: "http://service-name.other-namespace.svc.cluster.local:8080"
+```
+
+Same namespace (can omit namespace):
+```yaml
+value: "http://service-name:8080"
+```
+
+---
+
 ## Deployment Template (Use assets/templates/deployment.yaml)
 
 ```yaml
@@ -256,6 +654,165 @@ spec:
             port: {{ .Values.service.targetPort }}
           initialDelaySeconds: 5
           periodSeconds: 5
+```
+
+---
+
+## Backend Deployment with Environment Variables
+
+**Complete backend-deployment.yaml template:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.backend.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "teamflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "teamflow.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "teamflow.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.backend.service.targetPort }}
+        env:
+        # Database connection (from secret)
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: DATABASE_URL
+        # OpenAI API key (from secret)
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: OPENAI_API_KEY
+        # Application secret (from secret)
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: SECRET_KEY
+        # Better Auth secret (from secret)
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: BETTER_AUTH_SECRET
+        # Frontend URLs for CORS (allowed origins)
+        - name: FRONTEND_URL
+          value: "http://localhost:3000,http://127.0.0.1:39315,http://192.168.49.2"
+        # Optional: Gemini API key
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: GEMINI_API_KEY
+          optional: true
+        # Optional: OpenRouter API key
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: OPENROUTER_API_KEY
+          optional: true
+        # Qdrant vector database URL (internal K8s service)
+        - name: QDRANT_URL
+          value: "http://qdrant.teamflow.svc.cluster.local:6333"
+        # Optional: Qdrant API key
+        - name: QDRANT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: QDRANT_API_KEY
+          optional: true
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+        livenessProbe:
+          {{- toYaml .Values.backend.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.backend.readinessProbe | nindent 10 }}
+```
+
+---
+
+## Frontend Deployment with Environment Variables
+
+**Complete frontend-deployment.yaml template:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.frontend.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "teamflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "teamflow.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "teamflow.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.frontend.service.targetPort }}
+        env:
+        # CRITICAL: Empty string for relative paths (browser uses current origin)
+        - name: NEXT_PUBLIC_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: teamflow-config
+              key: NEXT_PUBLIC_API_URL
+        # Node environment
+        - name: NODE_ENV
+          value: "production"
+        # Internal K8s service URL for Next.js API route proxy (server-side only)
+        - name: BACKEND_URL
+          value: "http://teamflow-backend.teamflow.svc.cluster.local:8000"
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 10 }}
+        livenessProbe:
+          {{- toYaml .Values.frontend.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.frontend.readinessProbe | nindent 10 }}
 ```
 
 ---
@@ -547,6 +1104,7 @@ kubectl port-forward deployment/myapp 8000:8000 -n namespace
 - `references/aiops-commands.md` - kubectl-ai, kagent, and Gordon command reference
 - `references/common-pitfalls.md` - **Common deployment pitfalls and solutions** ⚠️
 - `references/deployment-pitfalls.md` - Real-world debugging: Minikube deployment issues and solutions
+- `references/oracle-oke-deployment.md` - **Oracle OKE deployment via Cloud Shell** - Complete guide with ARM64, KRaft Kafka setup, and all pitfalls ⭐
 
 ### Available Templates
 - `assets/templates/deployment.yaml` - Production deployment template
