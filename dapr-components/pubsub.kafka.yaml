@@ -49,10 +49,3 @@ spec:
     # SASL authentication type (none, plain, scram_sha256, scram_sha512)
     - name: saslType
       value: "none"
-
-# Scopes for topic subscription (optional - restricts which apps can subscribe)
-scopes:
-  teamflow-backend: ["task-events", "reminders", "time-logged", "task-updates"]
-  recurring-task-service: ["task-events"]
-  notification-service: ["reminders"]
-  realtime-sync-service: ["task-events", "task-updates"]
