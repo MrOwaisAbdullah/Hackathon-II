@@ -1,13 +1,13 @@
-"""
-T114-T117: TaskEventStream - WebSocket Client with Auto-Reconnect
-
-Handles WebSocket connection to the realtime-sync-service for live task updates.
-Features:
-- Auto-reconnect with exponential backoff
-- JWT token authentication
-- Event subscription and handlers
-- Connection state management
-"""
+/**
+ * T114-T117: TaskEventStream - WebSocket Client with Auto-Reconnect
+ *
+ * Handles WebSocket connection to the realtime-sync-service for live task updates.
+ * Features:
+ * - Auto-reconnect with exponential backoff
+ * - JWT token authentication
+ * - Event subscription and handlers
+ * - Connection state management
+ */
 
 import { EventEmitter } from 'eventemitter3';
 
@@ -70,7 +70,7 @@ export class TaskEventStream extends EventEmitter {
       this.ws.onmessage = this.handleMessage.bind(this);
       this.ws.onerror = this.handleError.bind(this);
       this.ws.onclose = this.handleClose.bind(this);
-    } catch (error) {
+    } catch {
       this.setState('error');
       this.scheduleReconnect();
     }

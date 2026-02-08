@@ -143,7 +143,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
 
   // T058: Get recurrence display text
   const getRecurrenceDisplay = () => {
-    if (!task.recurrence_rule?.frequency) return null;
+    if (!task.recurrence_rule?.frequency) return undefined;
     const parts = [];
     if (task.recurrence_rule.interval && task.recurrence_rule.interval > 1) {
       parts.push(`Every ${task.recurrence_rule.interval}`);
@@ -154,14 +154,14 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
 
   // T088: Get reminder display text
   const getReminderDisplay = () => {
-    if (!task.reminder_settings || !task.reminder_settings.offsets || task.reminder_settings.offsets.length === 0) return null;
-    const offsetLabels: Record<string, string> = {
-      "15m": "15 min",
-      "1h": "1 hour",
-      "1d": "1 day",
-      "1w": "1 week",
+    if (!task.reminder_settings || !task.reminder_settings.offsets_minutes || task.reminder_settings.offsets_minutes.length === 0) return undefined;
+    const offsetLabels: Record<number, string> = {
+      15: "15 min",
+      60: "1 hour",
+      1440: "1 day",
+      10080: "1 week",
     };
-    const labels = task.reminder_settings.offsets.map((o: string) => offsetLabels[o] || o).join(", ");
+    const labels = task.reminder_settings.offsets_minutes.map((o: number) => offsetLabels[o] || `${o} min`).join(", ");
     return `${labels} before`;
   };
 
@@ -270,7 +270,7 @@ export function TaskCard({ task, isDragging = false, onEdit }: TaskCardProps) {
 
           {/* T088: Reminder Badge */}
           <AnimatePresence>
-            {task.reminder_settings?.offsets && task.reminder_settings.offsets.length > 0 && (
+            {task.reminder_settings?.offsets_minutes && task.reminder_settings.offsets_minutes.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}

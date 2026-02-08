@@ -7,7 +7,8 @@
       "Bash(~/.local/bin/helm:*)",
       "Bash(docker build:*)",
       "Bash(/usr/local/bin/kubectl:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

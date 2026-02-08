@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: teamflow-backend
+  namespace: teamflow
+  labels:
+    app: teamflow-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: teamflow-backend
+  template:
+    metadata:
+      labels:
+        app: teamflow-backend
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "teamflow-backend"
+        dapr.io/app-port: "8000"
+        dapr.io/log-level: "info"
+    spec:
+      containers:
+      - name: backend
+        image: docker.io/mrowaisabdullah/teamflow-backend:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: database-url
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: openai-api-key
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: jwt-secret
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: teamflow-secrets
+              key: better-auth-secret
+        - name: FRONTEND_URL
+          value: "http://teamflow-frontend.teamflow.svc.cluster.local:3000"
+        - name: KAFKA_BROKER
+          value: "teamflow-kafka-kafka-pool-0.kafka.svc.cluster.local:9092"
+        command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: teamflow-backend
+  namespace: teamflow
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: teamflow-backend

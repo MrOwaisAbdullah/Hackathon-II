@@ -5,7 +5,7 @@
  * Manages WebSocket lifecycle and event handlers.
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { TaskEventStream, TaskEvent, ConnectionState } from '@/services/websocket';
 
 export interface UseTaskEventsOptions {
@@ -46,7 +46,7 @@ export function useTaskEvents(options: UseTaskEventsOptions) {
       setState('disconnected');
     };
 
-    const handleError = (error: Event) => {
+    const handleError = (_error: Event) => {
       setState('error');
     };
 

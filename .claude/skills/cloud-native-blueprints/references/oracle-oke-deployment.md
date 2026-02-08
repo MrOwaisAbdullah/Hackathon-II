@@ -314,23 +314,35 @@ kubectl create secret generic teamflow-secrets \
 
 ## Step 7: Deploy Application
 
-### Option A: Using Helm Charts
+### Using Helm with OKE Values File
+
+The `values-oke.yaml` file is pre-configured for Oracle OKE Always Free tier:
+- Uses Docker Hub images (mrowaisabdullah/teamflow-*)
+- Single replica for resource optimization
+- K8s internal service URLs for environment variables
+- References existing `teamflow-secrets`
 
 ```bash
-# If you have Helm charts in your repo
+# Deploy using OKE-specific values
 helm install teamflow ./helm/teamflow \
   --namespace teamflow \
-  --set backend.image.tag=latest \
-  --set frontend.image.tag=latest
+  --values helm/teamflow/values-oke.yaml \
+  --wait --timeout 10m
 ```
 
-### Option B: Using kubectl
-
+**Note:** If the Helm chart doesn't exist locally, you can use inline values:
 ```bash
-# Apply manifests
-kubectl apply -f k8s/backend-deployment.yaml -n teamflow
-kubectl apply -f k8s/frontend-deployment.yaml -n teamflow
-kubectl apply -f k8s/services.yaml -n teamflow
+helm install teamflow ./helm/teamflow \
+  --namespace teamflow \
+  --set frontend.image.repository=mrowaisabdullah/teamflow-frontend \
+  --set frontend.image.tag=latest \
+  --set backend.image.repository=mrowaisabdullah/teamflow-backend \
+  --set backend.image.tag=latest \
+  --set backend.dapr.enabled=true \
+  --set frontend.dapr.enabled=false \
+  --set secrets.existingSecret=teamflow-secrets \
+  --set ingress.enabled=false \
+  --wait --timeout 10m
 ```
 
 ---
@@ -358,20 +370,37 @@ kubectl rollout status deployment/teamflow-frontend -n teamflow
 **Problem:** Using heredoc (`<< EOF`) or multi-line echo commands causes terminal issues.
 
 **Solution:**
-- Use `nano` editor to create files
-- Use `printf` or `echo` with single-line commands
+- **ALWAYS use `nano` editor to create files** - heredoc does NOT work in Cloud Shell
 - Copy content from code blocks and paste into nano
+- Save with `Ctrl+O`, press `Enter`, then exit with `Ctrl+X`
+
+**Example:**
+```bash
+# ❌ DON'T - Heredoc fails
+cat > file.yaml << 'EOF'
+content
+EOF
+
+# ✅ DO - Use nano instead
+nano file.yaml
+# Paste content, Ctrl+O, Enter, Ctrl+X
+```
+
+**CRITICAL:** For Cloud Shell deployment, NEVER paste YAML content directly into terminal. Always use `nano filename.yaml` to create the file first, then paste the content inside nano editor.
 
 ### Pitfall 2: Leading Spaces in YAML
 
-**Problem:** Copy-pasting adds leading spaces that break YAML parsing.
+**Problem:** Copy-pasting from terminal code blocks adds leading spaces that break YAML parsing.
 
 **Error:** `error parsing YAML: mapping values are not allowed in this context`
 
 **Solution:**
-- Use `nano` to carefully edit files
+- **BEST: Write files directly using Write tool** - No leading space issues
+- **Alternative: Use `nano`** to carefully edit files
 - Check with `cat filename.yaml` before applying
 - Use `sed -i 's/^ //' filename.yaml` to remove leading spaces
+
+**Why this happens:** When you copy from a code block in terminal, the indentation gets preserved as actual leading spaces. When writing files directly (like `k8.yml`), there are no leading spaces to remove.
 
 ### Pitfall 3: ARM64 Architecture
 
@@ -443,6 +472,173 @@ kubectl rollout status deployment/teamflow-frontend -n teamflow
 - Delete the old Kafka resource first: `kubectl delete kafka teamflow-kafka -n kafka`
 - Apply the new configuration
 - Or use `kubectl replace -f kafka-cluster.yaml` instead of apply
+
+### Pitfall 10: Frontend Docker Build - Missing public Folder
+
+**Problem:** Dockerfile tries to copy `/app/public` which doesn't exist after Next.js build.
+
+**Error:** `failed to compute cache key: "/app/public": not found`
+
+**Solution:**
+- Remove the `COPY --from=builder /app/public ./public` line from Dockerfile
+- Or make it optional if your project has static assets:
+```dockerfile
+# Copy public folder if it exists (optional)
+COPY --from=builder /app/public ./public 2>/dev/null || true
+```
+
+### Pitfall 11: Frontend Build - Missing shadcn/ui Components
+
+**Problem:** Missing shadcn/ui components (dialog, label, input, textarea, calendar, popover).
+
+**Error:** `Module not found: Can't resolve '@/components/ui/dialog'`
+
+**Solution:**
+1. Create missing UI components as placeholders:
+```bash
+# Create components manually or use shadcn CLI
+npx shadcn-ui@latest add dialog label input textarea calendar popover
+```
+2. Install required Radix packages:
+```bash
+npm install @radix-ui/react-dialog @radix-ui/react-label @radix-ui/react-popover date-fns
+```
+
+### Pitfall 12: Frontend Build - Python-style Docstrings in TypeScript
+
+**Problem:** Files have Python-style `"""` docstrings which are invalid in TypeScript.
+
+**Error:** `x Unterminated string constant`
+
+**Solution:**
+- Replace `"""` docstrings with JSDoc comments `/** */`
+- Or remove docstrings entirely from TS/TSX files
+
+### Pitfall 13: Frontend Build - ESLint/TypeScript Errors
+
+**Problem:** Multiple type errors in TaskCard.tsx, TaskForm.tsx, RecurrenceDialog.tsx.
+
+**Common Errors:**
+- `Type 'null' is not assignable to type 'string | undefined'` → Return `undefined` instead of `null`
+- `Property 'offsets' does not exist on type 'ReminderSettings'` → Use `offsets_minutes` (array of numbers)
+- `Property 'mode' does not exist` → Use `_mode` (prefix with underscore for intentionally unused params)
+
+**Solution:**
+- Fix TypeScript types before building Docker image
+- Run `npm run build` locally first to catch errors
+- Use `as any` type assertion for complex type mismatches
+
+### Pitfall 14: Frontend Build - API Type Mismatches
+
+**Problem:** Form state uses camelCase but API expects snake_case.
+
+**Error:** `Property 'daysOfWeek' does not exist in type 'RecurrenceRule'`
+
+**Solution:**
+- Transform form data before sending to API:
+```typescript
+recurrence_rule: recurrenceRule.frequency ? {
+  frequency: recurrenceRule.frequency,
+  interval: recurrenceRule.interval,
+  days_of_week: recurrenceRule.daysOfWeek as any,  // API expects snake_case
+  day_of_month: recurrenceRule.dayOfMonth,
+  end_date: recurrenceRule.endDate,
+  time_of_day: recurrenceRule.timeOfDay,
+} : undefined
+```
+- Transform `offsets` (string array) to `offsets_minutes` (number array):
+```typescript
+offsets_minutes: reminderSettings.offsets.map(o => {
+  const map: Record<string, number> = { "15m": 15, "1h": 60, "1d": 1440, "1w": 10080 };
+  return map[o] || parseInt(o) || 0;
+})
+```
+
+### Pitfall 15: ImagePullBackOff - Short Name Mode Enforcing (Kubernetes 1.34+)
+
+**Problem:** Kubernetes 1.34+ enforces full image names with registry prefix.
+
+**Error:** `short name mode is enforcing, but image name mrowaisabdullah/teamflow-backend:latest returns ambiguous list`
+
+**Solution:**
+- Always use full image name with `docker.io/` prefix in deployment YAMLs
+- Update image references: `mrowaisabdullah/teamflow-backend:latest` → `docker.io/mrowaisabdullah/teamflow-backend:latest`
+
+```yaml
+# ❌ DON'T - Short name
+image: mrowaisabdullah/teamflow-backend:latest
+
+# ✅ DO - Full name with registry
+image: docker.io/mrowaisabdullah/teamflow-backend:latest
+```
+
+### Pitfall 16: Backend CrashLoopBackOff - Invalid uvicorn --log-config
+
+**Problem:** Backend container crashes immediately with uvicorn error about null log-config.
+
+**Error:** `Error: Invalid value for '--log-config': Path 'null' does not exist.`
+
+**Solution:**
+- Override the container command in deployment to use explicit uvicorn args
+- Remove or fix the LOG_CONFIG environment variable
+
+```yaml
+# Add explicit command to deployment
+spec:
+  containers:
+  - name: backend
+    image: docker.io/mrowaisabdullah/teamflow-backend:latest
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Pitfall 17: Architecture Mismatch - Cloud Shell vs OKE Nodes
+
+**Problem:** Oracle Cloud Shell is ARM64, but OKE Always Free nodes can be AMD64. Images built for wrong architecture fail to run.
+
+**Detection:**
+```bash
+# Check Cloud Shell architecture
+uname -m  # Shows: aarch64 (ARM64)
+
+# Check OKE node architecture
+kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.nodeInfo.architecture}{"\n"}{end}'
+# May show: amd64
+```
+
+**Solution:**
+- Build multi-platform images or match target node architecture
+- Use `docker buildx build --platform linux/amd64` for AMD64 nodes
+- Use `docker buildx build --platform linux/arm64` for ARM64 nodes
+
+```bash
+# Build for AMD64 (most OKE nodes)
+docker buildx build --platform linux/amd64 -t username/image:latest ./path --push
+
+# Build for both architectures
+docker buildx build --platform linux/amd64,linux/arm64 -t username/image:latest ./path --push
+```
+
+### Pitfall 18: Database Columns Missing After Deployment
+
+**Problem:** After deploying new features (recurrence, reminders), the backend returns 500 errors because database columns don't exist.
+
+**Error:** `column tasks.recurrence_rule does not exist`
+
+**Solution:**
+- Run database migrations before or after deploying new backend code
+- For Neon PostgreSQL, use the SQL Editor to add missing columns
+
+```sql
+-- Run in Neon SQL Editor or via psql
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_rule JSONB;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder_settings JSONB;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS next_instance_id UUID REFERENCES tasks(id);
+```
+
+**Prevention:**
+- Always run `alembic upgrade head` locally before deploying
+- Create migration scripts as SQL files for easy execution
+- Test migrations on a staging database first
 
 ---
 
@@ -516,6 +712,42 @@ kubectl exec -it <pod-name> -n <namespace> -- /bin/sh
 
 ---
 
+## Recommended Build Workflow
+
+### ALWAYS Build Locally First
+
+Before building Docker images, always run the build locally to catch errors:
+
+```bash
+# Frontend
+cd teamflow-web/frontend
+npm run build
+
+# Backend
+cd teamflow-web/backend
+# Backend typically uses Python, verify with:
+python -m pytest
+```
+
+**Why:** This saves significant time - Docker build takes 2-3 minutes, local build takes ~20 seconds.
+
+### Fix TypeScript/ESLint Errors First
+
+Common issues to fix before Docker build:
+1. ✅ Fix all type errors (null vs undefined, property names)
+2. ✅ Fix ESLint errors (unused variables, imports)
+3. ✅ Ensure all dependencies are installed
+4. ✅ Verify package-lock.json is in sync
+
+### Docker Build Process
+
+1. **Build locally first** → `npm run build`
+2. **Build Docker image** → `docker build -t username/image:latest ./path`
+3. **Test image locally** → `docker run -p 3000:3000 username/image:latest`
+4. **Push to registry** → `docker push username/image:latest`
+
+---
+
 ## Summary: Critical Commands
 
 | Task | Command |
@@ -526,10 +758,92 @@ kubectl exec -it <pod-name> -n <namespace> -- /bin/sh
 | **Kafka Version** | Must use 4.0.0, 4.0.1, 4.1.0, or 4.1.1 |
 | **Kafka Config** | Create `KafkaNodePool` + `Kafka` resource |
 | **Kafka Pod Name** | `teamflow-kafka-kafka-pool-0` (KRaft mode) |
-| **File creation** | Use `nano filename.yaml` |
+| **File creation** | Use `nano filename.yaml` (heredoc fails in Cloud Shell) |
 | **Add to PATH** | `export PATH="$HOME/dapr:$HOME:$PATH"` |
+| **K8s 1.34+ images** | Must use `docker.io/` prefix (e.g., `docker.io/username/image:latest`) |
+| **Check node arch** | `kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.nodeInfo.architecture}{"\n"}{end}'` |
+| **Build AMD64 image** | `docker buildx build --platform linux/amd64 -t username/image:latest ./path --push` |
+| **Fix uvicorn crash** | Add `command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]` |
+| **Database migration** | Run SQL in Neon: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_rule JSONB;` |
+| **Expose frontend** | `kubectl apply -f expose-frontend-lb.yaml` (LoadBalancer service) |
+| **Restart deployment** | `kubectl rollout restart deployment teamflow-frontend -n teamflow` |
+| **Check pod logs** | `kubectl logs -l app=teamflow-backend -n teamflow --tail=50` |
+| **Check pod error** | `kubectl describe pod <pod-name> -n teamflow` |
 
 ---
 
-**Last Updated:** February 6, 2026
-**Tested On:** Oracle Cloud Shell (ARM64, ap-mumbai-1)
+## Complete Deployment Checklist
+
+- [ ] **Prerequisites**
+  - [ ] Oracle Cloud account with OKE cluster created
+  - [ ] Database URL (Neon PostgreSQL or similar)
+  - [ ] OpenAI API key
+  - [ ] JWT secret and Better Auth secret
+
+- [ ] **Step 1: Cloud Shell Setup**
+  - [ ] Access Cloud Shell from OCI Console
+  - [ ] Run `oci ce cluster create-kubeconfig` to configure kubectl
+  - [ ] Verify: `kubectl get nodes`
+
+- [ ] **Step 2: Install Dapr CLI**
+  - [ ] `wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - \| DAPR_INSTALL_DIR="$HOME/dapr" /bin/bash -s 1.14.0`
+  - [ ] `export PATH="$HOME/dapr:$PATH"`
+  - [ ] `dapr init -k --runtime-version 1.14.0`
+  - [ ] Verify: `kubectl get pods -n dapr-system`
+
+- [ ] **Step 3: Install Helm**
+  - [ ] `wget https://get.helm.sh/helm-v3.20.0-linux-arm64.tar.gz`
+  - [ ] `tar -zxvf helm-v3.20.0-linux-arm64.tar.gz`
+  - [ ] `mv linux-arm64/helm ~/helm`
+  - [ ] `export PATH="$HOME:$PATH"`
+  - [ ] Verify: `helm version`
+
+- [ ] **Step 4: Deploy Kafka (Strimzi KRaft Mode)**
+  - [ ] `helm repo add strimzi https://strimzi.io/charts/`
+  - [ ] `helm repo update`
+  - [ ] `kubectl create namespace kafka`
+  - [ ] `helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator --namespace kafka`
+  - [ ] Create `kafka-pool.yaml` with KafkaNodePool (replicas: 1, roles: [controller, broker])
+  - [ ] Create `kafka-cluster.yaml` with Kafka resource (version: 4.0.0)
+  - [ ] `kubectl apply -f kafka-pool.yaml && kubectl apply -f kafka-cluster.yaml`
+  - [ ] Wait for pods: `kubectl get pods -n kafka -w`
+  - [ ] Create topics inside pod: `kubectl exec -it teamflow-kafka-kafka-pool-0 -n kafka -- bin/kafka-topics.sh --create --topic task-events --partitions 3 --replication-factor 1 --bootstrap-server localhost:9092`
+
+- [ ] **Step 5: Build Docker Images** (LOCAL MACHINE)
+  - [ ] `cd teamflow-web/frontend && npm run build` (verify first!)
+  - [ ] `docker buildx build --platform linux/amd64 -t mrowaisabdullah/teamflow-frontend:latest ./teamflow-web/frontend --push`
+  - [ ] `docker buildx build --platform linux/amd64 -t mrowaisabdullah/teamflow-backend:latest ./teamflow-web/backend --push`
+  - [ ] Verify images are public on Docker Hub
+
+- [ ] **Step 6: Create Namespace and Secrets**
+  - [ ] `kubectl create namespace teamflow`
+  - [ ] `kubectl create secret generic teamflow-secrets --namespace teamflow --from-literal=database-url='YOUR_URL' --from-literal=openai-api-key='YOUR_KEY' --from-literal=jwt-secret='YOUR_SECRET' --from-literal=better-auth-secret='YOUR_SECRET'`
+
+- [ ] **Step 7: Run Database Migrations**
+  - [ ] Go to Neon Console → SQL Editor
+  - [ ] Run: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS recurrence_rule JSONB;`
+  - [ ] Run: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reminder_settings JSONB;`
+  - [ ] Run: `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS next_instance_id UUID REFERENCES tasks(id);`
+
+- [ ] **Step 8: Deploy Application**
+  - [ ] Create `backend-deployment.yaml` with `docker.io/` prefix, command override, Dapr annotations
+  - [ ] Create `frontend-deployment.yaml` with `docker.io/` prefix
+  - [ ] `kubectl apply -f backend-deployment.yaml -n teamflow`
+  - [ ] `kubectl apply -f frontend-deployment.yaml -n teamflow`
+
+- [ ] **Step 9: Expose Application (LoadBalancer)**
+  - [ ] Create `expose-frontend-lb.yaml` with LoadBalancer type
+  - [ ] `kubectl apply -f expose-frontend-lb.yaml`
+  - [ ] Get external IP: `kubectl get svc teamflow-frontend-lb -n teamflow`
+  - [ ] Open http://EXTERNAL-IP in browser
+
+- [ ] **Step 10: Verify Deployment**
+  - [ ] `kubectl get pods -n teamflow` (all Running)
+  - [ ] `kubectl get svc -n teamflow` (services exist)
+  - [ ] Test creating a task in the UI
+  - [ ] Check backend logs: `kubectl logs -l app=teamflow-backend -n teamflow --tail=20`
+
+---
+
+**Last Updated:** February 8, 2026
+**Tested On:** Oracle Cloud Shell (ARM64, ap-mumbai-1) with OKE AMD64 nodes

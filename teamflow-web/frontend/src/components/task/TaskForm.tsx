@@ -113,9 +113,22 @@ export function TaskForm({ columnId = "TODO", onClose }: TaskFormProps) {
         assignee_id: assigneeId || undefined,
         project_id: projectId || undefined,
         // T056: Include recurrence rule if set
-        recurrence_rule: recurrenceRule.frequency ? recurrenceRule : undefined,
+        recurrence_rule: recurrenceRule.frequency ? {
+          frequency: recurrenceRule.frequency,
+          interval: recurrenceRule.interval,
+          days_of_week: recurrenceRule.daysOfWeek as any,
+          day_of_month: recurrenceRule.dayOfMonth,
+          end_date: recurrenceRule.endDate,
+          time_of_day: recurrenceRule.timeOfDay,
+        } as any : undefined,
         // T087: Include reminder settings if enabled
-        reminder_settings: reminderSettings.enabled ? reminderSettings : undefined,
+        reminder_settings: reminderSettings.enabled ? {
+          enabled: true,
+          offsets_minutes: reminderSettings.offsets.map(o => {
+            const map: Record<string, number> = { "15m": 15, "1h": 60, "1d": 1440, "1w": 10080 };
+            return map[o] || parseInt(o) || 0;
+          })
+        } : undefined,
       });
 
       // Reset form

@@ -1,0 +1,112 @@
+namespace: teamflow
+
+# Dapr Configuration
+dapr:
+  enabled: true
+  version: "1.14.0"
+
+# Frontend Configuration
+frontend:
+  name: teamflow-frontend
+  replicaCount: 1
+  image:
+    repository: mrowaisabdullah/teamflow-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  dapr:
+    enabled: false
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  env:
+    NEXT_PUBLIC_API_URL: "http://teamflow-backend.teamflow.svc.cluster.local:8000"
+    NEXT_PUBLIC_WS_URL: "ws://teamflow-backend.teamflow.svc.cluster.local:8000"
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+# Backend Configuration
+backend:
+  name: teamflow-backend
+  replicaCount: 1
+  image:
+    repository: mrowaisabdullah/teamflow-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  dapr:
+    enabled: true
+    appId: "teamflow-backend"
+    appPort: 8000
+    enableAppHealthCheck: true
+    enableMetrics: true
+    metricsPort: 9090
+    logLevel: "info"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  env:
+    DATABASE_URL: ""
+    OPENAI_API_KEY: ""
+    JWT_SECRET: ""
+    BETTER_AUTH_SECRET: ""
+    FRONTEND_URL: "http://teamflow-frontend.teamflow.svc.cluster.local:3000"
+    KAFKA_BROKER: "teamflow-kafka-kafka-pool-0.kafka.svc.cluster.local:9092"
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+# Secret Reference
+secrets:
+  existingSecret: teamflow-secrets
+
+# Ingress Configuration
+ingress:
+  enabled: false
+
+# Autoscaling
+autoscaling:
+  enabled: false
