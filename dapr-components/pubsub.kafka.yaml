@@ -12,7 +12,7 @@ spec:
   metadata:
     # Kafka broker addresses
     - name: brokers
-      value: "redpanda-0.redpanda.kafka.svc.cluster.local:9092"
+      value: "teamflow-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
 
     # Consumer group for Dapr
     - name: consumerGroup
