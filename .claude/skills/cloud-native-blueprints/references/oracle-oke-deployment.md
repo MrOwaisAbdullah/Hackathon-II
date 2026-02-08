@@ -640,6 +640,45 @@ ALTER TABLE tasks ADD COLUMN IF NOT EXISTS next_instance_id UUID REFERENCES task
 - Create migration scripts as SQL files for easy execution
 - Test migrations on a staging database first
 
+### Pitfall 19: Git Merge Conflict When Pulling in Cloud Shell
+
+**Problem:** Editing files locally (pushing to GitHub) and then pulling in cloud shell causes merge conflicts if the same files were modified.
+
+**Error:** `error: Your local changes to the following files would be overwritten by merge`
+
+**Solution:**
+- **Recommended workflow:** Edit locally → Push to GitHub → Pull in cloud shell → Apply
+- If merge conflict occurs, discard local changes in cloud shell since remote has the fixes
+
+```bash
+# Discard local changes and pull fresh
+git reset --hard HEAD
+git pull origin 005-advanced-cloud-deployment
+
+# Or stash changes if you want to keep them
+git stash
+git pull origin 005-advanced-cloud-deployment
+git stash pop
+```
+
+**Best Practice Workflow:**
+```bash
+# 1. Edit files LOCALLY (not in cloud shell)
+# 2. Commit and push to GitHub
+git add .
+git commit -m "fix: Dapr component configuration"
+git push origin branch-name
+
+# 3. In cloud shell, pull changes
+cd ~/teamflow
+git pull origin branch-name
+
+# 4. Apply the updated files
+kubectl apply -f dapr-components/ -n teamflow
+```
+
+**Why:** Cloud shell is temporary storage. Always keep source of truth in GitHub repository, not cloud shell local edits.
+
 ---
 
 ## Environment Variables
@@ -769,6 +808,8 @@ Common issues to fix before Docker build:
 | **Restart deployment** | `kubectl rollout restart deployment teamflow-frontend -n teamflow` |
 | **Check pod logs** | `kubectl logs -l app=teamflow-backend -n teamflow --tail=50` |
 | **Check pod error** | `kubectl describe pod <pod-name> -n teamflow` |
+| **Git pull conflict** | `git reset --hard HEAD && git pull origin branch-name` |
+| **Recommended workflow** | Edit locally → Push GitHub → Pull in cloud shell → Apply |
 
 ---
 
